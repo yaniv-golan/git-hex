@@ -5,7 +5,7 @@ All notable changes to git-hex will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [0.1.0] - 2025-12-06
 
 ### Added
 
@@ -22,18 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP roots enforcement for path security
 - Docker support
 - Comprehensive documentation
-
-### Changed
-
-- Normalized API output fields across all tools:
-  - `headBefore`/`headAfter` instead of `previousHash`/`newHash`/`newHead`
+- Consistent API output fields across all tools:
+  - `headBefore`/`headAfter` for tracking commit changes
   - `summary` for human-readable text, `commitMessage` for git subjects
-  - All tools now return `success` field
-- Improved error messages for GPG signing, git hooks, and conflicts
-
+  - All tools return `success` field
+- Clear error messages for GPG signing, git hooks, and conflicts
 
 ### Security
 
 - All path arguments validated against MCP roots
 - Repository state validated before destructive operations
 - Cleanup traps ensure repos are never left in broken state
+
+[0.1.0]: https://github.com/yaniv-git-hex/git-hex/releases/tag/v0.1.0

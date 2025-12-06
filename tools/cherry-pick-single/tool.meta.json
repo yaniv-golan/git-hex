@@ -1,6 +1,6 @@
 {
   "name": "gitHex.cherryPickSingle",
-  "description": "Cherry-pick a single commit with configurable merge strategy, aborting cleanly on conflict",
+  "description": "Cherry-pick a single commit with configurable merge strategy. REQUIRES: clean working tree (no uncommitted changes). Aborts cleanly on conflict.",
   "inputSchema": {
     "type": "object",
     "properties": {

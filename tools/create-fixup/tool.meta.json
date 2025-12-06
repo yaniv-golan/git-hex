@@ -1,6 +1,6 @@
 {
   "name": "gitHex.createFixup",
-  "description": "Create a fixup commit for a specified commit, to be auto-squashed during rebase",
+  "description": "Create a fixup commit for a specified commit. REQUIRES: staged changes (run 'git add' first). The fixup will be auto-squashed during rebase.",
   "inputSchema": {
     "type": "object",
     "properties": {

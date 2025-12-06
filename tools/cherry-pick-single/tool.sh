@@ -21,6 +21,18 @@ commit="$(mcp_args_require '.commit')"
 strategy="$(mcp_args_get '.strategy // empty' || true)"
 no_commit="$(mcp_args_bool '.noCommit' --default false)"
 
+# Validate strategy if provided (must match schema enum)
+if [ -n "${strategy}" ]; then
+	case "${strategy}" in
+		recursive|ort|resolve|octopus)
+			# Valid strategy
+			;;
+		*)
+			mcp_fail_invalid_args "Invalid merge strategy '${strategy}'. Must be one of: recursive, ort, resolve, octopus"
+			;;
+	esac
+fi
+
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"

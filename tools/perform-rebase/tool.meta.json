@@ -1,6 +1,6 @@
 {
   "name": "gitHex.performRebase",
-  "description": "Execute interactive rebase with automatic abort on conflict, ensuring repository is left in clean state",
+  "description": "Execute rebase with automatic abort on conflict. REQUIRES: clean working tree (no uncommitted changes). Rebases all commits in onto..HEAD range with autosquash support.",
   "inputSchema": {
     "type": "object",
     "properties": {

@@ -103,7 +103,7 @@ jobs:
       
       - name: Install mcp-bash
         run: |
-          curl -fsSL https://raw.githubusercontent.com/modelcontextprotocol/mcp-bash-framework/main/install.sh | bash -s -- --yes
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
           
       - name: Validate project
@@ -113,12 +113,11 @@ jobs:
         run: ./test/run.sh
 ```
 
-> **Note**: Adjust the install step if you're using a fork or specific branch. See the [installation docs](https://github.com/modelcontextprotocol/mcp-bash-framework#installation) for alternatives.
+> **Note**: This uses the `yaniv-golan/mcp-bash-framework` fork. See the [installation docs](https://github.com/yaniv-golan/mcp-bash-framework#installation) for alternatives.
 
 ## Reference
 
-<!-- Note: These paths are relative from test/README.md in the generated project -->
-- [Best Practices Guide](https://github.com/modelcontextprotocol/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md) - SDK helpers, testing patterns
-- [run-tool CLI](https://github.com/modelcontextprotocol/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md#testing-tools-with-run-tool) - Full CLI reference
+- [Best Practices Guide](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md) - SDK helpers, testing patterns
+- [run-tool CLI](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md#testing-tools-with-run-tool) - Full CLI reference
 
 > **Note**: If you have the mcp-bash framework installed locally, you can also reference its docs at `${MCPBASH_HOME}/docs/`.

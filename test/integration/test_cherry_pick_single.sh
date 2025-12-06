@@ -225,6 +225,20 @@ else
 	test_fail "should fail on empty repo"
 fi
 
+# ============================================================
+# TEST: cherry-pick-single fails on invalid strategy
+# ============================================================
+printf ' -> cherry-pick-single fails on invalid strategy\n'
+
+REPO7="${TEST_TMPDIR}/pick-invalid-strategy"
+create_test_repo "${REPO7}" 2
+
+if run_tool_expect_fail gitHex.cherryPickSingle "${REPO7}" '{"commit": "HEAD", "strategy": "invalid-strategy"}'; then
+	test_pass "cherry-pick-single fails on invalid strategy"
+else
+	test_fail "should fail on invalid strategy"
+fi
+
 echo ""
 echo "All gitHex.cherryPickSingle tests passed!"
 

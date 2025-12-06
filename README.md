@@ -134,6 +134,8 @@ Get a structured view of recent commits for rebase planning and inspection.
 
 Execute a rebase with automatic abort on conflict.
 
+> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
+
 > **Note:** This tool rebases all commits in the range `onto..HEAD`. It runs in non-interactive mode with `--autosquash` support, meaning fixup/squash commits are automatically applied, but arbitrary reordering or dropping of commits is not supported. For manual reordering, use git directly.
 
 **Parameters:**
@@ -164,6 +166,8 @@ Execute a rebase with automatic abort on conflict.
 ### gitHex.createFixup
 
 Create a fixup commit targeting a specific commit.
+
+> **Prerequisites:** Changes must be staged (`git add`) before running. This tool commits the currently staged changes as a fixup.
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -224,6 +228,8 @@ Amend the last commit with staged changes and/or a new message.
 ### gitHex.cherryPickSingle
 
 Cherry-pick a single commit with configurable merge strategy.
+
+> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
 
 **Parameters:**
 | Name | Type | Required | Description |

@@ -90,6 +90,94 @@ Or using the wrapper script:
 }
 ```
 
+## Common Workflows
+
+These examples show how to combine git-hex tools for typical development tasks.
+
+### Clean Up a Feature Branch After Code Review
+
+After receiving review feedback, create targeted fixups and squash them:
+
+```
+1. Review current commits
+   → gitHex.getRebasePlan { "onto": "main" }
+   
+2. For each piece of feedback:
+   - Make the fix in your editor
+   - Stage the changes: git add <files>
+   - Create a fixup targeting the original commit:
+     → gitHex.createFixup { "commit": "<hash-of-commit-to-fix>" }
+
+3. Squash all fixups into their targets:
+   → gitHex.performRebase { "onto": "main", "autosquash": true }
+```
+
+### Bring Your Branch Up to Date with Main
+
+Rebase your feature branch onto the latest main:
+
+```
+1. First, update main:
+   git checkout main && git pull
+
+2. Switch back to your feature branch:
+   git checkout feature/my-branch
+
+3. Preview what will be rebased:
+   → gitHex.getRebasePlan { "onto": "main" }
+
+4. Perform the rebase:
+   → gitHex.performRebase { "onto": "main" }
+   
+   If conflicts occur, git-hex automatically aborts and restores your branch.
+   Resolve conflicts manually, then retry.
+```
+
+### Quick Fix to the Last Commit
+
+Amend the most recent commit with additional changes:
+
+```
+1. Make your changes in the editor
+2. Stage them: git add <files>
+3. Amend:
+   → gitHex.amendLastCommit { "addAll": true }
+   
+   Or with a new message:
+   → gitHex.amendLastCommit { "message": "Better commit message" }
+```
+
+### Cherry-Pick a Single Fix from Another Branch
+
+Bring one specific commit to your current branch:
+
+```
+1. Find the commit hash on the source branch:
+   git log other-branch --oneline
+
+2. Cherry-pick it:
+   → gitHex.cherryPickSingle { "commit": "<hash>" }
+   
+   If conflicts occur, git-hex aborts automatically.
+```
+
+### Undo the Last git-hex Operation
+
+Made a mistake? Undo it:
+
+```
+→ gitHex.undoLast {}
+
+This restores HEAD to its state before the last git-hex operation.
+Works for: amendLastCommit, createFixup, performRebase, cherryPickSingle
+```
+
+### When NOT to Use git-hex
+
+- **On shared/protected branches** — Use on personal feature branches only
+- **When you need complex rebase editing** — git-hex runs autosquash but doesn't support arbitrary reordering; use `git rebase -i` directly for that
+- **On repos with contribution models you don't control** — Understand the project's rebase policy first
+
 ## Tools
 
 ### gitHex.getRebasePlan

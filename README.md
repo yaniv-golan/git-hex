@@ -524,9 +524,9 @@ git-hex is designed with safety as a priority:
 
 4. **Path Validation**: When MCP roots are configured, all paths are validated to stay within allowed boundaries.
 
-5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates a backup ref (`refs/git-hex/backup/<timestamp>_<operation>`) before making changes. Use `gitHex.undoLast` to restore or manually reset with `git reset --hard refs/git-hex/last/<timestamp>_<operation>`. Conflict-resolution helpers do not create backups.
+5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates `refs/git-hex/backup/<timestamp>_<operation>` plus a `refs/git-hex/last/<timestamp>_<operation>` pointer to the most recent one. Use `gitHex.undoLast` or `git reset --hard <backup-ref>` to restore. Conflict-resolution helpers do not create backups.
 
-6. **Read-Only Mode**: Set `GIT_HEX_READ_ONLY=1` to disable all mutating tools while keeping inspection tools available.
+6. **Read-Only Mode**: Available for inspection-only workflows (see below).
 
 ## Read-Only Mode
 

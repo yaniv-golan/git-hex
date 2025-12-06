@@ -1,0 +1,12 @@
+{
+  "name": "git-hex-marketplace",
+  "owner": {
+    "name": "Yaniv Golan"
+  },
+  "plugins": [
+    {
+      "name": "git-hex",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "git-hex",
+  "version": "0.1.0",
+  "description": "AI-assisted, non-interactive git refactoring via MCP (safe rebase, fixups, commit surgery) for agents or chat users invoking the MCP tools.",
+  "author": {
+    "name": "Yaniv Golan",
+    "url": "https://github.com/yaniv-golan"
+  },
+  "repository": "https://github.com/yaniv-golan/git-hex",
+  "license": "MIT",
+  "keywords": ["git", "rebase", "mcp", "git-hex", "mcp-bash"],
+  "mcpServers": {
+    "git-hex": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/run.sh"
+    }
+  }
+}

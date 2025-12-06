@@ -142,9 +142,19 @@ The MCP server auto-starts via `run.sh`; no extra client config required.
 
 ## MCP Client Configuration
 
-### Claude Desktop / Cursor / Windsurf
+### Recommended (Claude Desktop / Cursor / Windsurf)
 
-Add to your MCP client configuration:
+```json
+{
+  "mcpServers": {
+    "git-hex": {
+      "command": "/path/to/git-hex/run.sh"
+    }
+  }
+}
+```
+
+### Advanced: Use an Existing mcp-bash Install
 
 ```json
 {
@@ -159,19 +169,7 @@ Add to your MCP client configuration:
 }
 ```
 
-Or using the wrapper script:
-
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "/path/to/git-hex/run.sh"
-    }
-  }
-}
-```
-
-### Windows (Git Bash)
+### Windows (Git Bash, Wrapper Recommended)
 
 ```json
 {

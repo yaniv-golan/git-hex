@@ -1,8 +1,10 @@
 # Proposal: Tool Policy Hook for mcp-bash-framework
 
-**Status**: Draft  
+**Status**: Implemented  
 **Author**: git-hex project  
 **Date**: 2025-12-06
+
+> **Note**: This proposal has been implemented in mcp-bash-framework. See `lib/tools_policy.sh` in the framework and `server.d/policy.sh` in git-hex for the actual implementation.
 
 ## Summary
 

@@ -448,6 +448,41 @@ git-hex is designed with safety as a priority:
 
 5. **Backup Refs**: Every mutating operation creates a backup ref (`refs/git-hex/backup/<timestamp>_<operation>`) before making changes. Use `gitHex.undoLast` to restore or manually reset with `git reset --hard refs/git-hex/last/<timestamp>_<operation>`.
 
+6. **Read-Only Mode**: Set `GIT_HEX_READ_ONLY=1` to disable all mutating tools while keeping inspection tools available.
+
+## Read-Only Mode
+
+For environments where you want to inspect repositories without risk of modification, enable read-only mode:
+
+```bash
+export GIT_HEX_READ_ONLY=1
+```
+
+In this mode:
+- ✅ `gitHex.getRebasePlan` — allowed (inspection only)
+- ❌ `gitHex.performRebase` — blocked
+- ❌ `gitHex.createFixup` — blocked
+- ❌ `gitHex.amendLastCommit` — blocked
+- ❌ `gitHex.cherryPickSingle` — blocked
+- ❌ `gitHex.undoLast` — blocked
+
+Blocked tools return error code `-32602` with a clear message explaining that read-only mode is active.
+
+To configure read-only mode in your MCP client:
+
+```json
+{
+  "mcpServers": {
+    "git-hex": {
+      "command": "/path/to/git-hex/run.sh",
+      "env": {
+        "GIT_HEX_READ_ONLY": "1"
+      }
+    }
+  }
+}
+```
+
 ## Recovery
 
 ### Using gitHex.undoLast

@@ -1,0 +1,49 @@
+{
+  "name": "gitHex.checkRebaseConflicts",
+  "description": "Check if a rebase would conflict without modifying the repository",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "maxCommits": {
+        "type": "integer",
+        "description": "Maximum commits to check (default 100)",
+        "default": 100,
+        "minimum": 1
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "wouldConflict": { "type": "boolean" },
+      "confidence": { "type": "string" },
+      "commits": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "hash": { "type": "string" },
+            "subject": { "type": "string" },
+            "prediction": { "type": "string" }
+          }
+        }
+      },
+      "limitExceeded": { "type": "boolean" },
+      "totalCommits": { "type": "integer" },
+      "checkedCommits": { "type": "integer" },
+      "summary": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "timeoutSecs": 60
+}

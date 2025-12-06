@@ -20,6 +20,16 @@
       "noCommit": {
         "type": "boolean",
         "description": "Apply changes without committing (default: false)"
+      },
+      "abortOnConflict": {
+        "type": "boolean",
+        "description": "If false, pause on conflicts instead of aborting. Use getConflictStatus/resolveConflict to continue.",
+        "default": true
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Automatically stash uncommitted changes before cherry-pick (requires abortOnConflict=true)",
+        "default": false
       }
     },
     "required": ["commit"]
@@ -51,6 +61,19 @@
       "commitMessage": {
         "type": "string",
         "description": "The source commit's subject line"
+      },
+      "paused": {
+        "type": "boolean",
+        "description": "True if operation paused due to conflicts (when abortOnConflict=false)"
+      },
+      "conflictingFiles": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of files with conflicts when paused"
+      },
+      "stashNotRestored": {
+        "type": "boolean",
+        "description": "True if auto-stash could not be restored cleanly"
       }
     }
   },

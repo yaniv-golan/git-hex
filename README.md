@@ -26,7 +26,7 @@ flowchart LR
     C --> D[Stage fix]
     D --> E[createFixup]
     E --> C
-    C --> F[performRebase<br/>autosquash=true]
+    C --> F[rebaseWithPlan<br/>autosquash=true]
     F --> G[Clean history ✓]
 ```
 
@@ -39,7 +39,7 @@ flowchart TB
     end
     
     subgraph mutating["Mutating Operations"]
-        rebase[performRebase]
+        rebase[rebaseWithPlan]
         fixup[createFixup]
         amend[amendLastCommit]
         cherry[cherryPickSingle]
@@ -63,7 +63,7 @@ All mutating operations create backup refs, enabling `undoLast` to restore the p
 ## Requirements
 
 - **mcp-bash framework** v0.4.0 or later
-- **bash** 4.0+
+- **bash** 3.2+
 - **jq** or **gojq**
 - **git** 2.20+ (2.33+ recommended for `ort` merge strategy support)
 
@@ -156,7 +156,7 @@ After receiving review feedback, create targeted fixups and squash them:
      → gitHex.createFixup { "commit": "<hash-of-commit-to-fix>" }
 
 3. Squash all fixups into their targets:
-   → gitHex.performRebase { "onto": "main", "autosquash": true }
+   → gitHex.rebaseWithPlan { "onto": "main", "autosquash": true }
 ```
 
 ### Bring Your Branch Up to Date with Main
@@ -174,7 +174,7 @@ Rebase your feature branch onto the latest main:
    → gitHex.getRebasePlan { "onto": "main" }
 
 4. Perform the rebase:
-   → gitHex.performRebase { "onto": "main" }
+   → gitHex.rebaseWithPlan { "onto": "main" }
    
    If conflicts occur, git-hex automatically aborts and restores your branch.
    Resolve conflicts manually, then retry.
@@ -216,13 +216,13 @@ Made a mistake? Undo it:
 → gitHex.undoLast {}
 
 This restores HEAD to its state before the last git-hex operation.
-Works for: amendLastCommit, createFixup, performRebase, cherryPickSingle
+Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
 ```
 
 ### When NOT to Use git-hex
 
 - **On shared/protected branches** — Use on personal feature branches only
-- **When you need complex rebase editing** — git-hex runs autosquash but doesn't support arbitrary reordering; use `git rebase -i` directly for that
+- **For hunk-level splitting** — `splitCommit` splits by file only; use `git add -p` + manual commits for line-level splits
 - **On repos with contribution models you don't control** — Understand the project's rebase policy first
 
 ## Tools
@@ -268,28 +268,38 @@ Get a structured view of recent commits for rebase planning and inspection.
 }
 ```
 
-### gitHex.performRebase
+### gitHex.rebaseWithPlan
 
-Execute a rebase with automatic abort on conflict.
+Structured interactive rebase with plan support (reorder, drop, squash, reword) plus conflict pause/resume.
 
-> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
+> **Prerequisites:** Working tree must be clean unless `autoStash=true`. All mutating operations create a backup ref for `undoLast`.
 
-> **Note:** This tool rebases all commits in the range `onto..HEAD`. It runs in non-interactive mode with `--autosquash` support, meaning fixup/squash commits are automatically applied, but arbitrary reordering or dropping of commits is not supported. For manual reordering, use git directly.
->
-> **Implementation detail:** Internally, this executes `git rebase -i --onto <onto> <onto>`, which replays all commits reachable from HEAD but not from `onto` onto the `onto` ref. The interactive mode is used with `GIT_SEQUENCE_EDITOR=true` to enable autosquash without manual intervention.
+> **Notes:**
+> - Rebases the range `onto..HEAD`
+> - `plan` controls actions per commit; partial plans default missing commits to `pick`
+> - `abortOnConflict=false` leaves the rebase paused so you can call `getConflictStatus` / `resolveConflict` / `continueOperation`
+> - Uses native `--autostash` when `autoStash=true`
 
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
 | `onto` | string | **Yes** | Base ref to rebase onto |
+| `plan` | array | No | Ordered list of `{action, commit, message?}` items |
+| `abortOnConflict` | boolean | No | Pause on conflicts instead of aborting (default: true) |
+| `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
 | `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
+| `requireComplete` | boolean | No | If true, plan must list all commits (enables reordering) |
 
 **Example:**
 ```json
 {
   "onto": "main",
-  "autosquash": true
+  "autosquash": true,
+  "plan": [
+    { "action": "pick", "commit": "abc123" },
+    { "action": "drop", "commit": "def456" }
+  ]
 }
 ```
 
@@ -303,6 +313,23 @@ Execute a rebase with automatic abort on conflict.
   "commitsRebased": 5
 }
 ```
+
+### gitHex.checkRebaseConflicts
+
+Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
+
+Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
+
+### Conflict Workflow
+
+- **gitHex.getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
+- **gitHex.resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
+- **gitHex.continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
+- **gitHex.abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
+
+### gitHex.splitCommit
+
+Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
 
 ### gitHex.createFixup
 
@@ -460,7 +487,7 @@ export GIT_HEX_READ_ONLY=1
 
 In this mode:
 - ✅ `gitHex.getRebasePlan` — allowed (inspection only)
-- ❌ `gitHex.performRebase` — blocked
+- ❌ `gitHex.rebaseWithPlan` — blocked
 - ❌ `gitHex.createFixup` — blocked
 - ❌ `gitHex.amendLastCommit` — blocked
 - ❌ `gitHex.cherryPickSingle` — blocked
@@ -518,7 +545,7 @@ git-hex stores backup refs that persist across sessions:
 git for-each-ref refs/git-hex/
 
 # Reset to a specific backup
-git reset --hard refs/git-hex/backup/1234567890_performRebase
+git reset --hard refs/git-hex/backup/1234567890_rebaseWithPlan
 ```
 
 ## Testing
@@ -563,4 +590,3 @@ Contributions welcome! Please ensure:
 
 - [mcp-bash-framework](https://github.com/yaniv-golan/mcp-bash-framework) - The MCP server framework powering git-hex
 - [Model Context Protocol](https://modelcontextprotocol.io/) - The protocol specification
-

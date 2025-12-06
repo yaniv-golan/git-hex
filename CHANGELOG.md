@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recovery documentation with reflog and backup ref examples
 - Initial release of git-hex MCP server
 - **gitHex.getRebasePlan** - Get structured rebase plan for last N commits
-- **gitHex.performRebase** - Execute interactive rebase with auto-abort on conflict
+- **gitHex.rebaseWithPlan** - Structured interactive rebase with autosquash/autostash support
 - **gitHex.createFixup** - Create fixup commits for later auto-squashing
 - **gitHex.amendLastCommit** - Amend last commit with staged changes or new message
 - **gitHex.cherryPickSingle** - Cherry-pick single commit with strategy options

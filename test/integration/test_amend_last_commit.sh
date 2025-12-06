@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -45,7 +48,6 @@ REPO2="${TEST_TMPDIR}/amend-message"
 create_test_repo "${REPO2}" 2
 
 previous_hash="$(cd "${REPO2}" && git rev-parse HEAD)"
-original_message="$(cd "${REPO2}" && git log -1 --format='%s' HEAD)"
 
 result="$(run_tool gitHex.amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
 
@@ -66,7 +68,7 @@ REPO3="${TEST_TMPDIR}/amend-addall"
 create_test_repo "${REPO3}" 2
 
 # Modify a tracked file without staging
-echo "unstaged modification" > "${REPO3}/file1.txt"
+echo "unstaged modification" >"${REPO3}/file1.txt"
 
 previous_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
@@ -131,4 +133,3 @@ fi
 
 echo ""
 echo "All gitHex.amendLastCommit tests passed!"
-

@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -81,7 +84,7 @@ create_branch_scenario "${REPO3}"
 original_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 
 # Perform a rebase
-result="$(run_tool gitHex.performRebase "${REPO3}" '{"onto": "main"}' 60)"
+result="$(run_tool gitHex.rebaseWithPlan "${REPO3}" '{"onto": "main"}' 60)"
 assert_json_field "${result}" '.success' "true" "rebase should succeed"
 
 rebased_head="$(cd "${REPO3}" && git rev-parse HEAD)"
@@ -90,7 +93,7 @@ assert_ne "${original_head}" "${rebased_head}" "HEAD should change after rebase"
 # Now undo
 result="$(run_tool gitHex.undoLast "${REPO3}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
-assert_json_field "${result}" '.undoneOperation' "performRebase" "should report correct operation"
+assert_json_field "${result}" '.undoneOperation' "rebaseWithPlan" "should report correct operation"
 
 restored_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "HEAD should be restored to original"
@@ -110,18 +113,18 @@ mkdir -p "${REPO4}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base commit" >/dev/null
-	
+
 	git checkout -b source >/dev/null 2>&1
-	echo "cherry" > cherry.txt
+	echo "cherry" >cherry.txt
 	git add cherry.txt && git commit -m "Cherry commit" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	git checkout main >/dev/null 2>&1
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash_undo_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash_undo_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash_undo_$$)"
@@ -178,7 +181,7 @@ create_test_repo "${REPO6}" 2
 result="$(run_tool gitHex.amendLastCommit "${REPO6}" '{"message": "Test amend"}')"
 
 # Make working directory dirty
-echo "dirty" > "${REPO6}/dirty.txt"
+echo "dirty" >"${REPO6}/dirty.txt"
 (cd "${REPO6}" && git add dirty.txt)
 
 if run_tool_expect_fail gitHex.undoLast "${REPO6}" '{}'; then
@@ -205,7 +208,6 @@ second_head="$(cd "${REPO7}" && git rev-parse HEAD)"
 # Second operation: amend again
 result="$(run_tool gitHex.amendLastCommit "${REPO7}" '{"message": "Second amend"}')"
 assert_json_field "${result}" '.success' "true" "second amend should succeed"
-third_head="$(cd "${REPO7}" && git rev-parse HEAD)"
 
 # Undo should restore to second_head, not first_head
 result="$(run_tool gitHex.undoLast "${REPO7}" '{}')"
@@ -261,18 +263,18 @@ mkdir -p "${REPO9}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > conflict.txt
+
+	echo "base" >conflict.txt
 	git add conflict.txt && git commit -m "Initial" >/dev/null
-	
+
 	git checkout -b feature >/dev/null 2>&1
-	echo "feature" > conflict.txt
+	echo "feature" >conflict.txt
 	git add conflict.txt && git commit -m "Feature change" >/dev/null
-	
+
 	git checkout main >/dev/null 2>&1
-	echo "main" > conflict.txt
+	echo "main" >conflict.txt
 	git add conflict.txt && git commit -m "Main change" >/dev/null
-	
+
 	git checkout feature >/dev/null 2>&1
 )
 
@@ -311,12 +313,12 @@ mkdir -p "${REPO10}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > file.txt
+
+	echo "base" >file.txt
 	git add file.txt && git commit -m "Initial" >/dev/null
-	
+
 	git checkout -b feature >/dev/null 2>&1
-	echo "feature" >> file.txt
+	echo "feature" >>file.txt
 	git add file.txt && git commit -m "Feature commit" >/dev/null
 )
 
@@ -350,18 +352,18 @@ mkdir -p "${REPO11}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base commit" >/dev/null
-	
+
 	git checkout -b source >/dev/null 2>&1
-	echo "cherry" > cherry.txt
+	echo "cherry" >cherry.txt
 	git add cherry.txt && git commit -m "Cherry commit" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	git checkout main >/dev/null 2>&1
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash_nocommit_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash_nocommit_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash_nocommit_$$)"
@@ -392,4 +394,3 @@ fi
 
 echo ""
 echo "All gitHex.undoLast tests passed!"
-

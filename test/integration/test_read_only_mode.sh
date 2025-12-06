@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -63,18 +66,18 @@ fi
 unset GIT_HEX_READ_ONLY
 
 # ============================================================
-# TEST: read-only mode blocks performRebase
+# TEST: read-only mode blocks rebaseWithPlan
 # ============================================================
-printf ' -> read-only mode blocks performRebase\n'
+printf ' -> read-only mode blocks rebaseWithPlan\n'
 
 REPO4="${TEST_TMPDIR}/readonly-block-rebase"
 create_branch_scenario "${REPO4}"
 
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.performRebase "${REPO4}" '{"onto": "main"}'; then
-	test_pass "read-only mode blocks performRebase"
+if run_tool_expect_fail gitHex.rebaseWithPlan "${REPO4}" '{"onto": "main"}'; then
+	test_pass "read-only mode blocks rebaseWithPlan"
 else
-	test_fail "performRebase should fail in read-only mode"
+	test_fail "rebaseWithPlan should fail in read-only mode"
 fi
 unset GIT_HEX_READ_ONLY
 
@@ -91,18 +94,18 @@ mkdir -p "${REPO5}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base commit" >/dev/null
-	
+
 	git checkout -b source >/dev/null 2>&1
-	echo "cherry" > cherry.txt
+	echo "cherry" >cherry.txt
 	git add cherry.txt && git commit -m "Cherry commit" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	git checkout main >/dev/null 2>&1
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash_readonly_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash_readonly_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash_readonly_$$)"
@@ -154,4 +157,3 @@ test_pass "tools work normally when read-only mode is off"
 
 echo ""
 echo "All GIT_HEX_READ_ONLY mode tests passed!"
-

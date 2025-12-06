@@ -9,11 +9,14 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/backup.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/stash.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/stash.sh"
 
 # Parse arguments
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 new_message="$(mcp_args_get '.message // empty' || true)"
 add_all="$(mcp_args_bool '.addAll' --default false)"
+auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
@@ -34,6 +37,13 @@ if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
 fi
 if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
+fi
+
+# Handle auto-stash (unstaged changes only; keep index)
+stash_created="false"
+stash_not_restored="false"
+if [ "${auto_stash}" = "true" ]; then
+	stash_created="$(git_hex_auto_stash "${repo_path}" "keep-index")"
 fi
 
 # Save original HEAD for headBefore/headAfter consistency
@@ -64,6 +74,10 @@ fi
 # Perform the amend (capture stderr for better error messages)
 commit_error=""
 if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; then
+	# On failure, attempt to restore stash if we created one
+	if [ "${auto_stash}" = "true" ]; then
+		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+	fi
 	# Provide specific error context
 	if echo "${commit_error}" | grep -qi "gpg\|signing\|sign"; then
 		mcp_fail -32603 "Failed to amend commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
@@ -78,14 +92,21 @@ fi
 # Echo output to stderr for logging
 printf '%s\n' "${commit_error}" >&2
 
+# Restore stash after successful amend
+if [ "${auto_stash}" = "true" ]; then
+	stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+fi
+
 # Get new commit info
 head_after="$(git -C "${repo_path}" rev-parse HEAD)"
 commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg headBefore "${head_before}" \
 	--arg headAfter "${head_after}" \
 	--arg summary "Amended commit with new hash ${head_after:0:7}" \
 	--arg commitMessage "${commit_message}" \
-	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitMessage: $commitMessage}')"
+	--argjson stashNotRestored "${stash_not_restored}" \
+	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"

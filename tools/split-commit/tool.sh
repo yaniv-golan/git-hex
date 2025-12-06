@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
+source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/backup.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/stash.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/stash.sh"
+
+cleanup() {
+	rm -f ${_git_hex_split_cleanup_files:-} 2>/dev/null || true
+	rm -rf ${_git_hex_split_cleanup_dirs:-} 2>/dev/null || true
+	if [ "${_git_hex_abort_rebase:-false}" = "true" ] && [ "${_git_hex_rebase_started:-false}" = "true" ]; then
+		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
+	fi
+	return 0
+}
+_git_hex_abort_rebase="true"
+_git_hex_rebase_started="false"
+trap cleanup EXIT
+
+repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
+commit_ref="$(mcp_args_require '.commit')"
+splits_json="$(mcp_args_get '.splits')"
+trimmed_splits="$(echo "${splits_json:-}" | tr -d '[:space:]')"
+if [ -z "${trimmed_splits}" ] || [ "${trimmed_splits}" = "null" ]; then
+	splits_json="[]"
+else
+	splits_json="${splits_json:-}"
+fi
+auto_stash="$(mcp_args_bool '.autoStash' --default false)"
+
+if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
+	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
+fi
+
+if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+	mcp_fail_invalid_args "Cannot split commit while rebase is in progress"
+fi
+
+# Resolve commit
+full_commit="$(git -C "${repo_path}" rev-parse --verify "${commit_ref}^{commit}" 2>/dev/null || true)"
+if [ -z "${full_commit}" ]; then
+	mcp_fail_invalid_args "Invalid commit: ${commit_ref}"
+fi
+
+# Commit must not be merge commit
+if [ "$(git -C "${repo_path}" rev-list --count "${full_commit}^@" 2>/dev/null)" -gt 1 ]; then
+	mcp_fail_invalid_args "Cannot split merge commits"
+fi
+
+# Commit must not be root commit
+if ! git -C "${repo_path}" rev-parse "${full_commit}^" >/dev/null 2>&1; then
+	mcp_fail_invalid_args "Cannot split root commit"
+fi
+
+# Commit must be ancestor of HEAD
+if ! git -C "${repo_path}" merge-base --is-ancestor "${full_commit}" HEAD 2>/dev/null; then
+	mcp_fail_invalid_args "Commit ${commit_ref} is not an ancestor of HEAD; cannot split from this branch"
+fi
+
+# Validate splits array
+split_count="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+if [ "${split_count}" -lt 2 ]; then
+	mcp_fail_invalid_args "At least 2 splits required"
+fi
+
+original_files="$(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r "${full_commit}")"
+if [ -z "${original_files}" ]; then
+	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
+fi
+
+# Validate coverage
+covered_files=""
+for i in $(seq 0 $((split_count - 1))); do
+	split_files="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	message="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
+	if [ -z "${split_files}" ]; then
+		mcp_fail_invalid_args "Split $((i + 1)) has no files"
+	fi
+	if printf '%s' "${message}" | grep -q $'[\t\n]'; then
+		mcp_fail_invalid_args "Split message cannot contain TAB or newline"
+	fi
+	while IFS= read -r file; do
+		[ -z "${file}" ] && continue
+		if ! echo "${original_files}" | grep -qx "${file}"; then
+			mcp_fail_invalid_args "File '${file}' not in original commit"
+		fi
+		if echo "${covered_files}" | grep -qx "${file}"; then
+			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
+		fi
+		covered_files="${covered_files}${file}"$'\n'
+	done <<<"${split_files}"
+done
+
+while IFS= read -r file; do
+	[ -z "${file}" ] && continue
+	if ! echo "${covered_files}" | grep -qx "${file}"; then
+		mcp_fail_invalid_args "File '${file}' from original commit not assigned to any split"
+	fi
+done <<<"${original_files}"
+
+# Handle auto-stash
+stash_created="false"
+stash_not_restored="false"
+if [ "${auto_stash}" = "true" ]; then
+	stash_created="$(git_hex_auto_stash "${repo_path}")"
+fi
+
+# Backup ref
+backup_ref="$(git_hex_create_backup "${repo_path}" "splitCommit")"
+
+commit_parent="$(git -C "${repo_path}" rev-parse "${full_commit}^")"
+short_commit="$(git -C "${repo_path}" rev-parse --short "${full_commit}")"
+commit_subject="$(git -C "${repo_path}" log -1 --format='%s' "${full_commit}")"
+
+seq_editor="$(mktemp)"
+msg_dir="$(mktemp -d)"
+_git_hex_split_cleanup_files="${seq_editor}"
+_git_hex_split_cleanup_dirs="${msg_dir}"
+
+cat >"${seq_editor}"  <<'EDITOR_SCRIPT'
+#!/usr/bin/env bash
+set -e
+todo_file="$1"
+target_short="${GIT_HEX_TARGET_SHORT}"
+target_full="${GIT_HEX_TARGET_FULL}"
+target_subject="${GIT_HEX_TARGET_SUBJECT}"
+found=""
+while IFS= read -r line; do
+	if [ -z "${found}" ] && echo "${line}" | grep -q "^pick ${target_short}"; then
+		echo "edit ${target_full} ${target_subject}"
+		found="true"
+	else
+		echo "${line}"
+	fi
+done < "${todo_file}" > "${todo_file}.tmp"
+if [ -z "${found}" ]; then
+	echo "ERROR: Could not find target commit ${target_short}" >&2
+	exit 1
+fi
+mv "${todo_file}.tmp" "${todo_file}"
+EDITOR_SCRIPT
+chmod +x "${seq_editor}"
+
+export GIT_HEX_TARGET_SHORT="${short_commit}"
+export GIT_HEX_TARGET_FULL="${full_commit}"
+export GIT_HEX_TARGET_SUBJECT="${commit_subject}"
+
+_git_hex_rebase_started="true"
+rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || true
+
+unset GIT_HEX_TARGET_SHORT GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT
+
+if [ ! -d "${repo_path}/.git/rebase-merge" ] && [ ! -d "${repo_path}/.git/rebase-apply" ]; then
+	# Rebase did not pause as expected
+	mcp_fail_invalid_args "Commit ${commit_ref} not in rebase range or rebase failed"
+fi
+
+# Reset state to unstage everything
+git -C "${repo_path}" reset HEAD^ --soft >/dev/null 2>&1
+git -C "${repo_path}" reset HEAD >/dev/null 2>&1
+
+new_commits_json="[]"
+for i in $(seq 0 $((split_count - 1))); do
+	split_files="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	message="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
+	msg_file="${msg_dir}/msg_${i}.txt"
+	printf '%s\n' "${message}" >"${msg_file}"
+	while IFS= read -r file; do
+		[ -z "${file}" ] && continue
+		git -C "${repo_path}" add -- "${file}"
+	done <<<"${split_files}"
+	git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
+	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
+	files_json="$(echo "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
+	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+		--arg hash "${new_hash}" \
+		--arg message "${message}" \
+		--argjson files "${files_json}" \
+		'{hash: $hash, message: $message, files: $files}')"
+	new_commits_json="$(echo "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+done
+
+# Continue rebase
+rebase_paused="false"
+if ! git -C "${repo_path}" rebase --continue >/dev/null 2>&1; then
+	rebase_paused="true"
+	_git_hex_abort_rebase="false"
+else
+	_git_hex_abort_rebase="false"
+fi
+
+stash_not_restored="false"
+if [ "${auto_stash}" = "true" ]; then
+	if [ "${rebase_paused}" = "true" ]; then
+		stash_not_restored="true"
+	else
+		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+	fi
+fi
+
+trap - EXIT
+cleanup
+
+output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+	--argjson success true \
+	--arg originalCommit "${full_commit}" \
+	--argjson newCommits "${new_commits_json}" \
+	--arg backupRef "${backup_ref}" \
+	--argjson rebasePaused "${rebase_paused}" \
+	--argjson stashNotRestored "${stash_not_restored}" \
+	--arg summary "Split ${full_commit:0:7} into ${split_count} commits" \
+	'{success: $success, originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}')"
+
+if [ "${GIT_HEX_DEBUG_SPLIT:-}" = "true" ]; then
+	printf '%s\n' "${output_json}" >&2
+	printf '%s\n' "${output_json}" >/tmp/git-hex-split-debug.json
+fi
+
+mcp_emit_json "${output_json}"

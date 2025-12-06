@@ -35,6 +35,16 @@ Run only security tests:
 ./test/security/run.sh
 ```
 
+Run lint (shellcheck + shfmt):
+```bash
+./test/lint.sh
+```
+
+Enable the provided pre-commit hook to auto-run lint before commits:
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Test Structure
 
 ```
@@ -122,7 +132,7 @@ mcp-bash run-tool gitHex.getRebasePlan \
     --roots '/path/to/repo'
 
 # With custom timeout
-mcp-bash run-tool gitHex.performRebase \
+mcp-bash run-tool gitHex.rebaseWithPlan \
     --args '{"onto": "main"}' \
     --roots '/path/to/repo' \
     --timeout 120
@@ -134,8 +144,10 @@ mcp-bash run-tool gitHex.performRebase \
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
 1. Installs the mcp-bash framework (pinned to v0.4.0)
-2. Runs `mcp-bash validate` to check project structure
-3. Runs integration and security tests
+2. Installs lint dependencies (`shellcheck`, `shfmt`, `jq`) on Linux/macOS
+3. Runs `./test/lint.sh`
+4. Runs `mcp-bash validate` to check project structure
+5. Runs integration and security tests
 
 ## Reference
 

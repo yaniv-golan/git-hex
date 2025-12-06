@@ -47,7 +47,7 @@ run_tool() {
 	local roots="$2"
 	local args_json="$3"
 	local timeout="${4:-30}"
-	
+
 	local raw_output
 	# Framework sends diagnostics to stderr, stdout is clean JSON (may be multiple lines)
 	raw_output="$(mcp-bash run-tool "${tool_name}" \
@@ -55,14 +55,14 @@ run_tool() {
 		--roots "${roots}" \
 		--args "${args_json}" \
 		--timeout "${timeout}" 2>/dev/null)"
-	
+
 	# Check if any line is an error response (framework may emit notifications first)
 	if echo "${raw_output}" | jq -es 'map(select(._mcpToolError == true)) | length > 0' >/dev/null 2>&1; then
 		# Extract and return the error object
 		echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]'
 		return 1
 	fi
-	
+
 	# Extract structuredContent from the result line (skip notifications)
 	local structured
 	structured="$(echo "${raw_output}" | jq -s 'map(select(.structuredContent)) | .[0].structuredContent // empty' 2>/dev/null || echo "${raw_output}")"
@@ -80,9 +80,9 @@ run_tool_expect_fail() {
 	local tool_name="$1"
 	local roots="$2"
 	local args_json="$3"
-	
+
 	if run_tool "${tool_name}" "${roots}" "${args_json}" >/dev/null 2>&1; then
-		return 1  # Tool succeeded when we expected failure
+		return 1 # Tool succeeded when we expected failure
 	fi
-	return 0  # Tool failed as expected
+	return 0 # Tool failed as expected
 }

@@ -15,6 +15,11 @@
       "addAll": {
         "type": "boolean",
         "description": "Stage all tracked modified files before amending (default: false)"
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Automatically stash unstaged changes before amending (uses --keep-index to preserve staged changes)",
+        "default": false
       }
     }
   },
@@ -41,6 +46,10 @@
       "commitMessage": {
         "type": "string",
         "description": "The commit's subject line (first line of commit message)"
+      },
+      "stashNotRestored": {
+        "type": "boolean",
+        "description": "True if auto-stash could not be restored cleanly"
       }
     }
   },

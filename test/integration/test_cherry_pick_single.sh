@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -25,20 +28,20 @@ mkdir -p "${REPO}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base commit" >/dev/null
-	
+
 	# Create a branch with a commit to cherry-pick
 	git checkout -b source >/dev/null 2>&1
-	echo "cherry" > cherry.txt
+	echo "cherry" >cherry.txt
 	git add cherry.txt && git commit -m "Cherry commit" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	# Go back to main
 	git checkout main >/dev/null 2>&1
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash_$$)"
@@ -72,18 +75,18 @@ mkdir -p "${REPO2}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base commit" >/dev/null
-	
+
 	git checkout -b source >/dev/null 2>&1
-	echo "nocommit" > nocommit.txt
+	echo "nocommit" >nocommit.txt
 	git add nocommit.txt && git commit -m "NoCommit source" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	git checkout main >/dev/null 2>&1
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash2_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash2_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash2_$$)"
@@ -118,22 +121,22 @@ mkdir -p "${REPO3}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "original" > conflict.txt
+
+	echo "original" >conflict.txt
 	git add conflict.txt && git commit -m "Base commit" >/dev/null
-	
+
 	# Create conflicting commit on branch
 	git checkout -b source >/dev/null 2>&1
-	echo "source version" > conflict.txt
+	echo "source version" >conflict.txt
 	git add conflict.txt && git commit -m "Source change" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	# Make different change on main
 	git checkout main >/dev/null 2>&1
-	echo "main version" > conflict.txt
+	echo "main version" >conflict.txt
 	git add conflict.txt && git commit -m "Main change" >/dev/null
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash3_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash3_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash3_$$)"
@@ -146,11 +149,11 @@ if run_tool_expect_fail gitHex.cherryPickSingle "${REPO3}" "{\"commit\": \"${che
 	if [ -f "${REPO3}/.git/CHERRY_PICK_HEAD" ]; then
 		test_fail "repo should not be in cherry-pick state after abort"
 	fi
-	
+
 	# Verify HEAD is restored
 	after_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 	assert_eq "${before_head}" "${after_head}" "HEAD should be restored after abort"
-	
+
 	test_pass "cherry-pick-single aborts on conflict and restores state"
 else
 	test_fail "should fail on conflict"
@@ -169,22 +172,22 @@ mkdir -p "${REPO4}"
 	git config user.email "test@example.com"
 	git config user.name "Test"
 	git config commit.gpgsign false
-	
-	echo "base" > base.txt
+
+	echo "base" >base.txt
 	git add base.txt && git commit -m "Base" >/dev/null
-	
+
 	git checkout -b source >/dev/null 2>&1
-	echo "pick" > pick.txt
+	echo "pick" >pick.txt
 	git add pick.txt && git commit -m "Pick" >/dev/null
 	cherry_hash="$(git rev-parse HEAD)"
-	
+
 	git checkout main >/dev/null 2>&1
-	
+
 	# Make dirty
-	echo "dirty" > dirty.txt
+	echo "dirty" >dirty.txt
 	git add dirty.txt
-	
-	echo "${cherry_hash}" > /tmp/cherry_hash4_$$
+
+	echo "${cherry_hash}" >/tmp/cherry_hash4_$$
 )
 
 cherry_hash="$(cat /tmp/cherry_hash4_$$)"
@@ -241,4 +244,3 @@ fi
 
 echo ""
 echo "All gitHex.cherryPickSingle tests passed!"
-

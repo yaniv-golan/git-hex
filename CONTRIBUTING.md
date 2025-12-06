@@ -127,6 +127,9 @@ git_hex_create_backup "${repo_path}" "myNewTool" >/dev/null
 # Run all integration tests
 ./test/integration/run.sh
 
+# Run lint (shellcheck + shfmt)
+./test/lint.sh
+
 # Run a specific test
 ./test/integration/test_amend_last_commit.sh
 
@@ -135,6 +138,14 @@ git_hex_create_backup "${repo_path}" "myNewTool" >/dev/null
 
 # Validate project structure
 mcp-bash validate
+```
+
+### Pre-commit Hook (optional but recommended)
+
+Enable the repo-provided hook to auto-run lint before commits:
+
+```bash
+git config core.hooksPath .githooks
 ```
 
 ### Writing Tests
@@ -217,4 +228,3 @@ Includes backup ref support for undo functionality.
 ## Questions?
 
 Open an issue on GitHub if you have questions or need help.
-

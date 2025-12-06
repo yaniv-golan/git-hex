@@ -67,6 +67,12 @@ All mutating operations create backup refs, enabling `undoLast` to restore the p
 - **jq** or **gojq**
 - **git** 2.20+ (2.33+ recommended for `ort` merge strategy support)
 
+## Lint & Tests
+
+- Lint shell scripts: `./test/lint.sh`
+- Run all tests: `./test/run.sh` (or `./test/integration/run.sh` / `./test/security/run.sh`)
+- Optional pre-commit hook to auto-run lint: `git config core.hooksPath .githooks`
+
 ## Installation
 
 ### Quick Start (Recommended)

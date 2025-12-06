@@ -81,7 +81,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Requirements
 
-- **mcp-bash framework** v0.4.0 or later
+- **MCP Bash Framework** (`mcp-bash`) v0.4.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
 - **bash** 3.2+
 - **jq** or **gojq**
 - **git** 2.38+ (required for `gitHex.checkRebaseConflicts`; 2.33+ recommended if you want the `ort` merge strategy)
@@ -94,9 +94,9 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Installation
 
-### Recommended: Wrapper Script (Auto-installs Framework)
+### Recommended: Wrapper Script (Auto-installs MCP Bash Framework)
 
-git-hex includes a `run.sh` wrapper that auto-installs the framework if needed:
+git-hex includes a `run.sh` wrapper that auto-installs the MCP Bash Framework if needed:
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
@@ -104,15 +104,15 @@ cd ~/git-hex
 ./run.sh  # Auto-installs framework on first run
 ```
 
-### Advanced: Use an Existing mcp-bash Install
+### Advanced: Use an Existing MCP Bash Framework Install
 
-If your environment already manages the mcp-bash framework and you want explicit control over the binary and env, configure your client directly:
+If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly:
 
 ```bash
 # Clone git-hex
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 
-# Ensure the framework is installed and on PATH
+# Ensure the MCP Bash Framework is installed and on PATH
 curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
 ```
 
@@ -156,7 +156,7 @@ The MCP server auto-starts via `run.sh`; no extra client config required.
 }
 ```
 
-### Advanced: Use an Existing mcp-bash Install
+### Advanced: Use an Existing MCP Bash Framework Install
 
 ```json
 {
@@ -619,7 +619,7 @@ npx @modelcontextprotocol/inspector --transport stdio -- mcp-bash
 npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/run.sh
 ```
 
-> **Note:** The `mcp-bash` command auto-detects the project root when run from within the git-hex directory. If running from elsewhere, either use the `./run.sh` wrapper or set `MCPBASH_PROJECT_ROOT=/path/to/git-hex`.
+> **Note:** The MCP Bash Framework CLI (`mcp-bash`) auto-detects the project root when run from within the git-hex directory. If running from elsewhere, either use the `./run.sh` wrapper or set `MCPBASH_PROJECT_ROOT=/path/to/git-hex`.
 
 ## Docker
 
@@ -635,7 +635,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Contributing
 
 Contributions welcome! Please ensure:
-- All tools pass `mcp-bash validate`
+- All tools pass `mcp-bash validate` (MCP Bash Framework CLI)
 - New tools follow the naming convention (`gitHex.toolName`)
 - Tests are included for new functionality
 

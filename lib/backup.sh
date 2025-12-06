@@ -75,9 +75,10 @@ git_hex_get_last_backup() {
 	
 	local timestamp=""
 	local operation=""
-	if [[ "${ref_basename}" =~ ^([0-9]+)_(.+)$ ]]; then
-		timestamp="${BASH_REMATCH[1]}"
-		operation="${BASH_REMATCH[2]}"
+	# Parse timestamp_operation format using parameter expansion (more portable than regex)
+	if [[ "${ref_basename}" == *_* ]]; then
+		timestamp="${ref_basename%%_*}"  # Everything before first underscore
+		operation="${ref_basename#*_}"   # Everything after first underscore
 	fi
 	
 	# Find the corresponding backup ref

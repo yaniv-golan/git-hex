@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework

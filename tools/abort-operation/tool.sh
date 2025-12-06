@@ -33,6 +33,7 @@ else
 fi
 
 summary="${operation} aborted, restored to original state"
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg operationType "${operation}" \

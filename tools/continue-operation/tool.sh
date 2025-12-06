@@ -38,6 +38,7 @@ if [ "${operation}" = "rebase" ]; then
 		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
 		while IFS= read -r cf; do
 			[ -z "${cf}" ] && continue
+			# shellcheck disable=SC2016
 			conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 		done <<<"${conflicts}"
 		summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
@@ -52,6 +53,7 @@ elif [ "${operation}" = "cherry-pick" ]; then
 		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
 		while IFS= read -r cf; do
 			[ -z "${cf}" ] && continue
+			# shellcheck disable=SC2016
 			conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 		done <<<"${conflicts}"
 		summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
@@ -66,6 +68,7 @@ else
 		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
 		while IFS= read -r cf; do
 			[ -z "${cf}" ] && continue
+			# shellcheck disable=SC2016
 			conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 		done <<<"${conflicts}"
 		summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
@@ -73,6 +76,7 @@ else
 	fi
 fi
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success "${status}" \
 	--arg operationType "${operation}" \

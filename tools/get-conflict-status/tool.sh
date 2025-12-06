@@ -4,8 +4,6 @@ set -euo pipefail
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 include_content="$(mcp_args_bool '.includeContent' --default false)"
 max_content="$(mcp_args_int '.maxContentSize' --default 10000 --min 0)"
@@ -53,6 +51,7 @@ fi
 conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
 
 if [ -z "${conflicting_files}" ]; then
+	# shellcheck disable=SC2016
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \
 		--argjson inConflict true \
@@ -97,6 +96,7 @@ while IFS= read -r file; do
 		fi
 
 		if [ "${is_binary}" = "true" ]; then
+			# shellcheck disable=SC2016
 			files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
@@ -108,6 +108,7 @@ while IFS= read -r file; do
 			theirs_content="$(git -C "${repo_path}" show ":3:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
 			working_content="$(head -c "${max_content}" "${repo_path}/${file}" 2>/dev/null || echo "")"
 
+			# shellcheck disable=SC2016
 			files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
@@ -119,6 +120,7 @@ while IFS= read -r file; do
 				'. + [{path: $path, conflictType: $type, isBinary: $isBinary, base: $base, ours: $ours, theirs: $theirs, workingCopy: $working}]')"
 		fi
 	else
+		# shellcheck disable=SC2016
 		files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 			--arg path "${file}" \
 			--arg type "${file_conflict_type}" \
@@ -128,6 +130,7 @@ done <<<"${conflicting_files}"
 
 file_count="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--argjson inConflict true \

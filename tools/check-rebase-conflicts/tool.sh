@@ -48,10 +48,12 @@ for commit in ${commits_to_check}; do
 	commit_index=$((commit_index + 1))
 	subject="$(git -C "${repo_path}" log -1 --format='%s' "${commit}")"
 	if [ "${would_conflict}" = "true" ]; then
+		# shellcheck disable=SC2016
 		commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--arg hash "${commit}" \
 			--arg subject "${subject}" \
 			'{hash: $hash, subject: $subject, prediction: "unknown"}')"
+		# shellcheck disable=SC2016
 		commits_json="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 		continue
 	fi
@@ -70,7 +72,7 @@ for commit in ${commits_to_check}; do
 	fi
 	if [ -z "${has_conflict}" ] && [ -n "${tree_sha}" ]; then
 		conflict_found=""
-		while IFS=$'\t' read -r meta path; do
+		while IFS=$'\t' read -r meta _path; do
 			[ -z "${meta}" ] && continue
 			sha="${meta##* }"
 			if git -C "${repo_path}" cat-file blob "${sha}" 2>/dev/null | grep -q "^<<<<<<< "; then
@@ -87,17 +89,20 @@ for commit in ${commits_to_check}; do
 			first_conflict_index="${commit_index}"
 			first_conflict_hash="${commit}"
 		fi
+		# shellcheck disable=SC2016
 		commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--arg hash "${commit}" \
 			--arg subject "${subject}" \
 			'{hash: $hash, subject: $subject, prediction: "conflict"}')"
 	else
+		# shellcheck disable=SC2016
 		commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--arg hash "${commit}" \
 			--arg subject "${subject}" \
 			'{hash: $hash, subject: $subject, prediction: "clean"}')"
 		current_tree="${tree_sha}"
 	fi
+	# shellcheck disable=SC2016
 	commits_json="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 done
 
@@ -109,6 +114,7 @@ else
 	summary="Rebase predicted to complete cleanly"
 fi
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson wouldConflict "${would_conflict}" \
 	--argjson commits "${commits_json}" \

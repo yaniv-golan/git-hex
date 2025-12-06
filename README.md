@@ -1,6 +1,6 @@
 # git-hex
 
-**Interactive git refactoring via MCP** — a focused toolset for rebase & commit perfection.
+**AI-assisted, non-interactive git refactoring via MCP** — a focused toolset for rebase & commit perfection, usable by agents or chat users directing the MCP tools.
 
 git-hex is an MCP (Model Context Protocol) server that provides AI assistants with safe, powerful git refactoring capabilities. It handles the complexity of interactive rebasing, fixup commits, and commit amendments while ensuring your repository is never left in a broken state.
 
@@ -94,6 +94,32 @@ git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
 ./run.sh  # Auto-installs framework on first run
 ```
+
+## Claude Code Plugin
+
+git-hex ships as a Claude Code plugin with bundled Skills.
+
+### Installation (Claude Code)
+
+From the parent directory of this repo:
+
+```text
+/plugin marketplace add ./git-hex
+/plugin install git-hex@git-hex-marketplace
+```
+
+Or from GitHub:
+
+```text
+/plugin marketplace add yaniv-golan/git-hex
+/plugin install git-hex@git-hex-marketplace
+```
+
+Bundled Skills:
+- `git-hex-branch-cleanup` — history rewrite, fixups, split/reorder/squash
+- `git-hex-conflict-resolution` — inspect/resolve paused rebase/cherry-pick conflicts
+
+The MCP server auto-starts via `run.sh`; no extra client config required.
 
 ## MCP Client Configuration
 

@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -37,7 +40,7 @@ REPO_REBASE_PAUSED="${TEST_TMPDIR}/edge-rebase-paused"
 create_split_subsequent_conflict_scenario "${REPO_REBASE_PAUSED}"
 target_commit="$(cd "${REPO_REBASE_PAUSED}" && git rev-list --reverse HEAD | sed -n '2p')"
 args_paused="$(
-	cat             <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [

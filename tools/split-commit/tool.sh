@@ -11,8 +11,8 @@ source "${SCRIPT_DIR}/../../lib/backup.sh"
 source "${SCRIPT_DIR}/../../lib/stash.sh"
 
 cleanup() {
-	rm -f ${_git_hex_split_cleanup_files:-} 2>/dev/null || true
-	rm -rf ${_git_hex_split_cleanup_dirs:-} 2>/dev/null || true
+	rm -f "${_git_hex_split_cleanup_files:-}" 2>/dev/null || true
+	rm -rf "${_git_hex_split_cleanup_dirs:-}" 2>/dev/null || true
 	if [ "${_git_hex_abort_rebase:-false}" = "true" ] && [ "${_git_hex_rebase_started:-false}" = "true" ]; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 	fi
@@ -151,6 +151,7 @@ export GIT_HEX_TARGET_FULL="${full_commit}"
 export GIT_HEX_TARGET_SUBJECT="${commit_subject}"
 
 _git_hex_rebase_started="true"
+# shellcheck disable=SC2034
 rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || true
 
 unset GIT_HEX_TARGET_SHORT GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT
@@ -177,11 +178,13 @@ for i in $(seq 0 $((split_count - 1))); do
 	git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
 	files_json="$(echo "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
+	# shellcheck disable=SC2016
 	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg hash "${new_hash}" \
 		--arg message "${message}" \
 		--argjson files "${files_json}" \
 		'{hash: $hash, message: $message, files: $files}')"
+	# shellcheck disable=SC2016
 	new_commits_json="$(echo "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 done
 
@@ -206,6 +209,7 @@ fi
 trap - EXIT
 cleanup
 
+# shellcheck disable=SC2016
 output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg originalCommit "${full_commit}" \

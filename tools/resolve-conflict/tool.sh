@@ -77,6 +77,7 @@ fi
 
 remaining="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' ')"
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg file "${file}" \

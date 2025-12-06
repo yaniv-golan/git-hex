@@ -2,6 +2,6 @@
   "name": "git-hex",
   "title": "Git Hex",
   "version": "0.1.0",
-  "description": "Interactive git refactoring via MCP",
+  "description": "AI-assisted, non-interactive git refactoring via MCP for agents or chat users invoking the tools",
   "websiteUrl": "https://github.com/yaniv-golan/git-hex"
 }

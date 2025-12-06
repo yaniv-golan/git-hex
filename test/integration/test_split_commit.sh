@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -24,7 +27,7 @@ REPO_SPLIT="${TEST_TMPDIR}/split-basic"
 create_split_commit_scenario "${REPO_SPLIT}" 2
 target_commit="$(commit_to_split "${REPO_SPLIT}")"
 args="$(
-	cat      <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [
@@ -47,7 +50,7 @@ REPO_INVALID_FILE="${TEST_TMPDIR}/split-invalid-file"
 create_split_commit_scenario "${REPO_INVALID_FILE}" 2
 target_commit="$(commit_to_split "${REPO_INVALID_FILE}")"
 args_invalid="$(
-	cat              <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [
@@ -69,7 +72,7 @@ REPO_DUP_FILE="${TEST_TMPDIR}/split-duplicate"
 create_split_commit_scenario "${REPO_DUP_FILE}" 2
 target_commit="$(commit_to_split "${REPO_DUP_FILE}")"
 args_dup="$(
-	cat          <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [
@@ -91,7 +94,7 @@ REPO_COUNT="${TEST_TMPDIR}/split-count"
 create_split_commit_scenario "${REPO_COUNT}" 2
 target_commit="$(commit_to_split "${REPO_COUNT}")"
 args_single="$(
-	cat             <<JSON
+	cat <<JSON
 { "commit": "${target_commit}", "splits": [ { "files": ["file1.txt","file2.txt"], "message": "Only" } ] }
 JSON
 )"
@@ -101,7 +104,7 @@ else
 	test_fail "single split should be rejected"
 fi
 args_empty="$(
-	cat            <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [
@@ -123,7 +126,7 @@ REPO_ROOT="${TEST_TMPDIR}/split-root"
 create_test_repo "${REPO_ROOT}" 1
 root_commit="$(cd "${REPO_ROOT}" && git rev-list --max-parents=0 HEAD)"
 args_root="$(
-	cat           <<JSON
+	cat <<JSON
 {
   "commit": "${root_commit}",
   "splits": [
@@ -145,7 +148,7 @@ REPO_NON_ANCESTOR="${TEST_TMPDIR}/split-non-ancestor"
 create_non_ancestor_scenario "${REPO_NON_ANCESTOR}"
 non_ancestor_commit="$(cd "${REPO_NON_ANCESTOR}" && git rev-parse other)"
 args_non_ancestor="$(
-	cat                   <<JSON
+	cat <<JSON
 {
   "commit": "${non_ancestor_commit}",
   "splits": [
@@ -167,7 +170,7 @@ REPO_IN_PROGRESS="${TEST_TMPDIR}/split-in-progress"
 create_rebase_in_progress_scenario "${REPO_IN_PROGRESS}"
 in_progress_commit="$(cd "${REPO_IN_PROGRESS}" && git rev-list --reverse main..HEAD | head -n1 || true)"
 args_in_progress="$(
-	cat                  <<JSON
+	cat <<JSON
 {
   "commit": "${in_progress_commit}",
   "splits": [
@@ -190,7 +193,7 @@ create_split_commit_scenario "${REPO_AUTOSTASH}" 2
 echo "dirty change" >>"${REPO_AUTOSTASH}/after.txt"
 target_commit="$(commit_to_split "${REPO_AUTOSTASH}")"
 args_autostash="$(
-	cat                <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "autoStash": true,
@@ -215,7 +218,7 @@ REPO_CONFLICT_SPLIT="${TEST_TMPDIR}/split-subsequent-conflict"
 create_split_subsequent_conflict_scenario "${REPO_CONFLICT_SPLIT}"
 target_commit="$(commit_to_split "${REPO_CONFLICT_SPLIT}")"
 args_conflict="$(
-	cat               <<JSON
+	cat <<JSON
 {
   "commit": "${target_commit}",
   "splits": [

@@ -3,8 +3,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
 . "${SCRIPT_DIR}/../common/git_fixtures.sh"
 
 test_verify_framework
@@ -23,6 +26,7 @@ range_commits() {
 printf ' -> RBP-01 autosquash squashes fixup commits\n'
 REPO_AUTO="${TEST_TMPDIR}/rebase-autosquash"
 create_fixup_scenario "${REPO_AUTO}"
+# shellcheck disable=SC2034
 before_count="$(cd "${REPO_AUTO}" && git rev-list --count HEAD)"
 result="$(run_tool gitHex.rebaseWithPlan "${REPO_AUTO}" '{"onto": "HEAD~3", "autoStash": false, "autosquash": true, "plan": []}' 60)"
 after_count="$(cd "${REPO_AUTO}" && git rev-list --count HEAD)"
@@ -34,6 +38,7 @@ test_pass "autosquash works with empty plan"
 printf ' -> RBP-03 drop commit using plan\n'
 REPO_DROP="${TEST_TMPDIR}/rebase-drop"
 create_branch_scenario "${REPO_DROP}"
+# shellcheck disable=SC2207
 commits=($(range_commits "${REPO_DROP}" "main"))
 plan="["
 plan="${plan}{\"action\":\"pick\",\"commit\":\"${commits[0]}\"},"
@@ -49,6 +54,7 @@ test_pass "drop action works"
 printf ' -> MSG-* reword preserves special characters\n'
 REPO_MSG="${TEST_TMPDIR}/rebase-messages"
 create_test_repo "${REPO_MSG}" 2
+# shellcheck disable=SC2016
 messages=('Say "hello"' "It's working" 'Fix $PATH issue' 'Use $(whoami)' 'Run `ls`' 'Path: C:\\Users' '修复 🐛 bug')
 for msg in "${messages[@]}"; do
 	target="$(cd "${REPO_MSG}" && git rev-list --reverse HEAD~1..HEAD | tail -n 1)"
@@ -80,6 +86,7 @@ fi
 printf ' -> PLAN-04 missing commit when requireComplete=true\n'
 REPO_REQ="${TEST_TMPDIR}/rebase-require-complete"
 create_test_repo "${REPO_REQ}" 3
+# shellcheck disable=SC2207
 commits_req=($(cd "${REPO_REQ}" && git rev-list --reverse HEAD~2..HEAD))
 if run_tool_expect_fail gitHex.rebaseWithPlan "${REPO_REQ}" "{\"onto\": \"HEAD~2\", \"plan\": [{\"action\": \"pick\", \"commit\": \"${commits_req[0]}\"}], \"requireComplete\": true}"; then
 	test_pass "requireComplete enforces full list"

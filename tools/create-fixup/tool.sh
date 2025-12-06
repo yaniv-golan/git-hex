@@ -88,6 +88,7 @@ printf '%s\n' "${commit_error}" >&2
 head_after="$(git -C "${repo_path}" rev-parse HEAD)"
 commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg headBefore "${head_before}" \

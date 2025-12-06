@@ -42,7 +42,7 @@ if [ -z "${backup_info}" ]; then
 fi
 
 # Parse backup info (format: hash|operation|timestamp|ref)
-IFS='|' read -r backup_hash operation timestamp backup_ref <<< "${backup_info}"
+IFS='|' read -r backup_hash operation timestamp backup_ref <<<"${backup_info}"
 
 if [ -z "${backup_hash}" ]; then
 	mcp_fail_invalid_args "No git-hex backup found. Nothing to undo."
@@ -53,6 +53,7 @@ head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
 # Check if we're already at the backup state
 if [ "${head_before}" = "${backup_hash}" ]; then
+	# shellcheck disable=SC2016
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \
 		--arg headBefore "${head_before}" \
@@ -91,6 +92,7 @@ if [ -n "${formatted_time}" ]; then
 fi
 summary="${summary}. Reset ${commits_since_backup} commit(s) from ${head_before:0:7} to ${head_after:0:7}"
 
+# shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg headBefore "${head_before}" \
@@ -100,4 +102,3 @@ mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson commitsUndone "${commits_since_backup}" \
 	--arg summary "${summary}" \
 	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, undoneOperation: $undoneOperation, backupRef: $backupRef, commitsUndone: $commitsUndone, summary: $summary}')"
-

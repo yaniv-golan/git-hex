@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${HOOK_DIR}/.." && pwd)"
+
+cd "${REPO_ROOT}"
+
+if ! [ -x "./test/lint.sh" ]; then
+	echo "lint hook: ./test/lint.sh missing or not executable" >&2
+	exit 1
+fi
+
+./test/lint.sh

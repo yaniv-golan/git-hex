@@ -17,4 +17,3 @@ fi
 
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
 exec "${FRAMEWORK_DIR}/bin/mcp-bash" "$@"
-

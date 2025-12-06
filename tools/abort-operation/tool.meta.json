@@ -1,0 +1,22 @@
+{
+  "name": "gitHex.abortOperation",
+  "description": "Abort a paused rebase/merge/cherry-pick and restore original state",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "operationType": { "type": "string" },
+      "summary": { "type": "string" }
+    }
+  },
+  "timeoutSecs": 30
+}

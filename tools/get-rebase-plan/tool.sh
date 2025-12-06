@@ -42,7 +42,7 @@ if [ -z "${onto}" ]; then
 		if [ "${offset}" -eq 0 ]; then
 			# Only one commit - use empty tree as base to include it
 			# This allows single-commit repos to show their only commit
-			onto="4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # git's empty tree SHA
+			onto="4b825dc642cb6eb9a060e54bf8d69288fbee4904" # git's empty tree SHA
 		else
 			onto="HEAD~${offset}"
 		fi
@@ -63,6 +63,7 @@ plan_id="plan_$(date +%s)_$$"
 # Using -z flag to use NUL as record terminator, and %x00 between fields
 # Pipe directly to jq to avoid bash null-byte warning in command substitution
 # This is O(1) git and jq invocations regardless of commit count
+# shellcheck disable=SC2016
 commits_json="$(git -C "${repo_path}" log --reverse -n "${count}" -z \
 	--format='%H%x00%h%x00%s%x00%an%x00%aI' \
 	"${onto}..HEAD" 2>/dev/null | "${MCPBASH_JSON_TOOL_BIN}" -Rs '
@@ -95,6 +96,7 @@ fi
 commit_count="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'length')"
 
 # Build and emit result
+# shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg plan_id "${plan_id}" \

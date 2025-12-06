@@ -1,0 +1,52 @@
+{
+  "name": "gitHex.getConflictStatus",
+  "description": "Get detailed information about merge/rebase/cherry-pick conflicts in the repository",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (defaults to single configured root)"
+      },
+      "includeContent": {
+        "type": "boolean",
+        "description": "Include base/ours/theirs content for each conflict (text files only)",
+        "default": false
+      },
+      "maxContentSize": {
+        "type": "integer",
+        "description": "Maximum bytes of content to return per file",
+        "default": 10000
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "inConflict"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "inConflict": { "type": "boolean" },
+      "conflictType": { "type": "string", "description": "rebase, merge, or cherry-pick" },
+      "currentStep": { "type": "integer" },
+      "totalSteps": { "type": "integer" },
+      "conflictingCommit": { "type": "string" },
+      "conflictingFiles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "conflictType": { "type": "string" },
+            "isBinary": { "type": "boolean" },
+            "base": { "type": "string" },
+            "ours": { "type": "string" },
+            "theirs": { "type": "string" },
+            "workingCopy": { "type": "string" }
+          }
+        }
+      },
+      "summary": { "type": "string" }
+    }
+  },
+  "timeoutSecs": 30
+}

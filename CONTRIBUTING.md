@@ -6,7 +6,7 @@ Thank you for your interest in contributing to git-hex! This document provides g
 
 ### Prerequisites
 
-- **bash** 4.0+
+- **bash** 3.2+
 - **jq** or **gojq**
 - **git** 2.20+ (2.33+ recommended)
 - **mcp-bash framework** v0.4.0+

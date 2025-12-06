@@ -1,0 +1,28 @@
+{
+  "name": "gitHex.continueOperation",
+  "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "operationType": { "type": "string" },
+      "completed": { "type": "boolean" },
+      "paused": { "type": "boolean" },
+      "conflictingFiles": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "summary": { "type": "string" }
+    }
+  },
+  "timeoutSecs": 30
+}

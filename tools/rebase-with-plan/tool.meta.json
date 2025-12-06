@@ -1,0 +1,76 @@
+{
+  "name": "gitHex.rebaseWithPlan",
+  "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword)",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "plan": {
+        "type": "array",
+        "description": "Ordered list of actions for each commit",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["pick", "reword", "squash", "fixup", "drop"],
+              "description": "Rebase action for this commit"
+            },
+            "commit": {
+              "type": "string",
+              "description": "Commit hash (short or full)"
+            },
+            "message": {
+              "type": "string",
+              "description": "New commit message. Required for reword. Must be single-line (no TAB or newline)."
+            }
+          },
+          "required": ["action", "commit"]
+        }
+      },
+      "abortOnConflict": {
+        "type": "boolean",
+        "description": "Abort and restore on conflict (default: true)",
+        "default": true
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Auto-stash uncommitted changes (uses native --autostash)",
+        "default": false
+      },
+      "autosquash": {
+        "type": "boolean",
+        "description": "Automatically squash fixup! and squash! commits (default: true)",
+        "default": true
+      },
+      "requireComplete": {
+        "type": "boolean",
+        "description": "If true, plan must include all commits in range. If false, unmentioned commits default to 'pick'.",
+        "default": false
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "headBefore": { "type": "string" },
+      "headAfter": { "type": "string" },
+      "summary": { "type": "string" },
+      "paused": { "type": "boolean" },
+      "conflictingFiles": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  },
+  "timeoutSecs": 120
+}

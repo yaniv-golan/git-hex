@@ -1,0 +1,35 @@
+{
+  "name": "gitHex.resolveConflict",
+  "description": "Mark a conflicting file as resolved. Works for modified files and delete conflicts.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository"
+      },
+      "file": {
+        "type": "string",
+        "description": "Path to the conflicting file (relative to repo root)"
+      },
+      "resolution": {
+        "type": "string",
+        "enum": ["keep", "delete"],
+        "description": "For delete conflicts: 'keep' to keep the file, 'delete' to accept deletion",
+        "default": "keep"
+      }
+    },
+    "required": ["file"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "file", "remainingConflicts"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "file": { "type": "string" },
+      "remainingConflicts": { "type": "integer" },
+      "summary": { "type": "string" }
+    }
+  },
+  "timeoutSecs": 30
+}

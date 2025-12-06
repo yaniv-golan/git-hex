@@ -93,7 +93,9 @@ Or using the wrapper script:
 
 ### gitHex.getRebasePlan
 
-Get a structured rebase plan for the last N commits.
+Get a structured view of recent commits for rebase planning and inspection.
+
+> **Note:** The `count` parameter is a *display limit* for inspection purposes. To rebase a specific number of commits, use `performRebase` with an appropriate `onto` value (e.g., `onto: "HEAD~3"` to rebase 3 commits).
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -130,7 +132,9 @@ Get a structured rebase plan for the last N commits.
 
 ### gitHex.performRebase
 
-Execute an interactive rebase with automatic abort on conflict.
+Execute a rebase with automatic abort on conflict.
+
+> **Note:** This tool rebases all commits in the range `onto..HEAD`. It runs in non-interactive mode with `--autosquash` support, meaning fixup/squash commits are automatically applied, but arbitrary reordering or dropping of commits is not supported. For manual reordering, use git directly.
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -196,6 +200,8 @@ Amend the last commit with staged changes and/or a new message.
 | `repoPath` | string | No | Path to git repository |
 | `message` | string | No | New commit message |
 | `addAll` | boolean | No | Stage all tracked modified files (default: false) |
+
+> **Note:** The `addAll` option stages only *tracked* files (`git add -u`), not new untracked files. This is a safety feature to prevent accidentally including unintended files. To include new files, stage them explicitly with `git add` before calling this tool.
 
 **Example:**
 ```json

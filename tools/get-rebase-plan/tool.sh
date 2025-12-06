@@ -56,24 +56,27 @@ fi
 # Generate unique plan ID
 plan_id="plan_$(date +%s)_$$"
 
-# Get commit hashes (oldest first for rebase order)
-# We query each commit separately to avoid delimiter issues with special characters
-# in commit messages (pipes, tabs, quotes, newlines, etc.)
-commit_hashes="$(git -C "${repo_path}" log --reverse --format='%H' "${onto}..HEAD" 2>/dev/null | head -n "${count}" || true)"
-
-# Build JSON array of commits using jq for proper escaping
+# Get commits in a single pass using null-byte delimiters for safety
+# Format: hash<NUL>shortHash<NUL>subject<NUL>author<NUL>date<NUL> (repeated per commit)
+# This is O(1) git forks instead of O(N*5) and handles all special characters safely
 commits_json="["
 sep=""
-while IFS= read -r hash; do
-	[ -z "${hash}" ] && continue
+commit_count=0
+
+# Use process substitution to read null-delimited fields
+# Each commit produces 5 null-terminated fields
+while IFS= read -r -d '' hash && \
+      IFS= read -r -d '' short_hash && \
+      IFS= read -r -d '' subject && \
+      IFS= read -r -d '' author && \
+      IFS= read -r -d '' date; do
 	
-	# Query each field separately - slower but 100% reliable
-	short_hash="$(git -C "${repo_path}" rev-parse --short "${hash}")"
-	subject="$(git -C "${repo_path}" log -1 --format='%s' "${hash}")"
-	author="$(git -C "${repo_path}" log -1 --format='%an' "${hash}")"
-	date="$(git -C "${repo_path}" log -1 --format='%aI' "${hash}")"
+	# Skip if we've reached the count limit
+	if [ "${commit_count}" -ge "${count}" ]; then
+		break
+	fi
 	
-	# Use jq for proper JSON escaping of all fields (handles quotes, newlines, tabs, etc.)
+	# Use jq for proper JSON escaping (handles quotes, newlines, tabs, unicode, etc.)
 	commit_obj="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg hash "${hash}" \
 		--arg shortHash "${short_hash}" \
@@ -84,7 +87,9 @@ while IFS= read -r hash; do
 	
 	commits_json="${commits_json}${sep}${commit_obj}"
 	sep=","
-done <<<"${commit_hashes}"
+	commit_count=$((commit_count + 1))
+done < <(git -C "${repo_path}" log --reverse --format='%H%x00%h%x00%s%x00%an%x00%aI%x00' "${onto}..HEAD" 2>/dev/null || true)
+
 commits_json="${commits_json}]"
 
 # Build and emit result using jq for proper escaping

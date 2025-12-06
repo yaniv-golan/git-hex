@@ -120,7 +120,7 @@ REPO6="${TEST_TMPDIR}/amend-rebase"
 create_conflict_scenario "${REPO6}"
 
 # Start a rebase that will conflict
-(cd "${REPO6}" && GIT_SEQUENCE_EDITOR=true git rebase -i main 2>/dev/null || true)
+(cd "${REPO6}" && GIT_SEQUENCE_EDITOR=true git rebase -i main 2>/dev/null) || true
 
 if run_tool_expect_fail gitHex.amendLastCommit "${REPO6}" '{"message": "test"}'; then
 	test_pass "amend-last-commit fails during rebase state"
@@ -129,7 +129,7 @@ else
 fi
 
 # Cleanup rebase state
-(cd "${REPO6}" && git rebase --abort 2>/dev/null || true)
+(cd "${REPO6}" && git rebase --abort 2>/dev/null) || true
 
 echo ""
 echo "All gitHex.amendLastCommit tests passed!"

@@ -169,6 +169,7 @@ printf ' -> SPLIT-36 rebase in progress prevents split\n'
 REPO_IN_PROGRESS="${TEST_TMPDIR}/split-in-progress"
 create_rebase_in_progress_scenario "${REPO_IN_PROGRESS}"
 in_progress_commit="$(cd "${REPO_IN_PROGRESS}" && git rev-list --reverse main..HEAD | head -n1 || true)"
+in_progress_commit="${in_progress_commit:-}"
 args_in_progress="$(
 	cat <<JSON
 {

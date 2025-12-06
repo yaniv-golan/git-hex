@@ -106,7 +106,7 @@ if [ "${plan_length}" -gt 0 ]; then
 				mcp_fail_invalid_args "Duplicate commit in plan: ${commit_ref}"
 			fi
 		done
-		if [ -n "${message}" ] && printf '%s' "${message}" | grep -q $'[\t\n]'; then
+		if [ -n "${message}" ] && { [[ "${message}" == *$'\t'* ]] || [[ "${message}" == *$'\n'* ]]; }; then
 			mcp_fail_invalid_args "Commit message cannot contain TAB or newline characters"
 		fi
 		if [ "${action}" = "reword" ] && [ -z "${message}" ]; then
@@ -273,8 +273,9 @@ if [ "${rebase_status}" -eq 0 ]; then
 		--argjson paused false \
 		--arg headBefore "${head_before}" \
 		--arg headAfter "${head_after}" \
+		--argjson commitsRebased "${actual_count}" \
 		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}" \
-		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, summary: $summary}')"
+		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, commitsRebased: $commitsRebased, summary: $summary}')"
 	exit 0
 else
 	if echo "${rebase_output}" | grep -qi "conflict"; then
@@ -300,8 +301,10 @@ else
 			mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
 		fi
 	elif echo "${rebase_output}" | grep -qi "nothing to do"; then
+		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 		mcp_fail_invalid_args "Nothing to rebase"
 	else
+		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 		error_hint="$(echo "${rebase_output}" | head -1)"
 		mcp_fail -32603 "Rebase failed: ${error_hint}"
 	fi

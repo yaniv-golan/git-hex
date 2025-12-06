@@ -24,10 +24,10 @@ assert_json_field "${status}" '.inConflict' "false" "clean repo should not repor
 test_pass "getConflictStatus reports clean state"
 
 # Prepare common conflict scenario (rebase paused)
-prepare_rebase_conflict() {
+prepare_rebase_conflict()  {
 	local repo="$1"
 	create_conflict_scenario "${repo}"
-	(cd "${repo}" && git rebase main >/dev/null 2>&1 || true)
+	(cd "${repo}" && git rebase main >/dev/null 2>&1) || true
 }
 
 # CONF-02: Rebase conflict detected
@@ -72,7 +72,7 @@ fi
 printf ' -> CONF-22 binary file treated as binary\n'
 REPO_BINARY="${TEST_TMPDIR}/conflict-binary"
 create_binary_conflict_scenario "${REPO_BINARY}"
-(cd "${REPO_BINARY}" && git rebase main >/dev/null 2>&1 || true)
+(cd "${REPO_BINARY}" && git rebase main >/dev/null 2>&1) || true
 status="$(run_tool gitHex.getConflictStatus "${REPO_BINARY}" '{"includeContent": true}')"
 assert_json_field "${status}" '.conflictingFiles[0].isBinary' "true" "binary conflict should mark isBinary"
 test_pass "binary conflict reported without content"
@@ -92,7 +92,7 @@ test_pass "resolveConflict + continueOperation completes rebase"
 printf ' -> RESV-02 delete-by-us resolution\n'
 REPO_DELETE_US="${TEST_TMPDIR}/conflict-delete-us"
 create_delete_by_us_scenario "${REPO_DELETE_US}"
-(cd "${REPO_DELETE_US}" && git rebase main >/dev/null 2>&1 || true)
+(cd "${REPO_DELETE_US}" && git rebase main >/dev/null 2>&1) || true
 res_keep="$(run_tool gitHex.resolveConflict "${REPO_DELETE_US}" '{"file": "file.txt", "resolution": "keep"}')"
 assert_json_field "${res_keep}" '.remainingConflicts' "0" "delete conflict should be resolved with keep"
 test_pass "delete-by-us resolved with keep"
@@ -100,7 +100,7 @@ test_pass "delete-by-us resolved with keep"
 printf ' -> RESV-03 delete-by-them resolution delete\n'
 REPO_DELETE_THEM="${TEST_TMPDIR}/conflict-delete-them"
 create_delete_by_them_scenario "${REPO_DELETE_THEM}"
-(cd "${REPO_DELETE_THEM}" && git rebase main >/dev/null 2>&1 || true)
+(cd "${REPO_DELETE_THEM}" && git rebase main >/dev/null 2>&1) || true
 res_delete="$(run_tool gitHex.resolveConflict "${REPO_DELETE_THEM}" '{"file": "file.txt", "resolution": "delete"}')"
 assert_json_field "${res_delete}" '.remainingConflicts' "0" "delete conflict resolved by deleting"
 test_pass "delete-by-them resolved with delete"
@@ -118,7 +118,7 @@ printf ' -> CONT-03 abortOperation restores original state\n'
 REPO_ABORT="${TEST_TMPDIR}/conflict-abort"
 create_conflict_scenario "${REPO_ABORT}"
 head_before="$(cd "${REPO_ABORT}" && git rev-parse --short HEAD)"
-(cd "${REPO_ABORT}" && git rebase main >/dev/null 2>&1 || true)
+(cd "${REPO_ABORT}" && git rebase main >/dev/null 2>&1) || true
 abort_result="$(run_tool gitHex.abortOperation "${REPO_ABORT}" '{}')"
 assert_json_field "${abort_result}" '.success' "true" "abortOperation should succeed"
 head_after="$(cd "${REPO_ABORT}" && git rev-parse --short HEAD)"

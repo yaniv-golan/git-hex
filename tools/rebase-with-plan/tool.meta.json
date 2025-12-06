@@ -64,8 +64,16 @@
       "success": { "type": "boolean" },
       "headBefore": { "type": "string" },
       "headAfter": { "type": "string" },
+      "commitsRebased": {
+        "type": "integer",
+        "description": "Number of commits rebased when successful"
+      },
       "summary": { "type": "string" },
       "paused": { "type": "boolean" },
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
+      },
       "conflictingFiles": {
         "type": "array",
         "items": { "type": "string" }

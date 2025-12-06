@@ -66,6 +66,10 @@
         "type": "boolean",
         "description": "True if operation paused due to conflicts (when abortOnConflict=false)"
       },
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
+      },
       "conflictingFiles": {
         "type": "array",
         "items": { "type": "string" },

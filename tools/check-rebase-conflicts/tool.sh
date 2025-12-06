@@ -27,6 +27,17 @@ if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 
+object_dir="$(mktemp -d)"
+alt_objects="$(git -C "${repo_path}" rev-parse --git-path objects 2>/dev/null || true)"
+cleanup() {
+	rm -rf "${object_dir}" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Use a temporary object directory so merge-tree does not write objects into the repo
+export GIT_OBJECT_DIRECTORY="${object_dir}"
+export GIT_ALTERNATE_OBJECT_DIRECTORIES="${alt_objects}"
+
 total_commits="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 current_tree="$(git -C "${repo_path}" rev-parse "${onto}^{tree}")"
 

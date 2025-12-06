@@ -10,7 +10,7 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 - **Fixup Commits**: Create fixup! commits for later auto-squashing
 - **Commit Amendments**: Safely amend the last commit with staged changes
 - **Cherry-picking**: Single-commit cherry-pick with strategy options
-- **Undo Support**: Built-in undo for all mutating operations via backup refs
+- **Undo Support**: Backup refs for all history-mutating operations (amend, fixup, cherry-pick, rebase, split) for easy undo
 - **Path Security**: All operations respect MCP roots for sandboxed access
 
 ## How It Works
@@ -58,14 +58,14 @@ flowchart TB
     cherry --> undo
 ```
 
-All mutating operations create backup refs, enabling `undoLast` to restore the previous state.
+All history-mutating operations create backup refs, enabling `undoLast` to restore the previous state. Conflict-resolution helpers (`resolveConflict`, `continueOperation`, etc.) do not create backups.
 
 ## Requirements
 
 - **mcp-bash framework** v0.4.0 or later
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git** 2.20+ (2.33+ recommended for `ort` merge strategy support)
+- **git** 2.38+ (required for `gitHex.checkRebaseConflicts`; 2.33+ recommended if you want the `ort` merge strategy)
 
 ## Lint & Tests
 
@@ -304,7 +304,7 @@ Get a structured view of recent commits for rebase planning and inspection.
 
 Structured interactive rebase with plan support (reorder, drop, squash, reword) plus conflict pause/resume.
 
-> **Prerequisites:** Working tree must be clean unless `autoStash=true`. All mutating operations create a backup ref for `undoLast`.
+> **Prerequisites:** Working tree must be clean unless `autoStash=true`. All history-mutating operations create a backup ref for `undoLast`.
 
 > **Notes:**
 > - Rebases the range `onto..HEAD`
@@ -349,6 +349,8 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 ### gitHex.checkRebaseConflicts
 
 Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
+
+> **Git version:** Requires Git 2.38+ (uses `merge-tree --write-tree` internally, isolated in a temp object directory to avoid touching repo objects).
 
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 
@@ -468,7 +470,7 @@ Undo the last git-hex operation by resetting to the backup ref.
 
 > **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
 
-Every mutating git-hex operation (amend, fixup, rebase, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
+Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -505,7 +507,7 @@ git-hex is designed with safety as a priority:
 
 4. **Path Validation**: When MCP roots are configured, all paths are validated to stay within allowed boundaries.
 
-5. **Backup Refs**: Every mutating operation creates a backup ref (`refs/git-hex/backup/<timestamp>_<operation>`) before making changes. Use `gitHex.undoLast` to restore or manually reset with `git reset --hard refs/git-hex/last/<timestamp>_<operation>`.
+5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates a backup ref (`refs/git-hex/backup/<timestamp>_<operation>`) before making changes. Use `gitHex.undoLast` to restore or manually reset with `git reset --hard refs/git-hex/last/<timestamp>_<operation>`. Conflict-resolution helpers do not create backups.
 
 6. **Read-Only Mode**: Set `GIT_HEX_READ_ONLY=1` to disable all mutating tools while keeping inspection tools available.
 

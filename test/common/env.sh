@@ -49,23 +49,27 @@ run_tool() {
 	local timeout="${4:-30}"
 	
 	local raw_output
-	# Framework sends diagnostics to stderr, stdout is clean JSON
+	# Framework sends diagnostics to stderr, stdout is clean JSON (may be multiple lines)
 	raw_output="$(mcp-bash run-tool "${tool_name}" \
 		--project-root "${MCPBASH_PROJECT_ROOT}" \
 		--roots "${roots}" \
 		--args "${args_json}" \
 		--timeout "${timeout}" 2>/dev/null)"
 	
-	# Check if it's an error response
-	if echo "${raw_output}" | jq -e '._mcpToolError == true' >/dev/null 2>&1; then
-		# Return the error as-is
-		echo "${raw_output}"
+	# Check if any line is an error response (framework may emit notifications first)
+	if echo "${raw_output}" | jq -es 'map(select(._mcpToolError == true)) | length > 0' >/dev/null 2>&1; then
+		# Extract and return the error object
+		echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]'
 		return 1
 	fi
 	
-	# Extract structuredContent (handle case where it might be the raw output)
+	# Extract structuredContent from the result line (skip notifications)
 	local structured
-	structured="$(echo "${raw_output}" | jq -r '.structuredContent // .' 2>/dev/null || echo "${raw_output}")"
+	structured="$(echo "${raw_output}" | jq -s 'map(select(.structuredContent)) | .[0].structuredContent // empty' 2>/dev/null || echo "${raw_output}")"
+	if [ -z "${structured}" ]; then
+		# Fallback: maybe it's the raw output format
+		structured="${raw_output}"
+	fi
 	echo "${structured}"
 }
 

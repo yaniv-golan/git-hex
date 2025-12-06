@@ -2,6 +2,22 @@
 
 This directory contains tests for your MCP server tools.
 
+## Prerequisites
+
+The tests require the `mcp-bash` framework. You can either:
+
+1. **Install the framework** (recommended for CI):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+   ```
+
+2. **Use a local development version** by setting `MCPBASH_HOME`:
+   ```bash
+   export MCPBASH_HOME=/path/to/mcp-bash-framework
+   ```
+
+The test harness auto-detects sibling directories (e.g., `../mcpbash`) for local development.
+
 ## Quick Start
 
 Run all tests:

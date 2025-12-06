@@ -24,8 +24,18 @@ no_commit="$(mcp_args_bool '.noCommit' --default false)"
 # Validate strategy if provided (must match schema enum)
 if [ -n "${strategy}" ]; then
 	case "${strategy}" in
-		recursive|ort|resolve|octopus)
-			# Valid strategy
+		recursive|resolve|octopus)
+			# Valid strategy (available in all git versions)
+			;;
+		ort)
+			# ort strategy requires git 2.33+
+			git_version="$(git --version | sed 's/git version //' | cut -d. -f1-2)"
+			# Compare major.minor >= 2.33
+			major="${git_version%%.*}"
+			minor="${git_version#*.}"
+			if [ "${major}" -lt 2 ] || { [ "${major}" -eq 2 ] && [ "${minor}" -lt 33 ]; }; then
+				mcp_fail_invalid_args "Merge strategy 'ort' requires git 2.33+. Current version: ${git_version}. Use 'recursive' instead."
+			fi
 			;;
 		*)
 			mcp_fail_invalid_args "Invalid merge strategy '${strategy}'. Must be one of: recursive, ort, resolve, octopus"

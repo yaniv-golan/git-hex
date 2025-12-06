@@ -17,7 +17,7 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 - **mcp-bash framework** v0.4.0 or later
 - **bash** 4.0+
 - **jq** or **gojq**
-- **git** 2.20+
+- **git** 2.20+ (2.33+ recommended for `ort` merge strategy support)
 
 ## Installation
 

@@ -40,63 +40,62 @@ if [ -z "${onto}" ]; then
 			offset="${count}"
 		fi
 		if [ "${offset}" -eq 0 ]; then
-			# Only one commit - use the root commit as onto
-			onto="$(git -C "${repo_path}" rev-list --max-parents=0 HEAD 2>/dev/null | head -1)"
+			# Only one commit - use empty tree as base to include it
+			# This allows single-commit repos to show their only commit
+			onto="4b825dc642cb6eb9a060e54bf8d69288fbee4904"  # git's empty tree SHA
 		else
 			onto="HEAD~${offset}"
 		fi
 	fi
 fi
 
-# Verify onto ref exists
-if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
+# Verify onto ref exists (except for empty tree which always exists)
+if [ "${onto}" != "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+	if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
+		mcp_fail_invalid_args "Invalid onto ref: ${onto}"
+	fi
 fi
 
 # Generate unique plan ID
 plan_id="plan_$(date +%s)_$$"
 
-# Get commits in a single pass using null-byte delimiters for safety
-# Format: hash<NUL>shortHash<NUL>subject<NUL>author<NUL>date<NUL> (repeated per commit)
-# This is O(1) git forks instead of O(N*5) and handles all special characters safely
-commits_json="["
-sep=""
-commit_count=0
+# Get commits using null-byte delimiters for safety (handles all special chars)
+# Using -z flag to use NUL as record terminator, and %x00 between fields
+# Pipe directly to jq to avoid bash null-byte warning in command substitution
+# This is O(1) git and jq invocations regardless of commit count
+commits_json="$(git -C "${repo_path}" log --reverse -n "${count}" -z \
+	--format='%H%x00%h%x00%s%x00%an%x00%aI' \
+	"${onto}..HEAD" 2>/dev/null | "${MCPBASH_JSON_TOOL_BIN}" -Rs '
+	split("\u0000") |
+	# Group into chunks of 5 fields per commit
+	[range(0; length; 5) as $i | .[$i:$i+5]] |
+	# Filter complete records (must have exactly 5 fields)
+	map(select(length == 5)) |
+	map({
+		hash: .[0],
+		shortHash: .[1],
+		subject: .[2],
+		author: .[3],
+		date: .[4]
+	})
+' || echo "[]")"
 
-# Use process substitution to read null-delimited fields
-# Each commit produces 5 null-terminated fields
-while IFS= read -r -d '' hash && \
-      IFS= read -r -d '' short_hash && \
-      IFS= read -r -d '' subject && \
-      IFS= read -r -d '' author && \
-      IFS= read -r -d '' date; do
-	
-	# Skip if we've reached the count limit
-	if [ "${commit_count}" -ge "${count}" ]; then
-		break
-	fi
-	
-	# Use jq for proper JSON escaping (handles quotes, newlines, tabs, unicode, etc.)
-	commit_obj="$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--arg hash "${hash}" \
-		--arg shortHash "${short_hash}" \
-		--arg subject "${subject}" \
-		--arg author "${author}" \
-		--arg date "${date}" \
-		'{hash: $hash, shortHash: $shortHash, subject: $subject, author: $author, date: $date}')"
-	
-	commits_json="${commits_json}${sep}${commit_obj}"
-	sep=","
-	commit_count=$((commit_count + 1))
-done < <(git -C "${repo_path}" log --reverse --format='%H%x00%h%x00%s%x00%an%x00%aI%x00' "${onto}..HEAD" 2>/dev/null || true)
+# Handle empty result
+if [ -z "${commits_json}" ] || [ "${commits_json}" = "null" ]; then
+	commits_json="[]"
+fi
 
-commits_json="${commits_json}]"
+# Resolve onto to display value (show original ref, not empty tree hash)
+onto_display="${onto}"
+if [ "${onto}" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+	onto_display="(root)"
+fi
 
-# Build and emit result using jq for proper escaping
+# Build and emit result
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg plan_id "${plan_id}" \
 	--arg branch "${branch}" \
-	--arg onto "${onto}" \
+	--arg onto "${onto_display}" \
 	--argjson commits "${commits_json}" \
 	'{plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits}')"
 mcp_emit_json "${result}"

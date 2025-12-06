@@ -236,7 +236,7 @@ Cherry-pick a single commit with configurable merge strategy.
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
 | `commit` | string | **Yes** | Commit hash/ref to cherry-pick |
-| `strategy` | string | No | Merge strategy: recursive, ort, resolve, octopus |
+| `strategy` | string | No | Merge strategy: recursive, ort, resolve |
 | `noCommit` | boolean | No | Apply without committing (default: false) |
 
 **Example:**

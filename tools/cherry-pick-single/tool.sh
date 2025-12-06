@@ -22,9 +22,10 @@ strategy="$(mcp_args_get '.strategy // empty' || true)"
 no_commit="$(mcp_args_bool '.noCommit' --default false)"
 
 # Validate strategy if provided (must match schema enum)
+# Note: octopus is excluded - it's for multi-branch merges, not cherry-pick
 if [ -n "${strategy}" ]; then
 	case "${strategy}" in
-		recursive|resolve|octopus)
+		recursive|resolve)
 			# Valid strategy (available in all git versions)
 			;;
 		ort)
@@ -38,7 +39,7 @@ if [ -n "${strategy}" ]; then
 			fi
 			;;
 		*)
-			mcp_fail_invalid_args "Invalid merge strategy '${strategy}'. Must be one of: recursive, ort, resolve, octopus"
+			mcp_fail_invalid_args "Invalid merge strategy '${strategy}'. Must be one of: recursive, ort, resolve"
 			;;
 	esac
 fi

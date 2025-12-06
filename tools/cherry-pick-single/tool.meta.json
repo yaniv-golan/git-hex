@@ -14,8 +14,8 @@
       },
       "strategy": {
         "type": "string",
-        "description": "Merge strategy: 'recursive', 'ort', 'resolve', 'octopus' (default: git default)",
-        "enum": ["recursive", "ort", "resolve", "octopus"]
+        "description": "Merge strategy: 'recursive', 'ort', 'resolve' (default: git default)",
+        "enum": ["recursive", "ort", "resolve"]
       },
       "noCommit": {
         "type": "boolean",

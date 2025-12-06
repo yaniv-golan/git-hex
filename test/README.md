@@ -1,6 +1,6 @@
-# Testing Your MCP Tools
+# Testing git-hex
 
-This directory contains tests for your MCP server tools.
+This directory contains tests for the git-hex MCP server.
 
 ## Prerequisites
 
@@ -18,122 +18,126 @@ The tests require the `mcp-bash` framework. You can either:
 
 The test harness auto-detects sibling directories (e.g., `../mcpbash`) for local development.
 
-## Quick Start
+## Running Tests
 
 Run all tests:
 ```bash
 ./test/run.sh
 ```
 
-Run with verbose output:
+Run only integration tests:
 ```bash
-./test/run.sh --verbose
+./test/integration/run.sh
 ```
 
-Skip validation errors (useful during development):
+Run only security tests:
 ```bash
-./test/run.sh --force
+./test/security/run.sh
 ```
 
-## Adding Tests
+## Test Structure
 
-Edit `test/run.sh` and add test calls in the marked section:
+```
+test/
+├── run.sh                    # Main test runner (runs all suites)
+├── common/
+│   ├── env.sh               # Test environment setup
+│   ├── assert.sh            # Assertion helpers
+│   └── git_fixtures.sh      # Git repository fixtures
+├── integration/
+│   ├── run.sh               # Integration test runner
+│   └── test_*.sh            # Individual integration tests
+└── security/
+    ├── run.sh               # Security test runner
+    └── test_*.sh            # Security/path traversal tests
+```
+
+## Writing Tests
+
+### Integration Tests
+
+Create a new file `test/integration/test_my_feature.sh`:
 
 ```bash
-# Basic test - tool must succeed
-run_test "my-tool" '{"input":"value"}'
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Test with description (shown in output)
-run_test "my-tool" '{"input":"value"}' "handles basic input"
+# Source test helpers
+source "$(dirname "${BASH_SOURCE[0]}")/../common/env.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../common/assert.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../common/git_fixtures.sh"
 
-# Dry-run - validates args and metadata without executing
-run_dry_run "my-tool" '{"input":"value"}'
+test_create_tmpdir
+test_verify_framework
 
-# Conditional skip
-if [[ -z "${REQUIRED_VAR:-}" ]]; then
-    skip_test "my-tool" "REQUIRED_VAR not set"
-else
-    run_test "my-tool" '{"input":"value"}'
+echo "=== Testing my feature ==="
+
+# Create a test repo
+repo="${TEST_TMPDIR}/my-repo"
+create_test_repo "${repo}" 5
+
+# Run tool and check result
+result="$(run_tool "gitHex.myTool" "${repo}" '{"arg": "value"}')"
+assert_json_field "${result}" ".success" "true"
+
+echo "All tests passed!"
+```
+
+### Using Test Helpers
+
+**`run_tool`** - Run a tool and get structured output:
+```bash
+result="$(run_tool "gitHex.getRebasePlan" "${repo}" '{"count": 5}')"
+```
+
+**`run_tool_expect_fail`** - Expect a tool to fail:
+```bash
+if run_tool_expect_fail "gitHex.getRebasePlan" "/nonexistent" '{}'; then
+    echo "PASS: correctly rejected invalid path"
 fi
 ```
 
-## Advanced Testing
-
-### Testing with Simulated Roots
-
-Use `mcp-bash run-tool` directly for advanced scenarios:
-
+**Git fixtures** - Create test repositories:
 ```bash
-# Simulate a single MCP root
-mcp-bash run-tool my-tool \
-    --args '{"path":"file.txt"}' \
-    --roots '/path/to/allowed/dir'
-
-# Multiple roots (comma-separated)
-mcp-bash run-tool my-tool \
-    --args '{"path":"file.txt"}' \
-    --roots '/repo1,/repo2'
+create_test_repo "${repo}" 5           # 5 commits
+create_fixup_scenario "${repo}"        # Repo with fixup commits
+create_conflict_scenario "${repo}"     # Repo with conflict setup
 ```
 
-> **Windows/Git Bash Note**: Set `MSYS2_ARG_CONV_EXCL="*"` before running commands with path arguments to prevent automatic path mangling (e.g., `/repo` becoming `C:/Git/repo`). The scaffolded `test/run.sh` sets this automatically.
-
-### Testing Error Cases
+### Assertions
 
 ```bash
-# Expect failure (invert exit code)
-if mcp-bash run-tool my-tool --args '{"invalid":true}' 2>/dev/null; then
-    echo "FAIL: Should have rejected invalid input"
-    exit 1
-fi
-echo "PASS: Correctly rejected invalid input"
+assert_eq "actual" "expected" "description"
+assert_json_field "${json}" ".field" "expected_value"
 ```
 
-### Testing with Custom Timeout
+## Testing with mcp-bash run-tool
+
+For manual testing or debugging:
 
 ```bash
-mcp-bash run-tool slow-tool --args '{}' --timeout 120
+# Test a tool directly
+mcp-bash run-tool gitHex.getRebasePlan \
+    --args '{"repoPath": "/path/to/repo", "count": 5}' \
+    --roots '/path/to/repo'
+
+# With custom timeout
+mcp-bash run-tool gitHex.performRebase \
+    --args '{"onto": "main"}' \
+    --roots '/path/to/repo' \
+    --timeout 120
 ```
 
-### Testing Minimal Mode
-
-```bash
-mcp-bash run-tool my-tool --args '{}' --minimal
-```
+> **Windows/Git Bash Note**: Set `MSYS2_ARG_CONV_EXCL="*"` before running commands with path arguments to prevent automatic path mangling.
 
 ## CI Integration
 
-Add to your GitHub Actions workflow:
-
-```yaml
-name: Test
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq
-      
-      - name: Install mcp-bash
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
-          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
-          
-      - name: Validate project
-        run: mcp-bash validate
-        
-      - name: Run tests
-        run: ./test/run.sh
-```
-
-> **Note**: This uses the `yaniv-golan/mcp-bash-framework` fork. See the [installation docs](https://github.com/yaniv-golan/mcp-bash-framework#installation) for alternatives.
+See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
+1. Installs the mcp-bash framework (pinned to v0.4.0)
+2. Runs `mcp-bash validate` to check project structure
+3. Runs integration and security tests
 
 ## Reference
 
-- [Best Practices Guide](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md) - SDK helpers, testing patterns
-- [run-tool CLI](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md#testing-tools-with-run-tool) - Full CLI reference
-
-> **Note**: If you have the mcp-bash framework installed locally, you can also reference its docs at `${MCPBASH_HOME}/docs/`.
+- [mcp-bash Best Practices](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md)
+- [run-tool CLI Reference](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/docs/BEST-PRACTICES.md#testing-tools-with-run-tool)

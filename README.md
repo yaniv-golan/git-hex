@@ -36,23 +36,40 @@ flowchart LR
 flowchart TB
     subgraph readonly["Read-Only"]
         plan[getRebasePlan]
+        predict[checkRebaseConflicts]
+        conflictStatus[getConflictStatus]
     end
     
-    subgraph mutating["Mutating Operations"]
+    subgraph mutating["History & State Changes"]
         rebase[rebaseWithPlan]
+        split[splitCommit]
         fixup[createFixup]
         amend[amendLastCommit]
         cherry[cherryPickSingle]
+    end
+    
+    subgraph conflict["Conflict Helpers (no backups)"]
+        resolve[resolveConflict]
+        cont[continueOperation]
+        abort[abortOperation]
     end
     
     subgraph safety["Safety Net"]
         undo[undoLast]
     end
     
+    predict -.->|"simulate"| rebase
     plan -.->|"plan first"| rebase
     fixup -->|"then squash"| rebase
     
+    rebase --> conflictStatus
+    cherry --> conflictStatus
+    conflictStatus --> resolve
+    resolve --> cont
+    abort -.-> rebase
+
     rebase --> undo
+    split --> undo
     fixup --> undo
     amend --> undo
     cherry --> undo

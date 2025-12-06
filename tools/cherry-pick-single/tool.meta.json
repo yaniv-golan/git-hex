@@ -1,0 +1,50 @@
+{
+  "name": "gitHex.cherryPickSingle",
+  "description": "Cherry-pick a single commit with configurable merge strategy, aborting cleanly on conflict",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "commit": {
+        "type": "string",
+        "description": "Commit hash or ref to cherry-pick (required)"
+      },
+      "strategy": {
+        "type": "string",
+        "description": "Merge strategy: 'recursive', 'ort', 'resolve', 'octopus' (default: git default)",
+        "enum": ["recursive", "ort", "resolve", "octopus"]
+      },
+      "noCommit": {
+        "type": "boolean",
+        "description": "Apply changes without committing (default: false)"
+      }
+    },
+    "required": ["commit"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether cherry-pick succeeded"
+      },
+      "newHash": {
+        "type": "string",
+        "description": "New commit hash (if committed)"
+      },
+      "sourceCommit": {
+        "type": "string",
+        "description": "Original commit that was cherry-picked"
+      },
+      "message": {
+        "type": "string",
+        "description": "Result message"
+      }
+    }
+  },
+  "timeoutSecs": 60
+}

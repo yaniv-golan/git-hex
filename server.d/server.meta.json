@@ -1,0 +1,7 @@
+{
+  "name": "git-hex",
+  "title": "Git Hex",
+  "version": "0.1.0",
+  "description": "Interactive git refactoring via MCP",
+  "websiteUrl": "https://github.com/yaniv-golan/git-hex"
+}

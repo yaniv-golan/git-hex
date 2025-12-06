@@ -1,0 +1,45 @@
+{
+  "name": "gitHex.createFixup",
+  "description": "Create a fixup commit for a specified commit, to be auto-squashed during rebase",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "commit": {
+        "type": "string",
+        "description": "Commit hash or ref to create fixup for (required)"
+      },
+      "message": {
+        "type": "string",
+        "description": "Additional message to append (optional)"
+      }
+    },
+    "required": ["commit"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "fixupHash"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether fixup commit was created"
+      },
+      "fixupHash": {
+        "type": "string",
+        "description": "Hash of the new fixup commit"
+      },
+      "targetCommit": {
+        "type": "string",
+        "description": "Hash of the commit this fixup targets"
+      },
+      "message": {
+        "type": "string",
+        "description": "Full commit message of the fixup"
+      }
+    }
+  },
+  "timeoutSecs": 30
+}

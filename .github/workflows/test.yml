@@ -1,0 +1,63 @@
+name: Test git-hex
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install mcp-bash framework
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
+          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+      
+      - name: Install jq
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y jq
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq
+          fi
+      
+      - name: Validate project
+        run: mcp-bash validate
+      
+      - name: Run integration tests
+        run: ./test/integration/run.sh
+      
+      - name: Run security tests
+        run: ./test/security/run.sh
+
+  test-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install mcp-bash framework
+        run: |
+          git clone --depth 1 https://github.com/yaniv-golan/mcp-bash-framework.git ~/mcp-bash-framework
+          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+      
+      - name: Install jq
+        run: choco install jq -y
+      
+      - name: Validate project
+        run: mcp-bash validate
+      
+      - name: Run integration tests
+        run: ./test/integration/run.sh
+

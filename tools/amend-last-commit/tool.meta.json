@@ -1,0 +1,44 @@
+{
+  "name": "gitHex.amendLastCommit",
+  "description": "Amend the last commit with staged changes and/or a new message",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "message": {
+        "type": "string",
+        "description": "New commit message (optional - keeps original if not provided)"
+      },
+      "addAll": {
+        "type": "boolean",
+        "description": "Stage all tracked modified files before amending (default: false)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "newHash"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether amend was successful"
+      },
+      "newHash": {
+        "type": "string",
+        "description": "New commit hash after amend"
+      },
+      "previousHash": {
+        "type": "string",
+        "description": "Original commit hash before amend"
+      },
+      "message": {
+        "type": "string",
+        "description": "Final commit message"
+      }
+    }
+  },
+  "timeoutSecs": 30
+}

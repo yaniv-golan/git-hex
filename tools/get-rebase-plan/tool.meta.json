@@ -1,0 +1,54 @@
+{
+  "name": "gitHex.getRebasePlan",
+  "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of commits to include in plan (default 10, max 200)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto (default: current branch base)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["plan_id", "commits", "onto", "branch"],
+    "properties": {
+      "plan_id": {
+        "type": "string",
+        "description": "Unique identifier for this rebase plan"
+      },
+      "branch": {
+        "type": "string",
+        "description": "Current branch name"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref the rebase would be onto"
+      },
+      "commits": {
+        "type": "array",
+        "description": "List of commits in rebase order (oldest first)",
+        "items": {
+          "type": "object",
+          "properties": {
+            "hash": { "type": "string" },
+            "shortHash": { "type": "string" },
+            "subject": { "type": "string" },
+            "author": { "type": "string" },
+            "date": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "timeoutSecs": 30
+}

@@ -1,0 +1,45 @@
+{
+  "name": "gitHex.performRebase",
+  "description": "Execute interactive rebase with automatic abort on conflict, ensuring repository is left in clean state",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto (required)"
+      },
+      "autosquash": {
+        "type": "boolean",
+        "description": "Automatically squash fixup! and squash! commits (default: true)"
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "message"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether rebase completed successfully"
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable result message"
+      },
+      "newHead": {
+        "type": "string",
+        "description": "New HEAD commit hash after successful rebase"
+      },
+      "commitsRebased": {
+        "type": "integer",
+        "description": "Number of commits that were rebased"
+      }
+    }
+  },
+  "timeoutSecs": 120
+}

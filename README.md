@@ -95,14 +95,14 @@ Or using the wrapper script:
 
 Get a structured view of recent commits for rebase planning and inspection.
 
-> **Note:** The `count` parameter is a *display limit* for inspection purposes. To rebase a specific number of commits, use `performRebase` with an appropriate `onto` value (e.g., `onto: "HEAD~3"` to rebase 3 commits).
+> **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
 
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository (defaults to single root) |
 | `count` | integer | No | Number of commits (default: 10, max: 200) |
-| `onto` | string | No | Base ref to rebase onto |
+| `onto` | string | No | Base ref for commit range (defaults to upstream or HEAD~count) |
 
 **Example:**
 ```json

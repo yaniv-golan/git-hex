@@ -20,9 +20,15 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Repository has no commits to amend"
 fi
 
-# Check if in rebase state
+# Check for any in-progress git operations
 if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
 	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
+fi
+if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
+fi
+if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
 # Save original HEAD

@@ -58,9 +58,15 @@ if ! git -C "${repo_path}" diff-index --quiet HEAD -- 2>/dev/null; then
 	mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
 fi
 
-# Check if already in cherry-pick state
+# Check for any in-progress git operations
+if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
+fi
 if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
-	mcp_fail_invalid_args "Repository is already in a cherry-pick state. Please resolve or abort it first."
+	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
+fi
+if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
 # Verify commit exists and resolve to full hash

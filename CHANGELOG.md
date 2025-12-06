@@ -5,7 +5,7 @@ All notable changes to git-hex will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2024-12-06
+## [0.1.0] - Unreleased
 
 ### Added
 
@@ -26,5 +26,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repository state validated before destructive operations
 - Cleanup traps ensure repos are never left in broken state
 
-[1.0.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v1.0.0
-
+[0.1.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v0.1.0

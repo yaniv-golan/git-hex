@@ -18,7 +18,7 @@ jobs:
       
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
       
       - name: Install jq
@@ -49,7 +49,7 @@ jobs:
       
       - name: Install mcp-bash framework
         run: |
-          git clone --depth 1 https://github.com/yaniv-golan/mcp-bash-framework.git ~/mcp-bash-framework
+          git clone -b v0.4.0 --depth 1 https://github.com/yaniv-golan/mcp-bash-framework.git ~/mcp-bash-framework
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
       
       - name: Install jq

@@ -137,6 +137,8 @@ Execute a rebase with automatic abort on conflict.
 > **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
 
 > **Note:** This tool rebases all commits in the range `onto..HEAD`. It runs in non-interactive mode with `--autosquash` support, meaning fixup/squash commits are automatically applied, but arbitrary reordering or dropping of commits is not supported. For manual reordering, use git directly.
+>
+> **Implementation detail:** Internally, this executes `git rebase -i --onto <onto> <onto>`, which replays all commits reachable from HEAD but not from `onto` onto the `onto` ref. The interactive mode is used with `GIT_SEQUENCE_EDITOR=true` to enable autosquash without manual intervention.
 
 **Parameters:**
 | Name | Type | Required | Description |

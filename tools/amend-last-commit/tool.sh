@@ -53,10 +53,22 @@ else
 	amend_args+=("--no-edit")
 fi
 
-# Perform the amend
-if ! git -C "${repo_path}" commit "${amend_args[@]}" >&2; then
-	mcp_fail -32603 "Failed to amend commit"
+# Perform the amend (capture stderr for better error messages)
+commit_error=""
+if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; then
+	# Provide specific error context
+	if echo "${commit_error}" | grep -qi "gpg\|signing\|sign"; then
+		mcp_fail -32603 "Failed to amend commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
+	elif echo "${commit_error}" | grep -qi "hook"; then
+		mcp_fail -32603 "Failed to amend commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
+	else
+		# Include first line of error for context
+		error_hint="$(echo "${commit_error}" | head -1)"
+		mcp_fail -32603 "Failed to amend commit: ${error_hint}"
+	fi
 fi
+# Echo output to stderr for logging
+printf '%s\n' "${commit_error}" >&2
 
 # Get new commit info
 new_hash="$(git -C "${repo_path}" rev-parse HEAD)"

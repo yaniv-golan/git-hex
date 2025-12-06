@@ -77,9 +77,13 @@ fi
 
 # Perform rebase (non-interactive to avoid editor)
 # Use GIT_SEQUENCE_EDITOR=true to auto-accept the todo list
-if GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase -i "${rebase_args[@]}" >&2; then
+# Capture stderr for better error messages
+rebase_error=""
+if rebase_error="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase -i "${rebase_args[@]}" 2>&1)"; then
 	# Success - clear the trap since we don't need cleanup
 	trap - EXIT
+	# Echo output to stderr for logging
+	printf '%s\n' "${rebase_error}" >&2
 	
 	new_head="$(git -C "${repo_path}" rev-parse HEAD)"
 	
@@ -92,5 +96,17 @@ if GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase -i "${rebase_args[@]}" 
 		'{success: $success, message: $message, newHead: $newHead, commitsRebased: $commitsRebased}')"
 else
 	# Rebase failed - cleanup will abort
-	mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
+	# Provide more specific error context
+	if echo "${rebase_error}" | grep -qi "conflict"; then
+		mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
+	elif echo "${rebase_error}" | grep -qi "gpg\|signing\|sign"; then
+		mcp_fail -32603 "Rebase failed: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
+	elif echo "${rebase_error}" | grep -qi "hook"; then
+		mcp_fail -32603 "Rebase failed: A git hook rejected a commit. Check your pre-commit or commit-msg hooks."
+	elif echo "${rebase_error}" | grep -qi "exec"; then
+		mcp_fail -32603 "Rebase failed: An exec command in the rebase todo failed."
+	else
+		error_hint="$(echo "${rebase_error}" | head -1)"
+		mcp_fail -32603 "Rebase failed: ${error_hint}. Repository has been restored to original state."
+	fi
 fi

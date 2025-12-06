@@ -86,10 +86,13 @@ if [ "${no_commit}" = "true" ]; then
 fi
 pick_args+=("${source_hash}")
 
-# Perform cherry-pick
-if git -C "${repo_path}" cherry-pick "${pick_args[@]}" >&2; then
+# Perform cherry-pick (capture stderr for better error messages)
+pick_error=""
+if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; then
 	# Success - clear the trap
 	trap - EXIT
+	# Echo output to stderr for logging
+	printf '%s\n' "${pick_error}" >&2
 	
 	if [ "${no_commit}" = "true" ]; then
 		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -108,5 +111,15 @@ if git -C "${repo_path}" cherry-pick "${pick_args[@]}" >&2; then
 	fi
 else
 	# Cherry-pick failed - cleanup will abort
-	mcp_fail -32603 "Cherry-pick failed due to conflicts. Repository has been restored to original state."
+	# Provide more specific error context
+	if echo "${pick_error}" | grep -qi "conflict"; then
+		mcp_fail -32603 "Cherry-pick failed due to conflicts. Repository has been restored to original state."
+	elif echo "${pick_error}" | grep -qi "gpg\|signing\|sign"; then
+		mcp_fail -32603 "Cherry-pick failed: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
+	elif echo "${pick_error}" | grep -qi "empty"; then
+		mcp_fail -32603 "Cherry-pick failed: The commit would be empty (changes already exist in HEAD)."
+	else
+		error_hint="$(echo "${pick_error}" | head -1)"
+		mcp_fail -32603 "Cherry-pick failed: ${error_hint}. Repository has been restored to original state."
+	fi
 fi

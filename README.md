@@ -13,6 +13,53 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 - **Undo Support**: Built-in undo for all mutating operations via backup refs
 - **Path Security**: All operations respect MCP roots for sandboxed access
 
+## How It Works
+
+### Feature Branch Cleanup Workflow
+
+The typical git-hex workflow for cleaning up a feature branch after code review:
+
+```mermaid
+flowchart LR
+    A[Review feedback] --> B[getRebasePlan]
+    B --> C{Inspect commits}
+    C --> D[Stage fix]
+    D --> E[createFixup]
+    E --> C
+    C --> F[performRebase<br/>autosquash=true]
+    F --> G[Clean history ✓]
+```
+
+### Tool Overview
+
+```mermaid
+flowchart TB
+    subgraph readonly["Read-Only"]
+        plan[getRebasePlan]
+    end
+    
+    subgraph mutating["Mutating Operations"]
+        rebase[performRebase]
+        fixup[createFixup]
+        amend[amendLastCommit]
+        cherry[cherryPickSingle]
+    end
+    
+    subgraph safety["Safety Net"]
+        undo[undoLast]
+    end
+    
+    plan -.->|"plan first"| rebase
+    fixup -->|"then squash"| rebase
+    
+    rebase --> undo
+    fixup --> undo
+    amend --> undo
+    cherry --> undo
+```
+
+All mutating operations create backup refs, enabling `undoLast` to restore the previous state.
+
 ## Requirements
 
 - **mcp-bash framework** v0.4.0 or later

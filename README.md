@@ -92,24 +92,26 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Installation
 
-### Quick Start (Recommended)
+### Recommended: Wrapper Script (Auto-installs Framework)
 
-```bash
-# Clone git-hex
-git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-
-# Install mcp-bash framework (if not already installed)
-curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
-```
-
-### Using the Wrapper Script
-
-git-hex includes a `run.sh` wrapper that auto-installs the framework:
+git-hex includes a `run.sh` wrapper that auto-installs the framework if needed:
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
 ./run.sh  # Auto-installs framework on first run
+```
+
+### Advanced: Use an Existing mcp-bash Install
+
+If your environment already manages the mcp-bash framework and you want explicit control over the binary and env, configure your client directly:
+
+```bash
+# Clone git-hex
+git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
+
+# Ensure the framework is installed and on PATH
+curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
 ```
 
 ## Claude Code Plugin

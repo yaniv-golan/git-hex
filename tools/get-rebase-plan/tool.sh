@@ -91,11 +91,16 @@ if [ "${onto}" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
 	onto_display="(root)"
 fi
 
+# Count commits for summary
+commit_count="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'length')"
+
 # Build and emit result
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+	--argjson success true \
 	--arg plan_id "${plan_id}" \
 	--arg branch "${branch}" \
 	--arg onto "${onto_display}" \
 	--argjson commits "${commits_json}" \
-	'{plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits}')"
+	--arg summary "Found ${commit_count} commits on ${branch} since ${onto_display}" \
+	'{success: $success, plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits, summary: $summary}')"
 mcp_emit_json "${result}"

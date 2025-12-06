@@ -20,23 +20,27 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "newHash"],
+    "required": ["success", "headBefore", "headAfter"],
     "properties": {
       "success": {
         "type": "boolean",
-        "description": "Whether amend was successful"
+        "description": "Whether the operation was successful"
       },
-      "newHash": {
+      "headBefore": {
         "type": "string",
-        "description": "New commit hash after amend"
+        "description": "HEAD commit hash before the operation"
       },
-      "previousHash": {
+      "headAfter": {
         "type": "string",
-        "description": "Original commit hash before amend"
+        "description": "HEAD commit hash after the operation"
       },
-      "message": {
+      "summary": {
         "type": "string",
-        "description": "Final commit message"
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The commit's subject line (first line of commit message)"
       }
     }
   },

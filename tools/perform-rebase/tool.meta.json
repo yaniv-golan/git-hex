@@ -21,19 +21,23 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "message"],
+    "required": ["success", "headBefore", "headAfter"],
     "properties": {
       "success": {
         "type": "boolean",
-        "description": "Whether rebase completed successfully"
+        "description": "Whether the operation was successful"
       },
-      "message": {
+      "headBefore": {
         "type": "string",
-        "description": "Human-readable result message"
+        "description": "HEAD commit hash before the operation"
       },
-      "newHead": {
+      "headAfter": {
         "type": "string",
-        "description": "New HEAD commit hash after successful rebase"
+        "description": "HEAD commit hash after the operation"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
       },
       "commitsRebased": {
         "type": "integer",

@@ -25,10 +25,10 @@ previous_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 result="$(run_tool gitHex.amendLastCommit "${REPO}" '{}')"
 
 assert_json_field "${result}" '.success' "true" "amend should succeed"
-assert_json_field "${result}" '.previousHash' "${previous_hash}" "previous hash should match"
+assert_json_field "${result}" '.headBefore' "${previous_hash}" "headBefore should match"
 
-new_hash="$(echo "${result}" | jq -r '.newHash')"
-assert_ne "${previous_hash}" "${new_hash}" "new hash should differ from previous"
+new_hash="$(echo "${result}" | jq -r '.headAfter')"
+assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"
 
 # Verify the file content was amended
 file_content="$(cd "${REPO}" && git show HEAD:file.txt)"
@@ -50,10 +50,10 @@ original_message="$(cd "${REPO2}" && git log -1 --format='%s' HEAD)"
 result="$(run_tool gitHex.amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
 
 assert_json_field "${result}" '.success' "true" "amend should succeed"
-assert_json_field "${result}" '.message' "New commit message" "message should be updated"
+assert_json_field "${result}" '.commitMessage' "New commit message" "commitMessage should be updated"
 
-new_hash="$(echo "${result}" | jq -r '.newHash')"
-assert_ne "${previous_hash}" "${new_hash}" "new hash should differ from previous"
+new_hash="$(echo "${result}" | jq -r '.headAfter')"
+assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"
 
 test_pass "amend-last-commit changes commit message"
 

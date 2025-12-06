@@ -115,6 +115,7 @@ Get a structured view of recent commits for rebase planning and inspection.
 **Returns:**
 ```json
 {
+  "success": true,
   "plan_id": "plan_1234567890_12345",
   "branch": "feature/my-branch",
   "onto": "main",
@@ -126,7 +127,8 @@ Get a structured view of recent commits for rebase planning and inspection.
       "author": "Developer",
       "date": "2024-01-15T10:30:00Z"
     }
-  ]
+  ],
+  "summary": "Found 1 commits on feature/my-branch since main"
 }
 ```
 
@@ -159,8 +161,9 @@ Execute a rebase with automatic abort on conflict.
 ```json
 {
   "success": true,
-  "message": "Successfully rebased 5 commits onto main",
-  "newHead": "def456...",
+  "headBefore": "abc123...",
+  "headAfter": "def456...",
+  "summary": "Rebased 5 commits onto main",
   "commitsRebased": 5
 }
 ```
@@ -190,9 +193,11 @@ Create a fixup commit targeting a specific commit.
 ```json
 {
   "success": true,
-  "fixupHash": "ghi789...",
+  "headBefore": "def456...",
+  "headAfter": "ghi789...",
   "targetCommit": "abc123...",
-  "message": "fixup! Original commit message"
+  "summary": "Created fixup commit ghi789 targeting abc123",
+  "commitMessage": "fixup! Original commit message"
 }
 ```
 
@@ -221,9 +226,10 @@ Amend the last commit with staged changes and/or a new message.
 ```json
 {
   "success": true,
-  "newHash": "jkl012...",
-  "previousHash": "abc123...",
-  "message": "Updated commit message"
+  "headBefore": "abc123...",
+  "headAfter": "jkl012...",
+  "summary": "Amended commit with new hash jkl012",
+  "commitMessage": "Updated commit message"
 }
 ```
 
@@ -253,9 +259,11 @@ Cherry-pick a single commit with configurable merge strategy.
 ```json
 {
   "success": true,
-  "newHash": "mno345...",
+  "headBefore": "def456...",
+  "headAfter": "mno345...",
   "sourceCommit": "abc123...",
-  "message": "Successfully cherry-picked abc123"
+  "summary": "Cherry-picked abc123 as new commit mno345",
+  "commitMessage": "Original commit subject line"
 }
 ```
 

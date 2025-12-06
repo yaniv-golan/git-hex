@@ -23,6 +23,8 @@ create_test_repo "${REPO}" 5
 result="$(run_tool gitHex.getRebasePlan "${REPO}" '{"count": 3}')"
 
 # Verify JSON structure
+assert_json_field "${result}" '.success' "true" "should succeed"
+
 plan_id="$(echo "${result}" | jq -r '.plan_id')"
 assert_ne "" "${plan_id}" "plan_id should be present"
 assert_ne "null" "${plan_id}" "plan_id should not be null"

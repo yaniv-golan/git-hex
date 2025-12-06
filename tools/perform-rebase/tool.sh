@@ -51,8 +51,8 @@ if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 
-# Save original HEAD for rollback info
-original_head="$(git -C "${repo_path}" rev-parse HEAD)"
+# Save HEAD before operation for headBefore/headAfter consistency
+head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
 # Count commits to be rebased
 commit_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
@@ -60,10 +60,11 @@ commit_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/nu
 if [ "${commit_count}" = "0" ]; then
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \
-		--arg message "Nothing to rebase - HEAD is already at or behind ${onto}" \
-		--arg newHead "${original_head}" \
+		--arg headBefore "${head_before}" \
+		--arg headAfter "${head_before}" \
+		--arg summary "Nothing to rebase - HEAD is already at or behind ${onto}" \
 		--argjson commitsRebased 0 \
-		'{success: $success, message: $message, newHead: $newHead, commitsRebased: $commitsRebased}')"
+		'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitsRebased: $commitsRebased}')"
 	exit 0
 fi
 
@@ -85,15 +86,16 @@ if rebase_error="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase -i "${r
 	# Echo output to stderr for logging
 	printf '%s\n' "${rebase_error}" >&2
 	
-	new_head="$(git -C "${repo_path}" rev-parse HEAD)"
+	head_after="$(git -C "${repo_path}" rev-parse HEAD)"
 	
 	mcp_progress 100 "Rebase completed successfully"
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \
-		--arg message "Successfully rebased ${commit_count} commits onto ${onto}" \
-		--arg newHead "${new_head}" \
+		--arg headBefore "${head_before}" \
+		--arg headAfter "${head_after}" \
+		--arg summary "Rebased ${commit_count} commits onto ${onto}" \
 		--argjson commitsRebased "${commit_count}" \
-		'{success: $success, message: $message, newHead: $newHead, commitsRebased: $commitsRebased}')"
+		'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitsRebased: $commitsRebased}')"
 else
 	# Rebase failed - cleanup will abort
 	# Provide more specific error context

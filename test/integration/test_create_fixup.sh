@@ -28,8 +28,8 @@ assert_json_field "${result}" '.success' "true" "fixup should succeed"
 assert_json_field "${result}" '.targetCommit' "${target_hash}" "target commit should match"
 
 # Verify commit message starts with fixup!
-fixup_message="$(echo "${result}" | jq -r '.message')"
-assert_contains "${fixup_message}" "fixup!" "message should start with fixup!"
+fixup_message="$(echo "${result}" | jq -r '.commitMessage')"
+assert_contains "${fixup_message}" "fixup!" "commitMessage should start with fixup!"
 
 test_pass "create-fixup creates fixup commit"
 

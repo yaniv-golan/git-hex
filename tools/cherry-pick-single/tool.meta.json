@@ -26,23 +26,31 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": ["success", "headBefore", "headAfter"],
     "properties": {
       "success": {
         "type": "boolean",
-        "description": "Whether cherry-pick succeeded"
+        "description": "Whether the operation was successful"
       },
-      "newHash": {
+      "headBefore": {
         "type": "string",
-        "description": "New commit hash (if committed)"
+        "description": "HEAD commit hash before the operation"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation (same as headBefore if noCommit=true)"
       },
       "sourceCommit": {
         "type": "string",
-        "description": "Original commit that was cherry-picked"
+        "description": "Full hash of the commit that was cherry-picked"
       },
-      "message": {
+      "summary": {
         "type": "string",
-        "description": "Result message"
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The source commit's subject line"
       }
     }
   },

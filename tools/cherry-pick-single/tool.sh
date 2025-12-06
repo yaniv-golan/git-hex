@@ -70,11 +70,17 @@ if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
+# Save HEAD before operation for headBefore/headAfter consistency
+head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+
 # Verify commit exists and resolve to full hash
 source_hash="$(git -C "${repo_path}" rev-parse "${commit}" 2>/dev/null || true)"
 if [ -z "${source_hash}" ]; then
 	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
 fi
+
+# Get source commit's subject for commitMessage
+source_subject="$(git -C "${repo_path}" log -1 --format='%s' "${source_hash}" 2>/dev/null || true)"
 
 # Build cherry-pick command
 pick_args=()
@@ -94,20 +100,26 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 	# Echo output to stderr for logging
 	printf '%s\n' "${pick_error}" >&2
 	
+	head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+	
 	if [ "${no_commit}" = "true" ]; then
 		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--argjson success true \
+			--arg headBefore "${head_before}" \
+			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
-			--arg message "Changes from ${source_hash} applied but not committed" \
-			'{success: $success, sourceCommit: $sourceCommit, message: $message}')"
+			--arg summary "Changes from ${source_hash:0:7} applied but not committed (staged)" \
+			--arg commitMessage "${source_subject}" \
+			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, summary: $summary, commitMessage: $commitMessage}')"
 	else
-		new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
 		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--argjson success true \
-			--arg newHash "${new_hash}" \
+			--arg headBefore "${head_before}" \
+			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
-			--arg message "Successfully cherry-picked ${source_hash}" \
-			'{success: $success, newHash: $newHash, sourceCommit: $sourceCommit, message: $message}')"
+			--arg summary "Cherry-picked ${source_hash:0:7} as new commit ${head_after:0:7}" \
+			--arg commitMessage "${source_subject}" \
+			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, summary: $summary, commitMessage: $commitMessage}')"
 	fi
 else
 	# Cherry-pick failed - cleanup will abort

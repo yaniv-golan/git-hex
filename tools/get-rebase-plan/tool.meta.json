@@ -20,8 +20,12 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["plan_id", "commits", "onto", "branch"],
+    "required": ["success", "plan_id", "commits", "onto", "branch"],
     "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
       "plan_id": {
         "type": "string",
         "description": "Unique identifier for this rebase plan"
@@ -47,6 +51,10 @@
             "date": { "type": "string" }
           }
         }
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was found"
       }
     }
   },

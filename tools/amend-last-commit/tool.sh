@@ -31,8 +31,8 @@ if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
-# Save original HEAD
-previous_hash="$(git -C "${repo_path}" rev-parse HEAD)"
+# Save original HEAD for headBefore/headAfter consistency
+head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
 # Stage all tracked files if requested
 if [ "${add_all}" = "true" ]; then
@@ -71,12 +71,13 @@ fi
 printf '%s\n' "${commit_error}" >&2
 
 # Get new commit info
-new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
-final_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
+head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
-	--arg newHash "${new_hash}" \
-	--arg previousHash "${previous_hash}" \
-	--arg message "${final_message}" \
-	'{success: $success, newHash: $newHash, previousHash: $previousHash, message: $message}')"
+	--arg headBefore "${head_before}" \
+	--arg headAfter "${head_after}" \
+	--arg summary "Amended commit with new hash ${head_after:0:7}" \
+	--arg commitMessage "${commit_message}" \
+	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitMessage: $commitMessage}')"

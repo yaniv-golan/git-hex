@@ -32,6 +32,9 @@ if [ -z "${target_hash}" ]; then
 	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
 fi
 
+# Save HEAD before operation for headBefore/headAfter consistency
+head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+
 # Check for staged changes
 staged_files="$(git -C "${repo_path}" diff --cached --name-only 2>/dev/null || true)"
 if [ -z "${staged_files}" ]; then
@@ -74,12 +77,14 @@ fi
 printf '%s\n' "${commit_error}" >&2
 
 # Get the new commit hash and message
-fixup_hash="$(git -C "${repo_path}" rev-parse HEAD)"
-fixup_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
+head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
-	--arg fixupHash "${fixup_hash}" \
+	--arg headBefore "${head_before}" \
+	--arg headAfter "${head_after}" \
 	--arg targetCommit "${target_hash}" \
-	--arg message "${fixup_message}" \
-	'{success: $success, fixupHash: $fixupHash, targetCommit: $targetCommit, message: $message}')"
+	--arg summary "Created fixup commit ${head_after:0:7} targeting ${target_hash:0:7}" \
+	--arg commitMessage "${commit_message}" \
+	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, targetCommit: $targetCommit, summary: $summary, commitMessage: $commitMessage}')"

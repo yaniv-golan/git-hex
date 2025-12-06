@@ -1,0 +1,49 @@
+{
+  "name": "gitHex.undoLast",
+  "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "headBefore", "headAfter"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the undo"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the undo (the restored state)"
+      },
+      "undoneOperation": {
+        "type": "string",
+        "description": "Name of the operation that was undone"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "The backup ref that was restored"
+      },
+      "commitsUndone": {
+        "type": "integer",
+        "description": "Number of commits that were undone"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was undone"
+      }
+    }
+  },
+  "timeoutSecs": 30
+}
+

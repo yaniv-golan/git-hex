@@ -10,6 +10,7 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 - **Fixup Commits**: Create fixup! commits for later auto-squashing
 - **Commit Amendments**: Safely amend the last commit with staged changes
 - **Cherry-picking**: Single-commit cherry-pick with strategy options
+- **Undo Support**: Built-in undo for all mutating operations via backup refs
 - **Path Security**: All operations respect MCP roots for sandboxed access
 
 ## Requirements
@@ -267,6 +268,37 @@ Cherry-pick a single commit with configurable merge strategy.
 }
 ```
 
+### gitHex.undoLast
+
+Undo the last git-hex operation by resetting to the backup ref.
+
+> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
+
+Every mutating git-hex operation (amend, fixup, rebase, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+
+**Example:**
+```json
+{}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "mno345...",
+  "headAfter": "def456...",
+  "undoneOperation": "cherryPickSingle",
+  "backupRef": "git-hex/backup/1234567890_cherryPickSingle",
+  "commitsUndone": 1,
+  "summary": "Undid cherryPickSingle from 2024-01-15 10:30:00. Reset 1 commit(s) from mno345 to def456"
+}
+```
+
 ## Safety Features
 
 git-hex is designed with safety as a priority:
@@ -278,6 +310,46 @@ git-hex is designed with safety as a priority:
 3. **Cleanup Traps**: Shell traps ensure cleanup happens even on unexpected errors.
 
 4. **Path Validation**: When MCP roots are configured, all paths are validated to stay within allowed boundaries.
+
+5. **Backup Refs**: Every mutating operation creates a backup ref (`refs/git-hex/backup/<timestamp>_<operation>`) before making changes. Use `gitHex.undoLast` to restore or manually reset with `git reset --hard refs/git-hex/last/<timestamp>_<operation>`.
+
+## Recovery
+
+### Using gitHex.undoLast
+
+The easiest way to recover from an unwanted operation:
+
+```json
+// Undo the last git-hex operation
+{ "tool": "gitHex.undoLast", "arguments": {} }
+```
+
+### Using Git Reflog (Manual Recovery)
+
+If you need to recover beyond the last operation, or if `undoLast` isn't available:
+
+```bash
+# View recent HEAD positions
+git reflog
+
+# Find the commit before the unwanted operation
+# Look for entries like "rebase (start)" or your original commit
+
+# Reset to that state
+git reset --hard HEAD@{2}  # or use the commit hash
+```
+
+### Using git-hex Backup Refs
+
+git-hex stores backup refs that persist across sessions:
+
+```bash
+# List all git-hex backup refs
+git for-each-ref refs/git-hex/
+
+# Reset to a specific backup
+git reset --hard refs/git-hex/backup/1234567890_performRebase
+```
 
 ## Testing
 

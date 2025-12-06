@@ -5,6 +5,11 @@ set -euo pipefail
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+# Source backup helper for undo support
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/backup.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/backup.sh"
+
 # Parse arguments
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 new_message="$(mcp_args_get '.message // empty' || true)"
@@ -33,6 +38,9 @@ fi
 
 # Save original HEAD for headBefore/headAfter consistency
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+
+# Create backup ref for undo support (before any mutations)
+git_hex_create_backup "${repo_path}" "amendLastCommit" >/dev/null
 
 # Stage all tracked files if requested
 if [ "${add_all}" = "true" ]; then

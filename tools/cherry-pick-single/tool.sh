@@ -5,6 +5,11 @@ set -euo pipefail
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+# Source backup helper for undo support
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/backup.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/backup.sh"
+
 # Cleanup function to abort cherry-pick on failure
 cleanup() {
 	if [ -n "${repo_path:-}" ]; then
@@ -72,6 +77,9 @@ fi
 
 # Save HEAD before operation for headBefore/headAfter consistency
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+
+# Create backup ref for undo support (before any mutations)
+git_hex_create_backup "${repo_path}" "cherryPickSingle" >/dev/null
 
 # Verify commit exists and resolve to full hash
 source_hash="$(git -C "${repo_path}" rev-parse "${commit}" 2>/dev/null || true)"

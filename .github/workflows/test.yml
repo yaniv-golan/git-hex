@@ -30,8 +30,11 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     env:
       KEEP_INTEGRATION_LOGS: "1"
     steps:
@@ -51,6 +54,8 @@ jobs:
             sudo apt-get update && sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
             brew install jq
+          else
+            choco install jq -y
           fi
 
       - name: Validate project
@@ -69,54 +74,11 @@ jobs:
           echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
           exit "${status}"
       - name: Run security tests
+        if: matrix.os != 'windows-latest'
         run: ./test/security/run.sh
 
-      - name: Upload logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-logs-${{ matrix.os }}
-          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
-          retention-days: 7
-
-  tests-windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    env:
-      KEEP_INTEGRATION_LOGS: "1"
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set temp log dir
-        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
-
-      - name: Install mcp-bash framework
-        run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
-          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
-
-      - name: Install jq
-        run: choco install jq -y
-
-      - name: Validate project
-        run: mcp-bash validate
-
-      - name: Run integration tests
-        id: integration
-        run: |
-          start=$(date +%s)
-          if ./test/integration/run.sh; then
-            status=0
-          else
-            status=$?
-          fi
-          end=$(date +%s)
-          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
-          exit "${status}"
-
       - name: Enforce Windows integration budget
+        if: matrix.os == 'windows-latest'
         run: |
           duration="${{ steps.integration.outputs.duration }}"
           warn_budget=240
@@ -133,7 +95,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-logs-windows
+          name: test-logs-${{ matrix.os }}
           path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
           retention-days: 7
 

@@ -65,7 +65,7 @@ test_pass "predictions stop after first conflict"
 printf ' -> CHK-14/15 limitExceeded when exceeding maxCommits\n'
 REPO_LARGE="${TEST_TMPDIR}/check-large"
 create_large_history_scenario "${REPO_LARGE}" 150
-result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 50}')"
+result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 50}' 120)"
 assert_json_field "${result_limit}" '.limitExceeded' "true" "limit should be exceeded for large history"
 checked="$(printf '%s' "${result_limit}" | jq -r '.checkedCommits')"
 total="$(printf '%s' "${result_limit}" | jq -r '.totalCommits')"

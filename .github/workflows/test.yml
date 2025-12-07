@@ -33,10 +33,12 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     env:
-      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
       KEEP_INTEGRATION_LOGS: "1"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set temp log dir
+        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |
@@ -83,10 +85,12 @@ jobs:
       run:
         shell: bash
     env:
-      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
       KEEP_INTEGRATION_LOGS: "1"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set temp log dir
+        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |
@@ -137,10 +141,12 @@ jobs:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
-      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
       KEEP_INTEGRATION_LOGS: "1"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set temp log dir
+        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |

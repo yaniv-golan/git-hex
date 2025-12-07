@@ -26,9 +26,10 @@ assert_eq "boolean" "${type_field}" "stashNotRestored should be boolean"
 test_pass "stashNotRestored type correct"
 
 # EDGE-31: limitExceeded is boolean
+# Using 15 commits with maxCommits=10 to trigger limitExceeded while keeping test fast
 printf ' -> EDGE-31 limitExceeded type is boolean\n'
 REPO_LIMIT_TYPE="${TEST_TMPDIR}/edge-limit-type"
-create_large_history_scenario "${REPO_LIMIT_TYPE}" 40
+create_large_history_scenario "${REPO_LIMIT_TYPE}" 15
 result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LIMIT_TYPE}" '{"onto": "main", "maxCommits": 10}' 90)"
 limit_type="$(printf '%s' "${result_limit}" | jq -r '(.limitExceeded|type)')" || limit_type="missing"
 assert_eq "boolean" "${limit_type}" "limitExceeded should be boolean"

@@ -781,6 +781,6 @@ create_large_history_scenario() {
 			git add "file${i}.txt"
 			git commit -m "Commit ${i}"
 		done
-		git checkout feature
+		# Already on feature branch; no need for git checkout
 	)
 }

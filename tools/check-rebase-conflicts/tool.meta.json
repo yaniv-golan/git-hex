@@ -6,7 +6,7 @@
     "properties": {
       "repoPath": {
         "type": "string",
-        "description": "Path to git repository"
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
       },
       "onto": {
         "type": "string",
@@ -23,6 +23,14 @@
   },
   "outputSchema": {
     "type": "object",
+    "required": [
+      "success",
+      "wouldConflict",
+      "limitExceeded",
+      "totalCommits",
+      "checkedCommits",
+      "summary"
+    ],
     "properties": {
       "success": { "type": "boolean" },
       "wouldConflict": { "type": "boolean" },

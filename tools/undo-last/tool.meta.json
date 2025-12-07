@@ -3,11 +3,10 @@
   "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
   "inputSchema": {
     "type": "object",
-    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
-        "description": "Path to the git repository (defaults to single configured root)"
+        "description": "Path to the git repository (optional; defaults to the single configured root if omitted)"
       },
       "force": {
         "type": "boolean",

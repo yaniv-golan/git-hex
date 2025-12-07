@@ -6,11 +6,11 @@
     "properties": {
       "repoPath": {
         "type": "string",
-        "description": "Path to git repository"
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
       },
       "file": {
         "type": "string",
-        "description": "Path to the conflicting file (relative to repo root)"
+        "description": "Path to the conflicting file (POSIX, repo-relative only; absolute, drive-letter, or traversal paths are rejected)"
       },
       "resolution": {
         "type": "string",

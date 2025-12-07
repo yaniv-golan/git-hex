@@ -22,7 +22,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "inConflict"],
+    "required": ["success", "inConflict", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "inConflict": { "type": "boolean" },
@@ -41,7 +41,8 @@
             "base": { "type": "string" },
             "ours": { "type": "string" },
             "theirs": { "type": "string" },
-            "workingCopy": { "type": "string" }
+            "workingCopy": { "type": "string" },
+            "note": { "type": "string", "description": "Optional note (e.g., binary content omitted)" }
           }
         }
       },

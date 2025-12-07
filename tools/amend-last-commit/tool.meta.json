@@ -25,7 +25,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "headBefore", "headAfter"],
+    "required": ["success", "headBefore", "headAfter", "stashNotRestored"],
     "properties": {
       "success": {
         "type": "boolean",

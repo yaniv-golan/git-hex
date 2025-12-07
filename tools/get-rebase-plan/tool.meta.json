@@ -3,11 +3,10 @@
   "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
   "inputSchema": {
     "type": "object",
-    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
-        "description": "Path to the git repository (defaults to single configured root)"
+        "description": "Path to the git repository (optional; defaults to the single configured root if omitted)"
       },
       "count": {
         "type": "integer",

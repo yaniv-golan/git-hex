@@ -219,9 +219,9 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
 
 Example:
 ```
-feat: add gitHex.squashCommits tool
+feat: add gitHex.rebaseWithPlan improvements
 
-Adds a new tool for squashing a range of commits into one.
+Adds structured plan validation and better conflict handling for rebases.
 Includes backup ref support for undo functionality.
 ```
 

@@ -39,6 +39,9 @@ jobs:
       
       - name: Run integration tests
         run: ./test/integration/run.sh
+
+      - name: Run security tests
+        run: ./test/security/run.sh
       
       - name: Run security tests
         run: ./test/security/run.sh

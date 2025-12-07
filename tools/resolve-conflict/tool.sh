@@ -10,6 +10,11 @@ resolution="$(mcp_args_get '.resolution' || true)"
 : "${resolution:=keep}"
 
 # Basic path safety checks
+orig_len="$(printf '%s' "${file}" | LC_ALL=C wc -c | tr -d ' ')"
+clean_len="$(printf '%s' "${file}" | LC_ALL=C tr -d '\0' | wc -c | tr -d ' ')"
+if [ "${orig_len}" -ne "${clean_len}" ]; then
+	mcp_fail_invalid_args "Null bytes are not allowed in paths"
+fi
 if [[ "${file}" == /* ]]; then
 	mcp_fail_invalid_args "Absolute paths are not allowed"
 fi

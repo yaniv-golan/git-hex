@@ -14,7 +14,7 @@
       },
       "onto": {
         "type": "string",
-        "description": "Base ref to rebase onto (default: current branch base)"
+        "description": "Base ref to rebase onto (default: upstream if set, otherwise HEAD~count clamped to history; uses empty tree for single-commit repos)"
       }
     }
   },

@@ -296,7 +296,7 @@ Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
 Get a structured view of recent commits for rebase planning and inspection.
 
 > **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
-> To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
+> For single-commit repositories, the default base is the empty tree so the lone commit is included. To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -467,7 +467,7 @@ Amend the last commit with staged changes and/or a new message.
 
 Cherry-pick a single commit with configurable merge strategy.
 
-> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
+> **Prerequisites:** Working tree must be clean (no uncommitted changes) unless `autoStash=true`, which stashes/restore tracked changes automatically. Commit or stash changes before running otherwise.
 
 **Parameters:**
 | Name | Type | Required | Description |

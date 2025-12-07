@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: Run lint.sh (shellcheck + shfmt)
+        entry: ./test/lint.sh
+        language: system
+        pass_filenames: false

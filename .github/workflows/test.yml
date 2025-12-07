@@ -5,66 +5,162 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
 
 jobs:
-  test:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-bash framework
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
+          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+
+      - name: Install lint dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt
+
+      - name: Run lint
+        run: ./test/lint.sh
+
+  tests:
+    needs: lint
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    
+    env:
+      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
+      KEEP_INTEGRATION_LOGS: "1"
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install mcp-bash framework
         run: |
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
-      
-      - name: Install lint and test dependencies
-        if: runner.os != 'Windows'
+
+      - name: Install test dependencies
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt
+            sudo apt-get update && sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install jq shellcheck shfmt
+            brew install jq
           fi
-      
+
       - name: Validate project
         run: mcp-bash validate
 
-      - name: Run lint
-        if: runner.os != 'Windows'
-        run: ./test/lint.sh
-      
       - name: Run integration tests
-        run: ./test/integration/run.sh
-
+        id: integration
+        run: |
+          start=$(date +%s)
+          if ./test/integration/run.sh; then
+            status=0
+          else
+            status=$?
+          fi
+          end=$(date +%s)
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+          exit "${status}"
       - name: Run security tests
         run: ./test/security/run.sh
-      
-      - name: Run security tests
-        run: ./test/security/run.sh
 
-  test-windows:
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.os }}
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          retention-days: 7
+
+  tests-windows:
     runs-on: windows-latest
     defaults:
       run:
         shell: bash
-    
+    env:
+      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
+      KEEP_INTEGRATION_LOGS: "1"
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install mcp-bash framework
         run: |
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
-      
+
       - name: Install jq
         run: choco install jq -y
-      
+
       - name: Validate project
         run: mcp-bash validate
-      
+
       - name: Run integration tests
-        run: ./test/integration/run.sh
+        id: integration
+        run: |
+          start=$(date +%s)
+          if ./test/integration/run.sh; then
+            status=0
+          else
+            status=$?
+          fi
+          end=$(date +%s)
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+          exit "${status}"
+
+      - name: Enforce Windows integration budget
+        run: |
+          duration="${{ steps.integration.outputs.duration }}"
+          warn_budget=240
+          fail_budget=900
+          if [ -n "${duration}" ] && [ "${duration}" -gt "${warn_budget}" ]; then
+            echo "::warning ::Integration duration ${duration}s exceeded warning budget ${warn_budget}s"
+          fi
+          if [ -n "${duration}" ] && [ "${duration}" -gt "${fail_budget}" ]; then
+            echo "Integration exceeded fail budget (${duration}s)" >&2
+            exit 1
+          fi
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-windows
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          retention-days: 7
+
+  nightly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      GITHEX_INTEGRATION_TMP: ${{ runner.temp }}/githex-integration
+      KEEP_INTEGRATION_LOGS: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-bash framework
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
+          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt
+
+      - name: Validate project
+        run: mcp-bash validate
+
+      - name: Run full test suite
+        run: ./test/run.sh
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-logs
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          retention-days: 7

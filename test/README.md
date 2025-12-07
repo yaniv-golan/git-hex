@@ -40,9 +40,20 @@ Run lint (shellcheck + shfmt):
 ./test/lint.sh
 ```
 
+### Runner flags
+
+- `VERBOSE=1` streams per-test logs (instead of only printing on failure).
+- `UNICODE=1` uses ✅/❌ status icons.
+- `GITHEX_INTEGRATION_TMP=/tmp/githex` writes integration logs to a fixed dir (useful for CI).
+- `KEEP_INTEGRATION_LOGS=1` keeps logs even on success (default removes them on success).
+
 Enable the provided pre-commit hook to auto-run lint before commits:
 ```bash
 git config core.hooksPath .githooks
+```
+Or install pre-commit to reuse the same hook configuration:
+```bash
+pre-commit install
 ```
 
 ## Test Structure
@@ -143,11 +154,11 @@ mcp-bash run-tool gitHex.rebaseWithPlan \
 ## CI Integration
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
-1. Installs the mcp-bash framework (pinned to v0.4.0)
-2. Installs lint dependencies (`shellcheck`, `shfmt`, `jq`) on Linux/macOS
-3. Runs `./test/lint.sh`
-4. Runs `mcp-bash validate` to check project structure
-5. Runs integration and security tests
+1. Installs the mcp-bash framework (pinned to v0.4.0).
+2. Runs lint on Linux (shellcheck + shfmt).
+3. Runs `mcp-bash validate`, integration tests, and security tests on Linux and macOS (with failure logs artifacted).
+4. Runs integration tests on Windows with a time budget guard.
+5. Runs a scheduled weekly full suite on Ubuntu.
 
 ## Reference
 

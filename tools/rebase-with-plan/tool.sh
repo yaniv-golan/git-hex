@@ -257,9 +257,13 @@ else
 	rebase_output="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
 fi
 
-if [ "${GIT_HEX_DEBUG_REBASE:-}" = "true" ]; then
+# Debug output (always on failure, or when explicitly enabled)
+if [ "${GIT_HEX_DEBUG_REBASE:-}" = "true" ] || [ "${rebase_status}" -ne 0 ]; then
 	printf 'DEBUG rebase_status=%s\n' "${rebase_status}" >&2
 	printf 'DEBUG rebase_output=%s\n' "${rebase_output}" >&2
+	if [ "${use_custom_todo}" = "true" ] && [ -f "${todo_file:-}" ]; then
+		printf 'DEBUG todo_file contents:\n%s\n' "$(cat "${todo_file}")" >&2
+	fi
 fi
 
 if [ "${rebase_status}" -eq 0 ]; then

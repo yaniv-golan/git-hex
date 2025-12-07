@@ -37,11 +37,15 @@ jobs:
         shell: bash
     env:
       KEEP_INTEGRATION_LOGS: "1"
+      MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG_REBASE: "true"
     steps:
       - uses: actions/checkout@v4
 
       - name: Set temp log dir
-        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+        run: |
+          echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+          echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |
@@ -91,7 +95,7 @@ jobs:
             exit 1
           fi
 
-      - name: Upload logs on failure
+      - name: Upload integration logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -99,16 +103,28 @@ jobs:
           path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
           retention-days: 7
 
+      - name: Upload mcp-bash logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcpbash-logs-${{ matrix.os }}
+          path: ${{ env.MCPBASH_LOG_DIR }}/
+          retention-days: 7
+
   nightly:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
       KEEP_INTEGRATION_LOGS: "1"
+      MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG_REBASE: "true"
     steps:
       - uses: actions/checkout@v4
 
       - name: Set temp log dir
-        run: echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+        run: |
+          echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+          echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |
@@ -125,10 +141,18 @@ jobs:
       - name: Run full test suite
         run: ./test/run.sh
 
-      - name: Upload logs on failure
+      - name: Upload integration logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-logs
           path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          retention-days: 7
+
+      - name: Upload mcp-bash logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-mcpbash-logs
+          path: ${{ env.MCPBASH_LOG_DIR }}/
           retention-days: 7

@@ -42,26 +42,49 @@ test_verify_framework() {
 # Run a tool and extract the structured content from the response
 # Usage: run_tool <tool-name> <roots> <args-json> [timeout]
 # Returns: The structuredContent JSON on stdout, or error JSON if tool failed
+# Note: stderr is captured and printed on failure for debugging
 run_tool() {
 	local tool_name="$1"
 	local roots="$2"
 	local args_json="$3"
 	local timeout="${4:-30}"
 
-	local raw_output
+	local raw_output stderr_file
+	stderr_file="$(mktemp)"
+
 	# Framework sends diagnostics to stderr, stdout is clean JSON (may be multiple lines)
+	# Capture stderr to a temp file for debugging on failure
 	raw_output="$(mcp-bash run-tool "${tool_name}" \
 		--project-root "${MCPBASH_PROJECT_ROOT}" \
 		--roots "${roots}" \
 		--args "${args_json}" \
-		--timeout "${timeout}" 2>/dev/null)"
+		--timeout "${timeout}" 2>"${stderr_file}")" || true
 
 	# Check if any line is an error response (framework may emit notifications first)
 	if echo "${raw_output}" | jq -es 'map(select(._mcpToolError == true)) | length > 0' >/dev/null 2>&1; then
+		# Print stderr for debugging
+		if [ -s "${stderr_file}" ]; then
+			printf '[run_tool %s] stderr:\n' "${tool_name}" >&2
+			cat "${stderr_file}" >&2
+		fi
+		rm -f "${stderr_file}"
 		# Extract and return the error object
 		echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]'
 		return 1
 	fi
+
+	# Check if output is empty (tool may have crashed)
+	if [ -z "${raw_output}" ]; then
+		printf '[run_tool %s] ERROR: No output from tool\n' "${tool_name}" >&2
+		if [ -s "${stderr_file}" ]; then
+			printf '[run_tool %s] stderr:\n' "${tool_name}" >&2
+			cat "${stderr_file}" >&2
+		fi
+		rm -f "${stderr_file}"
+		return 1
+	fi
+
+	rm -f "${stderr_file}"
 
 	# Extract structuredContent from the result line (skip notifications)
 	local structured

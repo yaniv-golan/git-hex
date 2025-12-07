@@ -215,9 +215,11 @@ fi
 if [ "${use_custom_todo}" = "true" ]; then
 	todo_file="$(mktemp)"
 	printf '%s' "${complete_todo}" >"${todo_file}"
-	# Use inline sh -c command instead of a separate script file
-	# This avoids issues with temp script permissions/paths on some systems
-	seq_editor="sh -c 'cat \"${todo_file}\" > \"\$1\"' --"
+	# Export the todo file path so the sequence editor can access it
+	# This avoids quoting issues with paths containing special characters
+	export GIT_HEX_TODO_FILE="${todo_file}"
+	# shellcheck disable=SC2016 # Variables must expand at runtime, not parse time
+	seq_editor='sh -c '\''cat "$GIT_HEX_TODO_FILE" > "$1"'\'' --'
 
 	# Cleanup temp files on exit
 	if [ -n "${_git_hex_cleanup_files:-}" ]; then
@@ -228,6 +230,7 @@ if [ "${use_custom_todo}" = "true" ]; then
 		_git_hex_cleanup() {
 			# shellcheck disable=SC2086
 			rm -f ${_git_hex_cleanup_files} 2>/dev/null || true
+			unset GIT_HEX_TODO_FILE
 			[ -n "${_git_hex_prev_exit_trap}" ] && eval "${_git_hex_prev_exit_trap}"
 			return 0
 		}

@@ -77,9 +77,9 @@ fi
 
 # Parse plan into arrays
 plan_length="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
-declare -a plan_actions
-declare -a plan_commits
-declare -a plan_messages
+plan_actions=()
+plan_commits=()
+plan_messages=()
 
 if [ "${plan_length}" -gt 0 ]; then
 	has_null_message="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
@@ -106,7 +106,8 @@ if [ "${plan_length}" -gt 0 ]; then
 		if ! echo "${actual_commits}" | grep -qx "${full_hash}"; then
 			mcp_fail_invalid_args "Commit ${commit_ref} (${full_hash:0:7}) not in rebase range ${onto}..HEAD"
 		fi
-		for existing in "${plan_commits[@]}"; do
+		# Check for duplicates (use ${array[@]+"${array[@]}"} pattern for set -u safety)
+		for existing in ${plan_commits[@]+"${plan_commits[@]}"}; do
 			if [ "${existing}" = "${full_hash}" ]; then
 				mcp_fail_invalid_args "Duplicate commit in plan: ${commit_ref}"
 			fi

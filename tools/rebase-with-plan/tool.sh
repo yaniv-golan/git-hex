@@ -211,23 +211,20 @@ exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
 	done <<<"${actual_commits}"
 fi
 
-# Create todo file and sequence editor
+# Create todo file and sequence editor command
 if [ "${use_custom_todo}" = "true" ]; then
 	todo_file="$(mktemp)"
 	printf '%s' "${complete_todo}" >"${todo_file}"
-	seq_editor="$(mktemp)"
-	cat >"${seq_editor}" <<EOF
-#!/usr/bin/env bash
-cat '${todo_file}' > "\$1"
-EOF
-	chmod +x "${seq_editor}"
+	# Use inline sh -c command instead of a separate script file
+	# This avoids issues with temp script permissions/paths on some systems
+	seq_editor="sh -c 'cat \"${todo_file}\" > \"\$1\"' --"
 
 	# Cleanup temp files on exit
 	if [ -n "${_git_hex_cleanup_files:-}" ]; then
-		_git_hex_cleanup_files="${_git_hex_cleanup_files} ${todo_file} ${seq_editor}"
+		_git_hex_cleanup_files="${_git_hex_cleanup_files} ${todo_file}"
 	else
 		_git_hex_prev_exit_trap="$(trap -p EXIT | sed -E "s/trap -- '(.*)' EXIT/\1/" || true)"
-		_git_hex_cleanup_files="${todo_file} ${seq_editor}"
+		_git_hex_cleanup_files="${todo_file}"
 		_git_hex_cleanup() {
 			# shellcheck disable=SC2086
 			rm -f ${_git_hex_cleanup_files} 2>/dev/null || true

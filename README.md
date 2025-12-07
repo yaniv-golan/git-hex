@@ -1,10 +1,15 @@
 # git-hex
 
 ![git-hex banner](assets/git-hex-banner.png)
+[![CI Status](https://github.com/yaniv-golan/git-hex/actions/workflows/test.yml/badge.svg)](https://github.com/yaniv-golan/git-hex/actions/workflows/test.yml)
 
 **AI-assisted, non-interactive git refactoring via MCP** — a focused toolset for rebase & commit perfection, usable by agents or chat users directing the MCP tools.
 
 git-hex is an MCP (Model Context Protocol) server that provides AI assistants with safe, powerful git refactoring capabilities. It handles the complexity of interactive rebasing, fixup commits, and commit amendments while ensuring your repository is never left in a broken state.
+
+Name note: “git-hex” is simply a short label for this git-history refactoring toolkit (not related to hex encoding).
+
+See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION` and `.claude-plugin/plugin.json`.
 
 ## Features
 
@@ -86,6 +91,11 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 - **jq** or **gojq**
 - **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `gitHex.checkRebaseConflicts`
 
+## Versioning & Releases
+
+- Current development version: `0.1.0` (see `VERSION`).
+- No tags or GitHub releases have been published yet; pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`). We will tag v0.1.0 for release.
+
 ## Lint & Tests
 
 - Lint shell scripts: `./test/lint.sh`
@@ -96,12 +106,12 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ### Recommended: Wrapper Script (Auto-installs MCP Bash Framework)
 
-git-hex includes a `run.sh` wrapper that auto-installs the MCP Bash Framework if needed:
+git-hex includes a `git-hex.sh` wrapper that auto-installs the MCP Bash Framework if needed:
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
-./run.sh  # Auto-installs framework on first run
+./git-hex.sh  # Auto-installs framework on first run
 ```
 
 ### Advanced: Use an Existing MCP Bash Framework Install
@@ -140,7 +150,7 @@ Bundled Skills:
 - `git-hex-branch-cleanup` — history rewrite, fixups, split/reorder/squash
 - `git-hex-conflict-resolution` — inspect/resolve paused rebase/cherry-pick conflicts
 
-The MCP server auto-starts via `run.sh`; no extra client config required.
+The MCP server auto-starts via `git-hex.sh`; no extra client config required. Skill definitions live in `skills/` and can be customized there. The Claude plugin bundle is described in `.claude-plugin/`.
 
 ## MCP Client Configuration
 
@@ -150,13 +160,14 @@ The MCP server auto-starts via `run.sh`; no extra client config required.
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/git-hex/run.sh"
+      "command": "/path/to/git-hex/git-hex.sh"
     }
   }
 }
 ```
 
 > **Roots:** Configure MCP `roots` to limit filesystem access. When only one root is configured, `repoPath` defaults to that root; passing a path outside configured roots is rejected by the framework.
+> With multiple roots configured, always supply `repoPath` explicitly so the server can pick the correct repository.
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
@@ -180,7 +191,7 @@ The MCP server auto-starts via `run.sh`; no extra client config required.
   "mcpServers": {
     "git-hex": {
       "command": "C:\\Program Files\\Git\\bin\\bash.exe",
-      "args": ["-c", "/c/Users/me/git-hex/run.sh"],
+      "args": ["-c", "/c/Users/me/git-hex/git-hex.sh"],
       "env": {
         "MCPBASH_PROJECT_ROOT": "/c/Users/me/git-hex",
         "MSYS2_ARG_CONV_EXCL": "*"
@@ -285,6 +296,7 @@ Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
 Get a structured view of recent commits for rebase planning and inspection.
 
 > **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
+> To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -339,7 +351,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 | `repoPath` | string | No | Path to git repository |
 | `onto` | string | **Yes** | Base ref to rebase onto |
 | `plan` | array | No | Ordered list of `{action, commit, message?}` items |
-| `abortOnConflict` | boolean | No | Pause on conflicts instead of aborting (default: true) |
+| `abortOnConflict` | boolean | No | Abort on conflicts (default: true). Set to false to pause and resolve instead of auto-aborting. |
 | `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
 | `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
 | `requireComplete` | boolean | No | If true, plan must list all commits (enables reordering) |
@@ -556,7 +568,7 @@ To configure read-only mode in your MCP client:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/git-hex/run.sh",
+      "command": "/path/to/git-hex/git-hex.sh",
       "env": {
         "GIT_HEX_READ_ONLY": "1"
       }
@@ -615,15 +627,15 @@ mcp-bash validate
 # Test a tool directly
 mcp-bash run-tool gitHex.getRebasePlan --roots /path/to/test/repo --args '{"count": 5}'
 
-# Run with MCP Inspector (must be run from project root or use ./run.sh)
+# Run with MCP Inspector (must be run from project root or use ./git-hex.sh)
 cd /path/to/git-hex
 npx @modelcontextprotocol/inspector --transport stdio -- mcp-bash
 
-# Alternative: use run.sh wrapper (works from any directory)
-npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/run.sh
+# Alternative: use git-hex.sh wrapper (works from any directory)
+npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/git-hex.sh
 ```
 
-> **Note:** The MCP Bash Framework CLI (`mcp-bash`) auto-detects the project root when run from within the git-hex directory. If running from elsewhere, either use the `./run.sh` wrapper or set `MCPBASH_PROJECT_ROOT=/path/to/git-hex`.
+> **Note:** The MCP Bash Framework CLI (`mcp-bash`) auto-detects the project root when run from within the git-hex directory. If running from elsewhere, either use the `./git-hex.sh` wrapper or set `MCPBASH_PROJECT_ROOT=/path/to/git-hex`.
 
 ## Docker
 
@@ -631,6 +643,52 @@ npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/run.sh
 docker build -t git-hex .
 docker run -i --rm -v /path/to/repos:/repos git-hex
 ```
+
+Pass MCP roots and the target repo explicitly when running the container (examples):
+
+- With MCP Inspector:
+  ```bash
+  docker run -i --rm -v /path/to/repo:/repo git-hex --roots /repo
+  ```
+- With a client config that starts the server:
+  ```json
+  {
+    "mcpServers": {
+      "git-hex": {
+        "command": "docker",
+        "args": ["run", "-i", "--rm", "-v", "/path/to/repo:/repo", "git-hex", "--roots", "/repo"]
+      }
+    }
+  }
+  ```
+
+`repoPath` must be within a configured root; pass it explicitly when you mount multiple repositories.
+
+## Troubleshooting
+
+- `undoLast` fails because of new commits: re-run with `"force": true` if you intend to discard the commits added after the git-hex operation. If a rebase/merge/cherry-pick is paused, resolve/abort it first.
+- Stuck rebase/cherry-pick: run `gitHex.getConflictStatus`, resolve files, then `gitHex.continueOperation`; if you want to abandon, use `gitHex.abortOperation`.
+- MCP connectivity or repo path errors: ensure `repoPath` is inside your configured `roots` and that the repo is clean when required (see tool prerequisites).
+
+## Documentation Map
+
+- Tool reference: this README (see “Tools”).
+- Skills: `skills/git-hex-branch-cleanup/SKILL.md`, `skills/git-hex-conflict-resolution/SKILL.md`.
+- CHANGELOG: `CHANGELOG.md`.
+- Internal design/plan docs: `docs/internal/`.
+- Plugin metadata: `.claude-plugin/`.
+- Server policy and metadata: `server.d/`.
+
+## MCP Details
+
+- Capabilities: git-hex currently exposes tools only (no MCP `resources` or `prompts` yet; `resources/` and `prompts/` are placeholders for future use).
+- Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
+- Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see “Read-Only Mode”).
+- Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.
+
+## Security
+
+See `SECURITY.md` for how to report vulnerabilities.
 
 ## License
 

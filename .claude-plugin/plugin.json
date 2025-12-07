@@ -11,7 +11,7 @@
   "keywords": ["git", "rebase", "mcp", "git-hex", "mcp-bash"],
   "mcpServers": {
     "git-hex": {
-      "command": "${CLAUDE_PLUGIN_ROOT}/run.sh"
+      "command": "${CLAUDE_PLUGIN_ROOT}/git-hex.sh"
     }
   }
 }

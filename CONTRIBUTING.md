@@ -22,7 +22,7 @@ cd git-hex
 curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
 
 # Verify setup
-./run.sh  # Should start without errors (Ctrl+C to exit)
+./git-hex.sh  # Should start without errors (Ctrl+C to exit)
 ```
 
 ## Development Workflow
@@ -41,7 +41,7 @@ git-hex/
 │   ├── integration/          # Integration tests (test_*.sh)
 │   ├── security/             # Security tests
 │   └── common/               # Test helpers
-└── run.sh                    # Wrapper script
+└── git-hex.sh                # Wrapper script
 ```
 
 ### Adding a New Tool

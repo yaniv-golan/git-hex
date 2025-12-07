@@ -134,7 +134,8 @@ fi
 # Replaces ' with '\'' (end quote, escaped quote, start quote)
 escape_message() {
 	local msg="$1"
-	printf '%s' "${msg//\'/\'\\\'\'}"
+	local sq="'\\''"
+	printf '%s' "${msg//\'/$sq}"
 }
 
 complete_todo=""

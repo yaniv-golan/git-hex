@@ -77,6 +77,20 @@ status="$(run_tool gitHex.getConflictStatus "${REPO_BINARY}" '{"includeContent":
 assert_json_field "${status}" '.conflictingFiles[0].isBinary' "true" "binary conflict should mark isBinary"
 test_pass "binary conflict reported without content"
 
+# CONF-23: Binary conflict with missing working copy does not emit content
+printf ' -> CONF-23 binary conflict with missing working copy\n'
+REPO_BINARY_DELETE="${TEST_TMPDIR}/conflict-binary-delete"
+create_binary_delete_conflict_scenario "${REPO_BINARY_DELETE}"
+(cd "${REPO_BINARY_DELETE}" && git rebase main >/dev/null 2>&1) || true
+status_delete="$(run_tool gitHex.getConflictStatus "${REPO_BINARY_DELETE}" '{"includeContent": true}')"
+assert_json_field "${status_delete}" '.conflictingFiles[0].isBinary' "true" "binary delete/modify conflict should mark isBinary"
+base_val="$(printf '%s' "${status_delete}" | jq -r '.conflictingFiles[0].base?')"
+if [ "${base_val}" = "null" ] || [ -z "${base_val}" ]; then
+	test_pass "binary conflict without working file did not return blob contents"
+else
+	test_fail "binary conflict without working file should not include content"
+fi
+
 # RESV-01/partial: Resolve modified file then continue
 printf ' -> RESV-01 resolve conflict and continueOperation\n'
 REPO_RESOLVE="${TEST_TMPDIR}/conflict-resolve"

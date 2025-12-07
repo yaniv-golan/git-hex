@@ -8,7 +8,7 @@ Thank you for your interest in contributing to git-hex! This document provides g
 
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git** 2.20+ (2.33+ recommended)
+- **git** 2.20+ (2.33+ recommended; 2.38+ required for `gitHex.checkRebaseConflicts`)
 - **mcp-bash framework** v0.4.0+
 
 ### Setup

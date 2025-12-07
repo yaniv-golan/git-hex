@@ -40,14 +40,14 @@ fi
 # Save HEAD before operation for headBefore/headAfter consistency
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
-# Create backup ref for undo support (before any mutations)
-git_hex_create_backup "${repo_path}" "createFixup" >/dev/null
-
 # Check for staged changes
 staged_files="$(git -C "${repo_path}" diff --cached --name-only 2>/dev/null || true)"
 if [ -z "${staged_files}" ]; then
 	mcp_fail_invalid_args "No staged changes. Stage changes with 'git add' before creating a fixup commit."
 fi
+
+# Create backup ref for undo support (after validation, before mutations)
+git_hex_create_backup "${repo_path}" "createFixup" >/dev/null
 
 # Get the original commit's subject for the fixup message
 original_subject="$(git -C "${repo_path}" log -1 --format='%s' "${target_hash}" 2>/dev/null || true)"

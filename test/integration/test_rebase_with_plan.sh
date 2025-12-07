@@ -110,12 +110,21 @@ fi
 printf ' -> RBC-02 abortOnConflict=false pauses on conflict\n'
 REPO_CONFLICT="${TEST_TMPDIR}/rebase-conflict-pause"
 create_conflict_scenario "${REPO_CONFLICT}"
+head_before_conflict="$(cd "${REPO_CONFLICT}" && git rev-parse HEAD)"
 pause_result="$(run_tool gitHex.rebaseWithPlan "${REPO_CONFLICT}" '{"onto": "main", "abortOnConflict": false}')"
 assert_json_field "${pause_result}" '.paused' "true" "rebase should pause on conflict"
 if [ -d "${REPO_CONFLICT}/.git/rebase-merge" ] || [ -d "${REPO_CONFLICT}/.git/rebase-apply" ]; then
 	test_pass "rebase left in paused state for inspection"
 else
 	test_fail "rebase should remain paused"
+fi
+pause_head_after="$(printf '%s' "${pause_result}" | jq -r '.headAfter // empty')"
+pause_head_before_field="$(printf '%s' "${pause_result}" | jq -r '.headBefore // empty')"
+if [ -n "${pause_head_after}" ] && [ -n "${pause_head_before_field}" ]; then
+	assert_eq "${head_before_conflict}" "${pause_head_before_field}" "headBefore should match starting HEAD"
+	test_pass "paused response includes headBefore/headAfter"
+else
+	test_fail "paused response should include headBefore/headAfter"
 fi
 
 # RBC-03: autoStash works with abortOnConflict=false (native)

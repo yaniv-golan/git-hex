@@ -23,7 +23,7 @@ A clear description of what the bug is.
 Which git-hex tool is affected?
 
 - [ ] gitHex.getRebasePlan
-- [ ] gitHex.performRebase
+- [ ] gitHex.rebaseWithPlan
 - [ ] gitHex.createFixup
 - [ ] gitHex.amendLastCommit
 - [ ] gitHex.cherryPickSingle
@@ -47,4 +47,3 @@ What actually happened. Include error messages if any.
 ## Additional Context
 
 Any other context, logs, or screenshots.
-

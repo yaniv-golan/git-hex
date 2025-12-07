@@ -59,4 +59,4 @@ Use this Skill when:
 - Messages must be **single-line** (no TAB/newline characters).
 - For reordering commits, set `requireComplete: true` in the plan.
 - Prefer `fixup` over `squash` unless you need to combine commit messages.
-- Check `stashNotRestored: true` in output - means user needs `git stash pop`.
+- Tools that perform their own auto-stash (`amendLastCommit`, `splitCommit`, `cherryPickSingle`) expose `stashNotRestored` when stash pop failed; `rebaseWithPlan` uses Git's native `--autostash` and does not emit this flag.

@@ -29,22 +29,27 @@ git_hex_auto_stash() {
 	local should_stash
 	should_stash="$(git_hex_should_stash "${repo_path}" "${mode}")"
 	if [ "${should_stash}" = "true" ]; then
+		# Track top-of-stack before creating a new stash so we don't operate on a pre-existing one
+		local before_top
+		before_top="$(git -C "${repo_path}" stash list --pretty='%H' -n 1 2>/dev/null || echo "")"
+
 		local message
 		message="git-hex auto-stash $(_git_hex_stash_message)"
 		if [ "${mode}" = "keep-index" ]; then
 			# Preserve staged changes while capturing an immutable stash object ID
 			git -C "${repo_path}" stash push --keep-index -m "${message}" >/dev/null 2>&1 || true
-			local stash_oid stash_name
-			stash_oid="$(git -C "${repo_path}" rev-parse 'stash@{0}' 2>/dev/null || true)"
-			stash_name="$(git -C "${repo_path}" stash list --pretty='%gd' -n 1 2>/dev/null || true)"
-			if [ -n "${stash_oid}" ]; then
-				echo "stash:${stash_oid}|${stash_name:-stash@{0}}"
-			else
-				echo "false"
-			fi
 		else
 			git -C "${repo_path}" stash push -m "${message}" >/dev/null 2>&1 || true
-			echo "true"
+		fi
+
+		# Record the specific stash ref so we restore exactly what we created
+		local stash_oid stash_name
+		stash_oid="$(git -C "${repo_path}" rev-parse 'stash@{0}' 2>/dev/null || true)"
+		stash_name="$(git -C "${repo_path}" stash list --pretty='%gd' -n 1 2>/dev/null || true)"
+		if [ -n "${stash_oid}" ] && [ "${stash_oid}" != "${before_top}" ]; then
+			echo "stash:${mode}:${stash_oid}|${stash_name:-stash@{0}}"
+		else
+			echo "false"
 		fi
 	else
 		echo "false"
@@ -59,6 +64,16 @@ git_hex_restore_stash() {
 
 	if [[ "${stash_created}" == stash:* ]]; then
 		local payload="${stash_created#stash:}"
+		local mode_hint="normal"
+		# New format: <mode>:<oid>|<name>; fallback to old format if no mode prefix
+		if [[ "${payload}" == *:* ]]; then
+			mode_hint="${payload%%:*}"
+			payload="${payload#*:}"
+			if [ -z "${payload}" ]; then
+				mode_hint="normal"
+				payload="${stash_created#stash:}"
+			fi
+		fi
 		local stash_ref
 		local stash_name=""
 		if [[ "${payload}" == *"|"* ]]; then
@@ -71,41 +86,51 @@ git_hex_restore_stash() {
 			if [ -z "${stash_name}" ]; then
 				stash_name="$(git -C "${repo_path}" stash list --pretty='%H %gd' 2>/dev/null | awk -v oid="${stash_ref}" '$1==oid{print $2; exit}')"
 			fi
-			local patch_file
-			patch_file="$(mktemp)"
-			# Apply only the unstaged portion (worktree minus index) to avoid reapplying staged changes
-			if git -C "${repo_path}" diff "${stash_ref}^2" "${stash_ref}" --binary >"${patch_file}" 2>/dev/null; then
-				if [ -s "${patch_file}" ]; then
-					if git -C "${repo_path}" apply --3way "${patch_file}" >/dev/null 2>&1; then
-						git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
-					else
-						stash_not_restored="true"
-						if command -v mcp_log >/dev/null 2>&1; then
-							local log_payload
-							log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop %s manually."}' "${stash_name:-${stash_ref}}")"
-							mcp_log "warn" "git-hex" "${log_payload}"
+			if [ "${mode_hint}" = "keep-index" ]; then
+				local patch_file
+				patch_file="$(mktemp)"
+				# Apply only the unstaged portion (worktree minus index) to avoid reapplying staged changes.
+				# Stash commits have three parents: base (^1), index (^2), worktree (^3). For older formats or
+				# keep-index with fewer parents, fall back to ^2.
+				local worktree_parent=""
+				if git -C "${repo_path}" rev-parse "${stash_ref}^3^{tree}" >/dev/null 2>&1; then
+					worktree_parent="${stash_ref}^3"
+				elif git -C "${repo_path}" rev-parse "${stash_ref}^2^{tree}" >/dev/null 2>&1; then
+					worktree_parent="${stash_ref}^2"
+				fi
+
+				if [ -n "${worktree_parent}" ] && git -C "${repo_path}" diff "${worktree_parent}" "${stash_ref}" --binary >"${patch_file}" 2>/dev/null; then
+					if [ -s "${patch_file}" ]; then
+						if git -C "${repo_path}" apply --3way "${patch_file}" >/dev/null 2>&1; then
+							git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
+						else
+							stash_not_restored="true"
+							if command -v mcp_log >/dev/null 2>&1; then
+								local log_payload
+								log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop %s manually."}' "${stash_name:-${stash_ref}}")"
+								mcp_log "warn" "git-hex" "${log_payload}"
+							fi
 						fi
+					else
+						git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
 					fi
 				else
-					git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
+					stash_not_restored="true"
 				fi
+				rm -f "${patch_file}" 2>/dev/null || true
 			else
-				stash_not_restored="true"
+				if ! git -C "${repo_path}" stash pop "${stash_name:-${stash_ref}}" >/dev/null 2>&1; then
+					stash_not_restored="true"
+					if command -v mcp_log >/dev/null 2>&1; then
+						local log_payload
+						log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop %s manually."}' "${stash_name:-${stash_ref}}")"
+						mcp_log "warn" "git-hex" "${log_payload}"
+					fi
+				fi
 			fi
-			rm -f "${patch_file}" 2>/dev/null || true
 		fi
 		echo "${stash_not_restored}"
 		return 0
-	fi
-
-	if [ "${stash_created}" = "true" ]; then
-		if ! git -C "${repo_path}" stash pop >/dev/null 2>&1; then
-			stash_not_restored="true"
-			if command -v mcp_log >/dev/null 2>&1; then
-				local log_payload='{"message":"Auto-stash could not be restored cleanly. Run git stash pop manually."}'
-				mcp_log "warn" "git-hex" "${log_payload}"
-			fi
-		fi
 	fi
 
 	echo "${stash_not_restored}"

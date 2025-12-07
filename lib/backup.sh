@@ -120,6 +120,9 @@ git_hex_record_last_head() {
 
 	local ref_suffix="${GIT_HEX_LAST_BACKUP_REF#git-hex/backup/}"
 	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last-head/${ref_suffix}" "${head_after}" 2>/dev/null || true
+
+	# Opportunistically prune old backups to keep ref space tidy
+	git_hex_cleanup_backups "${repo_path}" 20
 }
 
 # List all backup refs

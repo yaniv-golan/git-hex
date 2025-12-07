@@ -3,11 +3,10 @@
   "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
   "inputSchema": {
     "type": "object",
-    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
-        "description": "Path to git repository"
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
       }
     }
   },

@@ -21,6 +21,11 @@ stash_count() {
 	(cd "${repo}" && git stash list 2>/dev/null | wc -l | tr -d ' ')
 }
 
+stash_top_hash() {
+	local repo="$1"
+	(cd "${repo}" && git stash list --pretty='%H' -n 1 2>/dev/null || echo "")
+}
+
 # STASH-01: autoStash creates stash when dirty
 printf ' -> STASH-01 autoStash creates stash when dirty\n'
 REPO="${TEST_TMPDIR}/stash-dirty-rebase"
@@ -147,6 +152,27 @@ if [ "${stash_list_after}" -gt 0 ]; then
 	test_pass "stashNotRestored reported when stash pop conflicts"
 else
 	test_fail "stash should remain when pop fails"
+fi
+
+# STASH-15: staged-only changes with existing stash remain untouched
+printf ' -> STASH-15 existing stash untouched with staged-only autoStash\n'
+REPO_EXISTING="${TEST_TMPDIR}/stash-existing"
+create_staged_dirty_repo "${REPO_EXISTING}"
+# Create a user stash before running the tool
+echo "user dirty" >>"${REPO_EXISTING}/file.txt"
+(cd "${REPO_EXISTING}" && git stash push -m "user-stash" >/dev/null 2>&1)
+user_stash_top="$(stash_top_hash "${REPO_EXISTING}")"
+# Leave only staged changes (no unstaged)
+(cd "${REPO_EXISTING}" && git add file.txt)
+result_existing="$(run_tool gitHex.amendLastCommit "${REPO_EXISTING}" '{"autoStash": true, "message": "Amend with staged only"}')"
+assert_json_field "${result_existing}" '.success' "true" "amendLastCommit should succeed with staged-only changes"
+after_count_existing="$(stash_count "${REPO_EXISTING}")"
+after_top_existing="$(stash_top_hash "${REPO_EXISTING}")"
+assert_eq "${after_count_existing}" "1" "existing stash count should remain unchanged"
+if [ "${user_stash_top}" = "${after_top_existing}" ]; then
+	test_pass "existing user stash left untouched when no new stash created"
+else
+	test_fail "existing stash should not be popped or replaced"
 fi
 
 # STASH-20: Untracked files NOT stashed

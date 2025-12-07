@@ -32,7 +32,7 @@ Use this Skill when:
      - Ensure conflict markers are removed before resolving.
      - Call `gitHex.resolveConflict` with the file path (and `resolution: "delete"`
        for delete conflicts when appropriate).
-   - For delete/rename conflicts, use the `resolution` parameter to choose whether
+  - For delete conflicts, use the `resolution` parameter to choose whether
      to keep or remove the file.
 
 3. **Continue or abort the operation**

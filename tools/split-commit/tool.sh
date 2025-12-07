@@ -151,14 +151,26 @@ export GIT_HEX_TARGET_FULL="${full_commit}"
 export GIT_HEX_TARGET_SUBJECT="${commit_subject}"
 
 _git_hex_rebase_started="true"
+rebase_status=0
 # shellcheck disable=SC2034
-rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || true
+rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
 
 unset GIT_HEX_TARGET_SHORT GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT
 
 if [ ! -d "${repo_path}/.git/rebase-merge" ] && [ ! -d "${repo_path}/.git/rebase-apply" ]; then
 	# Rebase did not pause as expected
-	mcp_fail_invalid_args "Commit ${commit_ref} not in rebase range or rebase failed"
+	if [ "${auto_stash}" = "true" ]; then
+		git_hex_restore_stash "${repo_path}" "${stash_created}" >/dev/null
+	fi
+	error_hint="$(echo "${rebase_output}" | head -1)"
+	if [ -z "${error_hint}" ]; then
+		error_hint="Commit ${commit_ref} not in rebase range or rebase failed"
+	fi
+	if [ "${rebase_status}" -ne 0 ]; then
+		mcp_fail_invalid_args "Rebase failed before split: ${error_hint}"
+	else
+		mcp_fail_invalid_args "${error_hint}"
+	fi
 fi
 
 # Reset state to unstage everything

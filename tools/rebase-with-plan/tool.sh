@@ -289,14 +289,17 @@ else
 				# shellcheck disable=SC2016
 				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicting_files}"
+			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson success false \
 				--argjson paused true \
 				--arg reason "conflict" \
+				--arg headBefore "${head_before}" \
+				--arg headAfter "${head_after_pause}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details." \
-				'{success: $success, paused: $paused, reason: $reason, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, conflictingFiles: $conflictingFiles, summary: $summary}')"
 			exit 0
 		else
 			git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true

@@ -161,6 +161,31 @@ create_binary_conflict_scenario() {
 	)
 }
 
+# Create repo with binary delete/modify conflict (working tree missing file)
+create_binary_delete_conflict_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR' >image.png
+		git add image.png && git commit -m "Initial binary"
+
+		git checkout -b feature
+		git rm image.png && git commit -m "Delete binary"
+
+		git checkout main
+		printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x10' >image.png
+		git add image.png && git commit -m "Modify binary main"
+
+		git checkout feature
+		# Rebasing feature onto main will create delete/modify conflict with no working-copy file
+	)
+}
+
 # Create repo with delete-by-us conflict (we deleted, they modified)
 create_delete_by_us_scenario() {
 	local repo_dir="$1"

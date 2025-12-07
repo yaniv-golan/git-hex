@@ -92,7 +92,12 @@ while IFS= read -r file; do
 				fi
 			fi
 		else
-			is_binary=""
+			# Working copy missing; inspect staged blob (ours) for binary detection
+			if git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
+				is_binary=""
+			else
+				is_binary="true"
+			fi
 		fi
 
 		if [ "${is_binary}" = "true" ]; then

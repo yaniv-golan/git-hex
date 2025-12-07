@@ -49,9 +49,6 @@ fi
 # Save original HEAD for headBefore/headAfter consistency
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
-# Create backup ref for undo support (before any mutations)
-git_hex_create_backup "${repo_path}" "amendLastCommit" >/dev/null
-
 # Stage all tracked files if requested
 if [ "${add_all}" = "true" ]; then
 	git -C "${repo_path}" add -u
@@ -62,6 +59,9 @@ staged_files="$(git -C "${repo_path}" diff --cached --name-only 2>/dev/null || t
 if [ -z "${staged_files}" ] && [ -z "${new_message}" ]; then
 	mcp_fail_invalid_args "Nothing to amend. Stage changes or provide a new message."
 fi
+
+# Create backup ref for undo support (after validation, before mutations)
+git_hex_create_backup "${repo_path}" "amendLastCommit" >/dev/null
 
 # Build amend command
 amend_args=("--amend")

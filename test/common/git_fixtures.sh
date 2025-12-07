@@ -764,7 +764,7 @@ create_split_subsequent_conflict_scenario() {
 # Create large history for maxCommits testing
 create_large_history_scenario() {
 	local repo_dir="$1"
-	local total="${2:-150}"
+	local total="${2:-40}"
 
 	mkdir -p "${repo_dir}"
 	(

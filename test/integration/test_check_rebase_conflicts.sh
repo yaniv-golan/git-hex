@@ -64,12 +64,12 @@ test_pass "predictions stop after first conflict"
 # CHK-14/15/16: maxCommits limits simulation
 printf ' -> CHK-14/15 limitExceeded when exceeding maxCommits\n'
 REPO_LARGE="${TEST_TMPDIR}/check-large"
-create_large_history_scenario "${REPO_LARGE}" 60
-result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 20}' 120)"
+create_large_history_scenario "${REPO_LARGE}" 40
+result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 15}' 90)"
 assert_json_field "${result_limit}" '.limitExceeded' "true" "limit should be exceeded for large history"
 checked="$(printf '%s' "${result_limit}" | jq -r '.checkedCommits')"
 total="$(printf '%s' "${result_limit}" | jq -r '.totalCommits')"
-assert_eq "20" "${checked}" "checkedCommits should respect maxCommits"
+assert_eq "15" "${checked}" "checkedCommits should respect maxCommits"
 expected_total="$(cd "${REPO_LARGE}" && git rev-list --count main..HEAD)"
 assert_eq "${expected_total}" "${total}" "totalCommits should include commits in range"
 test_pass "maxCommits respected with limitExceeded"

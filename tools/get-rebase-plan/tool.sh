@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Enable shell tracing for debugging (shows every command executed)
+if [ "${GIT_HEX_DEBUG:-}" = "true" ]; then
+	set -x
+fi
+
 # Source SDK (MCP_SDK is set by the framework when running tools)
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"

@@ -67,9 +67,13 @@ run_tool() {
 			printf '[run_tool %s] stderr:\n' "${tool_name}" >&2
 			cat "${stderr_file}" >&2
 		fi
+		# Print the error object for debugging
+		local error_obj
+		error_obj="$(echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]')"
+		printf '[run_tool %s] error: %s\n' "${tool_name}" "${error_obj}" >&2
 		rm -f "${stderr_file}"
-		# Extract and return the error object
-		echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]'
+		# Return the error object
+		echo "${error_obj}"
 		return 1
 	fi
 
@@ -84,6 +88,11 @@ run_tool() {
 		return 1
 	fi
 
+	# Always print stderr for debugging in CI
+	if [ -s "${stderr_file}" ]; then
+		printf '[run_tool %s] stderr:\n' "${tool_name}" >&2
+		cat "${stderr_file}" >&2
+	fi
 	rm -f "${stderr_file}"
 
 	# Extract structuredContent from the result line (skip notifications)
@@ -93,6 +102,13 @@ run_tool() {
 		# Fallback: maybe it's the raw output format
 		structured="${raw_output}"
 	fi
+
+	# Debug: show raw output if structured content extraction failed
+	if [ -z "${structured}" ] || [ "${structured}" = "null" ]; then
+		printf '[run_tool %s] WARNING: No structuredContent found\n' "${tool_name}" >&2
+		printf '[run_tool %s] raw_output: %s\n' "${tool_name}" "${raw_output}" >&2
+	fi
+
 	echo "${structured}"
 }
 

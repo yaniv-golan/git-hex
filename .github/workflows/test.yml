@@ -38,6 +38,7 @@ jobs:
     env:
       KEEP_INTEGRATION_LOGS: "1"
       MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG: "true"
       GIT_HEX_DEBUG_REBASE: "true"
     steps:
       - uses: actions/checkout@v4
@@ -117,6 +118,7 @@ jobs:
     env:
       KEEP_INTEGRATION_LOGS: "1"
       MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG: "true"
       GIT_HEX_DEBUG_REBASE: "true"
     steps:
       - uses: actions/checkout@v4

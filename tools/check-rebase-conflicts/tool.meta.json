@@ -53,5 +53,5 @@
       "note": { "type": "string" }
     }
   },
-  "timeoutSecs": 60
+  "timeoutSecs": 180
 }

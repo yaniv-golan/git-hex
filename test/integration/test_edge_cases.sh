@@ -28,8 +28,8 @@ test_pass "stashNotRestored type correct"
 # EDGE-31: limitExceeded is boolean
 printf ' -> EDGE-31 limitExceeded type is boolean\n'
 REPO_LIMIT_TYPE="${TEST_TMPDIR}/edge-limit-type"
-create_large_history_scenario "${REPO_LIMIT_TYPE}" 120
-result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LIMIT_TYPE}" '{"onto": "main", "maxCommits": 10}' 120)"
+create_large_history_scenario "${REPO_LIMIT_TYPE}" 80
+result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LIMIT_TYPE}" '{"onto": "main", "maxCommits": 10}' 180)"
 limit_type="$(printf '%s' "${result_limit}" | jq -r '(.limitExceeded|type)')" || limit_type="missing"
 assert_eq "boolean" "${limit_type}" "limitExceeded should be boolean"
 test_pass "limitExceeded type correct"

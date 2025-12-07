@@ -130,10 +130,11 @@ if [ "${require_complete}" = "true" ]; then
 	fi
 fi
 
-# Helper to escape single quotes for sh -c
+# Helper to escape single quotes for embedding in single-quoted strings
+# Replaces ' with '\'' (end quote, escaped quote, start quote)
 escape_message() {
 	local msg="$1"
-	echo "${msg//\'/\'\"\'\"\'}"
+	printf '%s' "${msg//\'/\'\\\'\'}"
 }
 
 complete_todo=""

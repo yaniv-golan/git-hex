@@ -101,6 +101,9 @@ fi
 head_after="$(git -C "${repo_path}" rev-parse HEAD)"
 commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 
+# Record post-operation state for undo safety checks
+git_hex_record_last_head "${repo_path}" "${head_after}"
+
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \

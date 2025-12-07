@@ -267,6 +267,8 @@ fi
 
 if [ "${rebase_status}" -eq 0 ]; then
 	head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+	# Record post-operation state for undo safety checks
+	git_hex_record_last_head "${repo_path}" "${head_after}"
 	# shellcheck disable=SC2016
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \

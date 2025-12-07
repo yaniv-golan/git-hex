@@ -8,11 +8,11 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 
 ## Features
 
-- **Safe Rebasing**: Automatic abort on conflicts, always leaving your repo clean
+- **Safe Rebasing**: Automatic abort on conflicts so git-hex operations leave the repo clean if conflicts arise
 - **Fixup Commits**: Create fixup! commits for later auto-squashing
 - **Commit Amendments**: Safely amend the last commit with staged changes
 - **Cherry-picking**: Single-commit cherry-pick with strategy options
-- **Undo Support**: Backup refs for all history-mutating operations (amend, fixup, cherry-pick, rebase, split) for easy undo
+- **Undo Support**: Backup refs for history-mutating operations (amend, fixup, cherry-pick, rebase, split); undo is safe unless new commits were added after the backup (see `force`)
 - **Path Security**: All operations respect MCP roots for sandboxed access
 
 ## How It Works
@@ -84,7 +84,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 - **MCP Bash Framework** (`mcp-bash`) v0.4.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git** 2.38+ (required for `gitHex.checkRebaseConflicts`; 2.33+ recommended if you want the `ort` merge strategy)
+- **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `gitHex.checkRebaseConflicts`
 
 ## Lint & Tests
 
@@ -155,6 +155,8 @@ The MCP server auto-starts via `run.sh`; no extra client config required.
   }
 }
 ```
+
+> **Roots:** Configure MCP `roots` to limit filesystem access. When only one root is configured, `repoPath` defaults to that root; passing a path outside configured roots is rejected by the framework.
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
@@ -573,6 +575,8 @@ The easiest way to recover from an unwanted operation:
 // Undo the last git-hex operation
 { "tool": "gitHex.undoLast", "arguments": {} }
 ```
+
+> `undoLast` refuses to run if new commits were added after the backup ref; set `force` to `true` to discard those commits explicitly.
 
 ### Using Git Reflog (Manual Recovery)
 

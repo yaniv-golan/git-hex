@@ -5,6 +5,16 @@ All notable changes to git-hex will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- `gitHex.undoLast` now refuses to reset if new commits were made after the backup unless `force=true`.
+- Backup ref reporting now matches the specific `last` ref used for undo.
+- `resolveConflict` allows Unicode paths and rejects Windows drive-letter style paths for clarity.
+- Tool schemas align with emitted `error` fields and mark required inputs where applicable.
+- Auto-stash keep-index mode stores stash object IDs instead of symbolic refs.
+- README clarifies undo semantics, roots expectations, and Git version requirements.
+
 ## [0.1.0] - 2025-12-07
 
 ### Added
@@ -34,4 +44,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repository state validated before destructive operations
 - Cleanup traps ensure repos are never left in broken state
 
+[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v0.1.0

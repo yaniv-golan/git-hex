@@ -10,16 +10,18 @@ resolution="$(mcp_args_get '.resolution' || true)"
 : "${resolution:=keep}"
 
 # Basic path safety checks
-invalid_chars="$(printf '%s' "${file}" | LC_ALL=C tr -d '\11\12\15\40-\176')"
-if [ -n "${invalid_chars}" ]; then
-	mcp_fail_invalid_args "Invalid file path"
-fi
 if [[ "${file}" == /* ]]; then
 	mcp_fail_invalid_args "Absolute paths are not allowed"
 fi
 if [[ "${file}" == "../"* || "${file}" == ".." || "${file}" == *"/.."* || "${file}" == *"/../"* ]]; then
 	mcp_fail_invalid_args "Path traversal is not allowed"
 fi
+# Reject Windows-style drive letter paths to avoid ambiguity
+case "${file}" in
+[A-Za-z]:/* | [A-Za-z]:\\*)
+	mcp_fail_invalid_args "Drive-letter paths are not allowed; use repo-relative POSIX paths"
+	;;
+esac
 
 # Validate repo
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then

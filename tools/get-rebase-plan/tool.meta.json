@@ -3,6 +3,7 @@
   "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
   "inputSchema": {
     "type": "object",
+    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",

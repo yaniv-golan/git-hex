@@ -206,6 +206,10 @@ if [ "${auto_stash}" = "true" ]; then
 	fi
 fi
 
+# Record post-operation state for undo safety checks
+head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+git_hex_record_last_head "${repo_path}" "${head_after}"
+
 trap - EXIT
 cleanup
 

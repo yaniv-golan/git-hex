@@ -132,6 +132,9 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 	fi
 
+	# Record post-operation state for undo safety checks
+	git_hex_record_last_head "${repo_path}" "${head_after}"
+
 	if [ "${no_commit}" = "true" ]; then
 		# shellcheck disable=SC2016
 		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \

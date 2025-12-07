@@ -3,10 +3,15 @@
   "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
   "inputSchema": {
     "type": "object",
+    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
         "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Allow undo even if new commits exist after the backup (those commits will be lost)"
       }
     }
   },
@@ -46,4 +51,3 @@
   },
   "timeoutSecs": 30
 }
-

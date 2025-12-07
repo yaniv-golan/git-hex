@@ -41,6 +41,9 @@ git_hex_create_backup() {
 	# Create the new "last" ref with operation in the name
 	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last/${timestamp}_${operation}" "${head_hash}"
 
+	# Track the last backup ref for subsequent state recording
+	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${timestamp}_${operation}"
+
 	# Return the ref name (without refs/ prefix for display)
 	echo "git-hex/backup/${timestamp}_${operation}"
 }
@@ -83,9 +86,40 @@ git_hex_get_last_backup() {
 
 	# Find the corresponding backup ref
 	local backup_ref=""
-	backup_ref="$(git -C "${repo_path}" for-each-ref --sort=-creatordate --format='%(refname:short)' "${GIT_HEX_REF_PREFIX}/backup/" 2>/dev/null | head -1 || echo "")"
+	if [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
+		# Prefer an exact match to the last ref chosen above
+		local expected_ref="${GIT_HEX_REF_PREFIX}/backup/${timestamp}_${operation}"
+		if git -C "${repo_path}" show-ref --verify --quiet "${expected_ref}" 2>/dev/null; then
+			backup_ref="git-hex/backup/${timestamp}_${operation}"
+		fi
+	fi
+
+	# Fallback: pick most recent backup if the expected ref is missing
+	if [ -z "${backup_ref}" ]; then
+		backup_ref="$(git -C "${repo_path}" for-each-ref --sort=-creatordate --format='%(refname:short)' "${GIT_HEX_REF_PREFIX}/backup/" 2>/dev/null | head -1 || echo "")"
+	fi
 
 	echo "${backup_hash}|${operation}|${timestamp}|${backup_ref}"
+}
+
+# Record the HEAD after a mutating operation for undo safety checks
+# Uses the most recent backup ref metadata captured in GIT_HEX_LAST_BACKUP_REF.
+git_hex_record_last_head() {
+	local repo_path="$1"
+	local head_after="${2:-}"
+
+	if [ -z "${GIT_HEX_LAST_BACKUP_REF:-}" ]; then
+		return 0
+	fi
+	if [ -z "${head_after}" ]; then
+		head_after="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || true)"
+	fi
+	if [ -z "${head_after}" ]; then
+		return 0
+	fi
+
+	local ref_suffix="${GIT_HEX_LAST_BACKUP_REF#git-hex/backup/}"
+	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last-head/${ref_suffix}" "${head_after}" 2>/dev/null || true
 }
 
 # List all backup refs

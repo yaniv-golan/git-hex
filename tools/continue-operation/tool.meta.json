@@ -3,6 +3,7 @@
   "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
   "inputSchema": {
     "type": "object",
+    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
@@ -21,6 +22,7 @@
         "type": "array",
         "items": { "type": "string" }
       },
+      "error": { "type": "string" },
       "summary": { "type": "string" }
     }
   },

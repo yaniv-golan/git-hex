@@ -3,6 +3,7 @@
   "description": "Abort a paused rebase/merge/cherry-pick and restore original state",
   "inputSchema": {
     "type": "object",
+    "required": ["repoPath"],
     "properties": {
       "repoPath": {
         "type": "string",
@@ -15,6 +16,7 @@
     "properties": {
       "success": { "type": "boolean" },
       "operationType": { "type": "string" },
+      "error": { "type": "string" },
       "summary": { "type": "string" }
     }
   },

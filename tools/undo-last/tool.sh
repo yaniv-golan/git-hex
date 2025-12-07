@@ -12,6 +12,7 @@ source "${SCRIPT_DIR}/../../lib/backup.sh"
 
 # Parse arguments
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
+force="$(mcp_args_bool '.force' --default false)"
 
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
@@ -50,6 +51,10 @@ fi
 
 # Get current HEAD before undo
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+recorded_head=""
+if [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
+	recorded_head="$(git -C "${repo_path}" rev-parse "refs/git-hex/last-head/${timestamp}_${operation}" 2>/dev/null || echo "")"
+fi
 
 # Check if we're already at the backup state
 if [ "${head_before}" = "${backup_hash}" ]; then
@@ -67,6 +72,16 @@ fi
 # Check if there are commits between backup and current HEAD that weren't made by git-hex
 # This is a safety check to avoid losing work
 commits_since_backup="$(git -C "${repo_path}" rev-list --count "${backup_hash}..HEAD" 2>/dev/null || echo "0")"
+prev_head="$(git -C "${repo_path}" rev-parse 'HEAD@{1}' 2>/dev/null || echo "")"
+# If we have a recorded head from the git-hex operation, use it to detect extra commits
+if [ "${commits_since_backup}" -gt 0 ] && [ "${force}" = "false" ]; then
+	if [ -n "${recorded_head}" ] && [ "${head_before}" != "${recorded_head}" ]; then
+		mcp_fail_invalid_args "Refusing to undo because there are commits after the last git-hex operation. Re-run with force=true to discard them."
+	elif [ -z "${recorded_head}" ] && [ -n "${prev_head}" ] && [ "${prev_head}" != "${backup_hash}" ]; then
+		# Fallback heuristic when recorded head is unavailable (older backups)
+		mcp_fail_invalid_args "Refusing to undo because there are ${commits_since_backup} commit(s) after the last git-hex operation. Re-run with force=true to discard them."
+	fi
+fi
 
 # Perform the reset
 if ! git -C "${repo_path}" reset --hard "${backup_hash}" >/dev/null 2>&1; then
@@ -91,6 +106,9 @@ if [ -n "${formatted_time}" ]; then
 	summary="${summary} from ${formatted_time}"
 fi
 summary="${summary}. Reset ${commits_since_backup} commit(s) from ${head_before:0:7} to ${head_after:0:7}"
+if [ "${force}" = "true" ] && [ "${commits_since_backup}" -gt 0 ]; then
+	summary="${summary} (forced)"
+fi
 
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \

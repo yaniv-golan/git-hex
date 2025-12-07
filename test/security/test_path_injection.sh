@@ -18,7 +18,9 @@ echo "=== Security: Path Injection ==="
 # Prepare repo with conflict so resolveConflict is applicable
 REPO_PATH_SEC="${TEST_TMPDIR}/sec-path"
 create_conflict_scenario "${REPO_PATH_SEC}"
-(cd "${REPO_PATH_SEC}" && git rebase main >/dev/null 2>&1 || true)
+if ! (cd "${REPO_PATH_SEC}" && git rebase main >/dev/null 2>&1); then
+	:
+fi
 
 # SEC-10: Path traversal rejected
 printf ' -> SEC-10 path traversal rejected\n'

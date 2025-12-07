@@ -282,12 +282,16 @@ mkdir -p "${REPO9}"
 result="$(run_tool gitHex.amendLastCommit "${REPO9}" '{"message": "Pre-conflict amend"}')"
 
 # Now start a conflicting rebase manually to put repo in rebase state
-(cd "${REPO9}" && git rebase main 2>/dev/null || true)
+if ! (cd "${REPO9}" && git rebase main >/dev/null 2>&1); then
+	:
+fi
 
 # Verify we're in rebase state
 if [ ! -d "${REPO9}/.git/rebase-merge" ] && [ ! -d "${REPO9}/.git/rebase-apply" ]; then
 	# Rebase might have completed without conflict on some git versions, skip test
-	(cd "${REPO9}" && git rebase --abort 2>/dev/null || true)
+	if ! (cd "${REPO9}" && git rebase --abort >/dev/null 2>&1); then
+		:
+	fi
 	echo "  (skipped - rebase did not conflict)"
 else
 	# Try to undo - should fail
@@ -297,7 +301,9 @@ else
 		test_fail "should fail during in-progress rebase"
 	fi
 	# Cleanup
-	(cd "${REPO9}" && git rebase --abort 2>/dev/null || true)
+	if ! (cd "${REPO9}" && git rebase --abort >/dev/null 2>&1); then
+		:
+	fi
 fi
 
 # ============================================================

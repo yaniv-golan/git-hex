@@ -86,7 +86,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Requirements
 
-- **MCP Bash Framework** (`mcp-bash`) v0.5.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
+- **MCP Bash Framework** (`mcp-bash`) v0.6.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
 - **bash** 3.2+
 - **jq** or **gojq**
 - **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `git-hex-checkRebaseConflicts`
@@ -116,14 +116,14 @@ cd ~/git-hex
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
-If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly:
+If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.6.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`):
 
 ```bash
 # Clone git-hex
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 
 # Ensure the MCP Bash Framework is installed and on PATH
-curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.6.0
 ```
 
 ## Claude Code Plugin
@@ -179,7 +179,7 @@ Tips:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/mcp-bash-framework/bin/mcp-bash",
+      "command": "/path/to/.local/share/mcp-bash/bin/mcp-bash",
       "env": {
         "MCPBASH_PROJECT_ROOT": "/path/to/git-hex"
       }
@@ -194,7 +194,7 @@ Tips:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "command": "C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe",
       "args": ["-c", "/c/Users/me/git-hex/git-hex.sh"],
       "env": {
         "MCPBASH_PROJECT_ROOT": "/c/Users/me/git-hex",

@@ -8,21 +8,33 @@ TEST_COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 TEST_DIR="$(dirname "${TEST_COMMON_DIR}")"
 PROJECT_ROOT="$(dirname "${TEST_DIR}")"
 
-# Framework location - prefer local development version, then installed version
+# Framework location - prefer explicit env, then sibling checkout, then XDG default
 if [ -n "${MCPBASH_HOME:-}" ]; then
 	FRAMEWORK_DIR="${MCPBASH_HOME}"
 elif [ -d "${PROJECT_ROOT}/../mcpbash" ]; then
 	# Local development: git-hex and mcpbash are sibling directories
 	FRAMEWORK_DIR="${PROJECT_ROOT}/../mcpbash"
-elif [ -d "${HOME}/mcp-bash-framework" ]; then
-	FRAMEWORK_DIR="${HOME}/mcp-bash-framework"
 else
-	echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install to ~/mcp-bash-framework" >&2
-	exit 1
+	XDG_FRAMEWORK_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/mcp-bash"
+	if [ -d "${XDG_FRAMEWORK_DIR}" ]; then
+		FRAMEWORK_DIR="${XDG_FRAMEWORK_DIR}"
+	else
+		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install via the v0.6.0 installer." >&2
+		exit 1
+	fi
 fi
 
 export MCPBASH_PROJECT_ROOT="${PROJECT_ROOT}"
 export PATH="${FRAMEWORK_DIR}/bin:${PATH}"
+
+# Prefer CI-safe defaults when running under automation
+if [ "${CI:-}" = "true" ] && [ -z "${MCPBASH_CI_MODE:-}" ]; then
+	export MCPBASH_CI_MODE=1
+fi
+if [ -n "${MCPBASH_TRACE_TOOLS:-}" ] && [ -z "${MCPBASH_TRACE_PS4:-}" ]; then
+	# shellcheck disable=SC2016 # Single quotes intentional - PS4 expands at runtime in the tool
+	export MCPBASH_TRACE_PS4='+${BASH_SOURCE}:${LINENO}: '
+fi
 
 # Create temp directory for test artifacts
 test_create_tmpdir() {

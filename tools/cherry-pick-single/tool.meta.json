@@ -84,5 +84,11 @@
       }
     }
   },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
   "timeoutSecs": 60
 }

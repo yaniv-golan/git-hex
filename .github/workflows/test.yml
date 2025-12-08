@@ -16,8 +16,9 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
-          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> $GITHUB_ENV
 
       - name: Install lint dependencies
         run: |
@@ -40,6 +41,10 @@ jobs:
       MCPBASH_KEEP_LOGS: "1"
       GIT_HEX_DEBUG: "true"
       GIT_HEX_DEBUG_REBASE: "true"
+      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_VERBOSE: "1"
+      MCPBASH_TRACE_TOOLS: "true"
+      MCPBASH_TRACE_MAX_BYTES: "60000"
     steps:
       - uses: actions/checkout@v4
 
@@ -50,8 +55,9 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
-          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
 
       - name: Install test dependencies
         run: |
@@ -101,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-logs-${{ matrix.os }}
-          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/
           retention-days: 7
 
       - name: Upload mcp-bash logs on failure
@@ -120,6 +126,10 @@ jobs:
       MCPBASH_KEEP_LOGS: "1"
       GIT_HEX_DEBUG: "true"
       GIT_HEX_DEBUG_REBASE: "true"
+      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_VERBOSE: "1"
+      MCPBASH_TRACE_TOOLS: "true"
+      MCPBASH_TRACE_MAX_BYTES: "60000"
     steps:
       - uses: actions/checkout@v4
 
@@ -130,8 +140,9 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
-          echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
 
       - name: Install test dependencies
         run: |
@@ -148,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nightly-logs
-          path: ${{ env.GITHEX_INTEGRATION_TMP }}/logs/
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/
           retention-days: 7
 
       - name: Upload mcp-bash logs on failure

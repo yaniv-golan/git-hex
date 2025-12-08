@@ -34,5 +34,11 @@
       "summary": { "type": "string" }
     }
   },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
   "timeoutSecs": 30
 }

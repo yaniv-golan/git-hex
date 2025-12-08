@@ -8,12 +8,12 @@ The tests require the `mcp-bash` framework. You can either:
 
 1. **Install the framework** (recommended for CI):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+   curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes --version v0.6.0
    ```
 
 2. **Use a local development version** by setting `MCPBASH_HOME`:
    ```bash
-   export MCPBASH_HOME=/path/to/mcp-bash-framework
+   export MCPBASH_HOME=$HOME/.local/share/mcp-bash
    ```
 
 The test harness auto-detects sibling directories (e.g., `../mcpbash`) for local development.
@@ -154,11 +154,13 @@ mcp-bash run-tool git-hex-rebaseWithPlan \
 ## CI Integration
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
-1. Installs the mcp-bash framework (pinned to v0.5.0).
+1. Installs the mcp-bash framework (pinned to v0.6.0).
 2. Runs lint on Linux (shellcheck + shfmt).
 3. Runs `mcp-bash validate`, integration tests, and security tests on Linux and macOS (with failure logs artifacted).
 4. Runs integration tests on Windows with a time budget guard.
 5. Runs a scheduled weekly full suite on Ubuntu.
+
+CI runs with `MCPBASH_CI_MODE`, `MCPBASH_CI_VERBOSE`, and `MCPBASH_TRACE_TOOLS` enabled to capture env snapshots, failure summaries, and per-tool traces into `$MCPBASH_LOG_DIR` for easier debugging.
 
 ## Reference
 

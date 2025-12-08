@@ -8,9 +8,33 @@ VERBOSE="${VERBOSE:-0}"
 UNICODE="${UNICODE:-0}"
 KEEP_INTEGRATION_LOGS="${KEEP_INTEGRATION_LOGS:-0}"
 
+# Detect CI environment
+IS_CI="${CI:-${GITHUB_ACTIONS:-0}}"
+
 SUITE_TMP="${GITHEX_INTEGRATION_TMP:-$(mktemp -d "${TMPDIR:-/tmp}/githex.integration.XXXXXX")}"
 LOG_DIR="${SUITE_TMP}/logs"
+SUMMARY_FILE="${SUITE_TMP}/failure-summary.txt"
+ENV_SNAPSHOT="${SUITE_TMP}/environment.txt"
 mkdir -p "${LOG_DIR}"
+
+# Capture environment snapshot for debugging
+capture_environment() {
+	{
+		printf '=== Environment Snapshot ===\n'
+		printf 'Timestamp: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+		printf 'OS: %s\n' "$(uname -a)"
+		printf 'Bash: %s\n' "${BASH_VERSION}"
+		printf 'Shell options: %s\n' "$-"
+		printf 'PWD: %s\n' "${PWD}"
+		printf '\n--- Relevant Environment Variables ---\n'
+		env | grep -E '^(GIT_|MCPBASH_|GITHEX_|PATH=|HOME=|TMPDIR=|RUNNER_|GITHUB_)' | sort || true
+		printf '\n--- Tool Versions ---\n'
+		printf 'git: %s\n' "$(git --version 2>/dev/null || echo 'not found')"
+		printf 'jq: %s\n' "$(jq --version 2>/dev/null || echo 'not found')"
+		printf 'mcp-bash: %s\n' "$(mcp-bash --version 2>/dev/null || echo 'not found')"
+	} >"${ENV_SNAPSHOT}" 2>&1
+}
+capture_environment
 
 SUITE_FAILED=0
 cleanup_suite_tmp() {
@@ -86,6 +110,33 @@ run_test() {
 			printf '  --- log end ---\n' >&2
 		fi
 		failed=$((failed + 1))
+
+		# Append to failure summary
+		{
+			printf '\n=== FAILED: %s ===\n' "${test_script}"
+			printf 'Exit code: %d\n' "${status}"
+			printf 'Duration: %ss\n' "${elapsed}"
+			printf 'Log file: %s\n' "${log_file}"
+			printf 'Timestamp: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+			# Extract key error lines (last error, tool failures)
+			if [ -f "${log_file}" ]; then
+				printf '\n--- Key Error Lines ---\n'
+				grep -E '(FAIL|ERROR|error:|_mcpToolError|unbound variable|command not found)' "${log_file}" | tail -20 || true
+			fi
+			printf '\n'
+		} >>"${SUMMARY_FILE}"
+
+		# Emit GitHub Actions annotation if in CI
+		if [ "${IS_CI}" != "0" ] && [ -n "${GITHUB_ACTIONS:-}" ]; then
+			# Extract first error message for annotation
+			local error_msg
+			error_msg="$(grep -E '(FAIL|ERROR|error:)' "${log_file}" 2>/dev/null | head -1 || echo "Test failed")"
+			# Escape special characters for GitHub annotation
+			error_msg="${error_msg//'%'/'%25'}"
+			error_msg="${error_msg//$'\n'/'%0A'}"
+			error_msg="${error_msg//$'\r'/'%0D'}"
+			printf '::error file=test/integration/%s,title=Test Failed::%s\n' "${test_script}" "${error_msg}"
+		fi
 	fi
 }
 
@@ -110,5 +161,33 @@ printf '\nIntegration summary: %d passed, %d failed (logs: %s, elapsed: %ss)\n' 
 
 if [ "${failed}" -ne 0 ]; then
 	SUITE_FAILED=1
+
+	# Print failure summary and environment info
+	if [ -f "${SUMMARY_FILE}" ]; then
+		printf '\n=== Failure Summary ===\n' >&2
+		cat "${SUMMARY_FILE}" >&2
+	fi
+
+	printf '\n=== Environment (see %s for full details) ===\n' "${ENV_SNAPSHOT}" >&2
+	head -15 "${ENV_SNAPSHOT}" >&2 || true
+
+	# GitHub Actions job summary
+	if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+		{
+			printf '## Integration Test Results\n\n'
+			printf '**%d passed, %d failed** (elapsed: %ss)\n\n' "${passed}" "${failed}" "${suite_elapsed}"
+			printf '### Failed Tests\n\n'
+			if [ -f "${SUMMARY_FILE}" ]; then
+				printf '```\n'
+				cat "${SUMMARY_FILE}"
+				printf '```\n'
+			fi
+			printf '\n### Environment\n\n'
+			printf '```\n'
+			cat "${ENV_SNAPSHOT}"
+			printf '```\n'
+		} >>"${GITHUB_STEP_SUMMARY}"
+	fi
+
 	exit 1
 fi

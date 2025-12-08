@@ -73,7 +73,8 @@ jobs:
           fi
 
       - name: Validate project
-        run: "$MCPBASH_HOME/bin/mcp-bash" validate
+        run: |
+          "$MCPBASH_HOME/bin/mcp-bash" validate
 
       - name: Run integration tests
         id: integration
@@ -155,7 +156,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq gojq shellcheck shfmt || sudo apt-get install -y jq shellcheck shfmt
 
       - name: Validate project
-        run: "$MCPBASH_HOME/bin/mcp-bash" validate
+        run: |
+          "$MCPBASH_HOME/bin/mcp-bash" validate
 
       - name: Run full test suite
         run: ./test/run.sh

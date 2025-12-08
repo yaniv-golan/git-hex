@@ -20,6 +20,12 @@ jobs:
           echo "$HOME/.local/share/mcp-bash/bin" >> $GITHUB_PATH
           echo "PATH=$HOME/.local/share/mcp-bash/bin:$PATH" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> $GITHUB_ENV
+      - name: Verify mcp-bash binary
+        run: |
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
+          echo "Using mcp-bash from: $(/usr/bin/which mcp-bash || true)"
+          "$MCPBASH_HOME/bin/mcp-bash" --version
 
       - name: Install lint dependencies
         run: |
@@ -61,6 +67,18 @@ jobs:
           echo "$HOME/.local/share/mcp-bash/bin" >> $GITHUB_PATH
           echo "PATH=$HOME/.local/share/mcp-bash/bin:$PATH" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
+      - name: Verify mcp-bash binary
+        run: |
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
+          echo "Using mcp-bash from: $(/usr/bin/which mcp-bash || true)"
+          "$MCPBASH_HOME/bin/mcp-bash" --version
+      - name: Verify mcp-bash binary
+        run: |
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
+          echo "Using mcp-bash from: $(/usr/bin/which mcp-bash || true)"
+          "$MCPBASH_HOME/bin/mcp-bash" --version
 
       - name: Install test dependencies
         run: |

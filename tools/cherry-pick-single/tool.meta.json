@@ -2,7 +2,9 @@
   "name": "git-hex-cherryPickSingle",
   "description": "Cherry-pick a single commit with configurable merge strategy. Requires a clean working tree unless autoStash=true. Aborts cleanly on conflict.",
   "icons": [
-    "../../assets/icons/cherry-pick-single.svg"
+    {
+      "path": "../../assets/icons/cherry-pick-single.svg"
+    }
   ],
   "inputSchema": {
     "type": "object",

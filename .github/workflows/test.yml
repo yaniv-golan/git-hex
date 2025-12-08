@@ -63,9 +63,9 @@ jobs:
       - name: Install test dependencies
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update && sudo apt-get install -y jq
+            sudo apt-get update && sudo apt-get install -y jq gojq || sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install jq
+            brew install jq gojq || brew install jq
           else
             choco install jq -y
           fi
@@ -148,7 +148,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt
+          sudo apt-get update && sudo apt-get install -y jq gojq shellcheck shfmt || sudo apt-get install -y jq shellcheck shfmt
 
       - name: Validate project
         run: mcp-bash validate
@@ -171,3 +171,21 @@ jobs:
           name: nightly-mcpbash-logs
           path: ${{ env.MCPBASH_LOG_DIR }}/
           retention-days: 7
+      - name: Verify registry and tool availability
+        run: |
+          mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          mcp-bash run-tool git-hex-getRebasePlan \
+            --project-root "$MCPBASH_PROJECT_ROOT" \
+            --roots "$MCPBASH_PROJECT_ROOT" \
+            --args '{}' \
+            --timeout 10 \
+            --verbose
+      - name: Verify registry and tool availability
+        run: |
+          mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          mcp-bash run-tool git-hex-getRebasePlan \
+            --project-root "$MCPBASH_PROJECT_ROOT" \
+            --roots "$MCPBASH_PROJECT_ROOT" \
+            --args '{}' \
+            --timeout 10 \
+            --verbose

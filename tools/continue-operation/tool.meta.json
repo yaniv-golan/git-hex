@@ -2,7 +2,9 @@
   "name": "git-hex-continueOperation",
   "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
   "icons": [
-    "../../assets/icons/continue-operation.svg"
+    {
+      "path": "../../assets/icons/continue-operation.svg"
+    }
   ],
   "inputSchema": {
     "type": "object",

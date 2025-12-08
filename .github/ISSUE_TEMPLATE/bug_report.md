@@ -22,12 +22,12 @@ A clear description of what the bug is.
 
 Which git-hex tool is affected?
 
-- [ ] gitHex.getRebasePlan
-- [ ] gitHex.rebaseWithPlan
-- [ ] gitHex.createFixup
-- [ ] gitHex.amendLastCommit
-- [ ] gitHex.cherryPickSingle
-- [ ] gitHex.undoLast
+- [ ] git-hex-getRebasePlan
+- [ ] git-hex-rebaseWithPlan
+- [ ] git-hex-createFixup
+- [ ] git-hex-amendLastCommit
+- [ ] git-hex-cherryPickSingle
+- [ ] git-hex-undoLast
 - [ ] Other / Multiple
 
 ## Steps to Reproduce

@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.amendLastCommit",
+  "name": "git-hex-amendLastCommit",
   "description": "Amend the last commit with staged changes and/or a new message",
+  "icons": [
+    "../../assets/icons/amend-last-commit.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

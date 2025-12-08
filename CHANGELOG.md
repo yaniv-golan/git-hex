@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- `gitHex.undoLast` now refuses to reset if new commits were made after the backup unless `force=true`.
+- `git-hex-undoLast` now refuses to reset if new commits were made after the backup unless `force=true`.
 - Backup ref reporting now matches the specific `last` ref used for undo.
 - `resolveConflict` allows Unicode paths and rejects Windows drive-letter style paths for clarity.
 - Tool schemas align with emitted `error` fields and mark required inputs where applicable.
@@ -19,15 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **gitHex.undoLast** - Undo the last git-hex operation via backup refs
+- **git-hex-undoLast** - Undo the last git-hex operation via backup refs
 - Backup ref system (`refs/git-hex/backup/`) for all mutating operations
 - Recovery documentation with reflog and backup ref examples
 - Initial release of git-hex MCP server
-- **gitHex.getRebasePlan** - Get structured rebase plan for last N commits
-- **gitHex.rebaseWithPlan** - Structured interactive rebase with autosquash/autostash support
-- **gitHex.createFixup** - Create fixup commits for later auto-squashing
-- **gitHex.amendLastCommit** - Amend last commit with staged changes or new message
-- **gitHex.cherryPickSingle** - Cherry-pick single commit with strategy options
+- **git-hex-getRebasePlan** - Get structured rebase plan for last N commits
+- **git-hex-rebaseWithPlan** - Structured interactive rebase with autosquash/autostash support
+- **git-hex-createFixup** - Create fixup commits for later auto-squashing
+- **git-hex-amendLastCommit** - Amend last commit with staged changes or new message
+- **git-hex-cherryPickSingle** - Cherry-pick single commit with strategy options
 - Automatic cleanup on conflicts (rebase/cherry-pick abort)
 - MCP roots enforcement for path security
 - Docker support

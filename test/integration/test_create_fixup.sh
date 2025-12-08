@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.createFixup
+# Integration tests for git-hex-createFixup
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.createFixup ==="
+echo "=== Testing git-hex-createFixup ==="
 
 # ============================================================
 # TEST: create-fixup creates fixup commit
@@ -25,7 +25,7 @@ create_staged_changes_repo "${REPO}"
 
 target_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 
-result="$(run_tool gitHex.createFixup "${REPO}" "{\"commit\": \"${target_hash}\"}")"
+result="$(run_tool git-hex-createFixup "${REPO}" "{\"commit\": \"${target_hash}\"}")"
 
 assert_json_field "${result}" '.success' "true" "fixup should succeed"
 assert_json_field "${result}" '.targetCommit' "${target_hash}" "target commit should match"
@@ -46,7 +46,7 @@ create_test_repo "${REPO2}" 2
 
 target_hash="$(cd "${REPO2}" && git rev-parse HEAD~1)"
 
-if run_tool_expect_fail gitHex.createFixup "${REPO2}" "{\"commit\": \"${target_hash}\"}"; then
+if run_tool_expect_fail git-hex-createFixup "${REPO2}" "{\"commit\": \"${target_hash}\"}"; then
 	test_pass "create-fixup fails without staged changes"
 else
 	test_fail "should fail without staged changes"
@@ -62,7 +62,7 @@ create_staged_changes_repo "${REPO3}"
 
 target_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
-result="$(run_tool gitHex.createFixup "${REPO3}" "{\"commit\": \"${target_hash}\", \"message\": \"Additional context\"}")"
+result="$(run_tool git-hex-createFixup "${REPO3}" "{\"commit\": \"${target_hash}\", \"message\": \"Additional context\"}")"
 
 assert_json_field "${result}" '.success' "true" "fixup should succeed"
 
@@ -80,11 +80,11 @@ printf ' -> create-fixup fails on invalid commit ref\n'
 REPO4="${TEST_TMPDIR}/fixup-invalid"
 create_staged_changes_repo "${REPO4}"
 
-if run_tool_expect_fail gitHex.createFixup "${REPO4}" '{"commit": "nonexistent123"}'; then
+if run_tool_expect_fail git-hex-createFixup "${REPO4}" '{"commit": "nonexistent123"}'; then
 	test_pass "create-fixup fails on invalid commit ref"
 else
 	test_fail "should fail on invalid commit ref"
 fi
 
 echo ""
-echo "All gitHex.createFixup tests passed!"
+echo "All git-hex-createFixup tests passed!"

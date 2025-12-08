@@ -20,7 +20,7 @@ printf ' -> EDGE-30 stashNotRestored type is boolean\n'
 REPO_STASH_TYPE="${TEST_TMPDIR}/edge-stash-type"
 create_staged_dirty_repo "${REPO_STASH_TYPE}"
 echo "conflict change" >>"${REPO_STASH_TYPE}/file.txt"
-result_stash="$(run_tool gitHex.amendLastCommit "${REPO_STASH_TYPE}" '{"autoStash": true, "message": "type check"}')"
+result_stash="$(run_tool git-hex-amendLastCommit "${REPO_STASH_TYPE}" '{"autoStash": true, "message": "type check"}')"
 type_field="$(printf '%s' "${result_stash}" | jq -r '(.stashNotRestored|type)')" || type_field="missing"
 assert_eq "boolean" "${type_field}" "stashNotRestored should be boolean"
 test_pass "stashNotRestored type correct"
@@ -30,7 +30,7 @@ test_pass "stashNotRestored type correct"
 printf ' -> EDGE-31 limitExceeded type is boolean\n'
 REPO_LIMIT_TYPE="${TEST_TMPDIR}/edge-limit-type"
 create_large_history_scenario "${REPO_LIMIT_TYPE}" 15
-result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LIMIT_TYPE}" '{"onto": "main", "maxCommits": 10}' 90)"
+result_limit="$(run_tool git-hex-checkRebaseConflicts "${REPO_LIMIT_TYPE}" '{"onto": "main", "maxCommits": 10}' 90)"
 limit_type="$(printf '%s' "${result_limit}" | jq -r '(.limitExceeded|type)')" || limit_type="missing"
 assert_eq "boolean" "${limit_type}" "limitExceeded should be boolean"
 test_pass "limitExceeded type correct"
@@ -51,7 +51,7 @@ args_paused="$(
 }
 JSON
 )"
-result_paused="$(run_tool gitHex.splitCommit "${REPO_REBASE_PAUSED}" "${args_paused}" 120)"
+result_paused="$(run_tool git-hex-splitCommit "${REPO_REBASE_PAUSED}" "${args_paused}" 120)"
 paused_type="$(printf '%s' "${result_paused}" | jq -r '(.rebasePaused|type)')" || paused_type="missing"
 assert_eq "boolean" "${paused_type}" "rebasePaused should be boolean"
 test_pass "rebasePaused type correct"

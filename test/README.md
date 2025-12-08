@@ -98,7 +98,7 @@ repo="${TEST_TMPDIR}/my-repo"
 create_test_repo "${repo}" 5
 
 # Run tool and check result
-result="$(run_tool "gitHex.myTool" "${repo}" '{"arg": "value"}')"
+result="$(run_tool "git-hex-myTool" "${repo}" '{"arg": "value"}')"
 assert_json_field "${result}" ".success" "true"
 
 echo "All tests passed!"
@@ -108,12 +108,12 @@ echo "All tests passed!"
 
 **`run_tool`** - Run a tool and get structured output:
 ```bash
-result="$(run_tool "gitHex.getRebasePlan" "${repo}" '{"count": 5}')"
+result="$(run_tool "git-hex-getRebasePlan" "${repo}" '{"count": 5}')"
 ```
 
 **`run_tool_expect_fail`** - Expect a tool to fail:
 ```bash
-if run_tool_expect_fail "gitHex.getRebasePlan" "/nonexistent" '{}'; then
+if run_tool_expect_fail "git-hex-getRebasePlan" "/nonexistent" '{}'; then
     echo "PASS: correctly rejected invalid path"
 fi
 ```
@@ -138,12 +138,12 @@ For manual testing or debugging:
 
 ```bash
 # Test a tool directly
-mcp-bash run-tool gitHex.getRebasePlan \
+mcp-bash run-tool git-hex-getRebasePlan \
     --args '{"repoPath": "/path/to/repo", "count": 5}' \
     --roots '/path/to/repo'
 
 # With custom timeout
-mcp-bash run-tool gitHex.rebaseWithPlan \
+mcp-bash run-tool git-hex-rebaseWithPlan \
     --args '{"onto": "main"}' \
     --roots '/path/to/repo' \
     --timeout 120
@@ -154,7 +154,7 @@ mcp-bash run-tool gitHex.rebaseWithPlan \
 ## CI Integration
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
-1. Installs the mcp-bash framework (pinned to v0.4.0).
+1. Installs the mcp-bash framework (pinned to v0.5.0).
 2. Runs lint on Linux (shellcheck + shfmt).
 3. Runs `mcp-bash validate`, integration tests, and security tests on Linux and macOS (with failure logs artifacted).
 4. Runs integration tests on Windows with a time budget guard.

@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.createFixup",
+  "name": "git-hex-createFixup",
   "description": "Create a fixup commit for a specified commit. REQUIRES: staged changes (run 'git add' first). The fixup will be auto-squashed during rebase.",
+  "icons": [
+    "../../assets/icons/create-fixup.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

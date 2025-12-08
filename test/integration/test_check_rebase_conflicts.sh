@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.checkRebaseConflicts
+# Integration tests for git-hex-checkRebaseConflicts
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ echo "=== checkRebaseConflicts Tests ==="
 printf ' -> CHK-01 predicts clean rebase\n'
 REPO_CLEAN="${TEST_TMPDIR}/check-clean"
 create_branch_scenario "${REPO_CLEAN}"
-result_clean="$(run_tool gitHex.checkRebaseConflicts "${REPO_CLEAN}" '{"onto": "main"}')"
+result_clean="$(run_tool git-hex-checkRebaseConflicts "${REPO_CLEAN}" '{"onto": "main"}')"
 assert_json_field "${result_clean}" '.wouldConflict' "false" "should predict clean rebase"
 assert_json_field "${result_clean}" '.limitExceeded' "false" "limitExceeded should be false"
 test_pass "clean rebase predicted"
@@ -28,7 +28,7 @@ test_pass "clean rebase predicted"
 printf ' -> CHK-02 predicts conflict\n'
 REPO_CONFLICT="${TEST_TMPDIR}/check-conflict"
 create_conflict_scenario "${REPO_CONFLICT}"
-result_conflict="$(run_tool gitHex.checkRebaseConflicts "${REPO_CONFLICT}" '{"onto": "main"}')"
+result_conflict="$(run_tool git-hex-checkRebaseConflicts "${REPO_CONFLICT}" '{"onto": "main"}')"
 assert_json_field "${result_conflict}" '.wouldConflict' "true" "should predict conflict"
 test_pass "conflict predicted"
 
@@ -54,7 +54,7 @@ mkdir -p "${REPO_MULTI}"
 	git add conflict.txt && git commit -m "Main conflict"
 	git checkout feature
 )
-result_multi="$(run_tool gitHex.checkRebaseConflicts "${REPO_MULTI}" '{"onto": "main"}')"
+result_multi="$(run_tool git-hex-checkRebaseConflicts "${REPO_MULTI}" '{"onto": "main"}')"
 first_prediction="$(printf '%s' "${result_multi}" | jq -r '.commits[1].prediction')"
 third_prediction="$(printf '%s' "${result_multi}" | jq -r '.commits[2].prediction')"
 assert_eq "conflict" "${first_prediction}" "second commit should be predicted conflict"
@@ -66,7 +66,7 @@ test_pass "predictions stop after first conflict"
 printf ' -> CHK-14/15 limitExceeded when exceeding maxCommits\n'
 REPO_LARGE="${TEST_TMPDIR}/check-large"
 create_large_history_scenario "${REPO_LARGE}" 20
-result_limit="$(run_tool gitHex.checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 15}' 90)"
+result_limit="$(run_tool git-hex-checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 15}' 90)"
 assert_json_field "${result_limit}" '.limitExceeded' "true" "limit should be exceeded for large history"
 checked="$(printf '%s' "${result_limit}" | jq -r '.checkedCommits')"
 total="$(printf '%s' "${result_limit}" | jq -r '.totalCommits')"

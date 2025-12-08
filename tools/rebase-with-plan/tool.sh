@@ -130,11 +130,21 @@ if [ "${require_complete}" = "true" ]; then
 	fi
 fi
 
-# Helper to escape single quotes for embedding in single-quoted strings
-# Replaces ' with '\'' (end quote, escaped quote, start quote)
-escape_message() {
+# Create a directory for message files (avoids shell escaping issues entirely)
+# Each reword/fixup message is written to a file and read with git commit -F
+# NOTE: These files are NOT cleaned up by the tool - they must persist until
+# git rebase completes all exec commands. The OS will clean /tmp eventually.
+_git_hex_msg_dir="$(mktemp -d)"
+_git_hex_msg_counter=0
+
+# Helper to create a message file and return exec command
+# Uses git commit -F to avoid shell escaping issues with special characters
+create_reword_exec() {
 	local msg="$1"
-	printf '%s' "${msg//\'/\'\\\'\'}"
+	local msg_file="${_git_hex_msg_dir}/msg_${_git_hex_msg_counter}"
+	_git_hex_msg_counter=$((_git_hex_msg_counter + 1))
+	printf '%s' "${msg}" >"${msg_file}"
+	printf 'exec git commit --amend -F %s\n' "${msg_file}"
 }
 
 complete_todo=""
@@ -147,14 +157,12 @@ if [ "${require_complete}" = "true" ]; then
 		subject="$(git -C "${repo_path}" log -1 --format='%s' "${commit_hash}")"
 
 		if [ -n "${message}" ] && [ "${action}" = "reword" ]; then
-			escaped_message="$(escape_message "${message}")"
 			complete_todo="${complete_todo}pick ${commit_hash} ${subject}
-exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
+$(create_reword_exec "${message}")
 "
 		elif [ -n "${message}" ] && { [ "${action}" = "squash" ] || [ "${action}" = "fixup" ]; }; then
-			escaped_message="$(escape_message "${message}")"
 			complete_todo="${complete_todo}fixup ${commit_hash} ${subject}
-exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
+$(create_reword_exec "${message}")
 "
 		else
 			complete_todo="${complete_todo}${action} ${commit_hash} ${subject}
@@ -164,12 +172,13 @@ exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
 else
 	plan_actions_file="$(mktemp)"
 	plan_messages_file="$(mktemp)"
+	# These action/message index files CAN be cleaned up (they're read before rebase starts)
+	# But _git_hex_msg_dir must NOT be cleaned up (exec commands read from it during rebase)
 	_git_hex_prev_exit_trap="$(trap -p EXIT | sed -E "s/trap -- '(.*)' EXIT/\1/" || true)"
-	_git_hex_cleanup_files="${plan_actions_file} ${plan_messages_file}"
 	_git_hex_cleanup() {
 		# shellcheck disable=SC2086
-		rm -f ${_git_hex_cleanup_files} 2>/dev/null || true
-		[ -n "${_git_hex_prev_exit_trap}" ] && eval "${_git_hex_prev_exit_trap}"
+		rm -f "${plan_actions_file}" "${plan_messages_file}" 2>/dev/null || true
+		[ -n "${_git_hex_prev_exit_trap:-}" ] && eval "${_git_hex_prev_exit_trap}"
 		return 0
 	}
 	trap '_git_hex_cleanup' EXIT
@@ -202,14 +211,12 @@ else
 		subject="$(git -C "${repo_path}" log -1 --format='%s' "${commit_hash}")"
 
 		if [ -n "${message}" ] && [ "${action}" = "reword" ]; then
-			escaped_message="$(escape_message "${message}")"
 			complete_todo="${complete_todo}pick ${commit_hash} ${subject}
-exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
+$(create_reword_exec "${message}")
 "
 		elif [ -n "${message}" ] && { [ "${action}" = "squash" ] || [ "${action}" = "fixup" ]; }; then
-			escaped_message="$(escape_message "${message}")"
 			complete_todo="${complete_todo}fixup ${commit_hash} ${subject}
-exec sh -c 'git commit --amend -m \"\$1\"' _ '${escaped_message}'
+$(create_reword_exec "${message}")
 "
 		else
 			complete_todo="${complete_todo}${action} ${commit_hash} ${subject}

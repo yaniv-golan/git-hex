@@ -16,7 +16,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
 
       - name: Install lint dependencies
@@ -50,7 +50,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
 
       - name: Install test dependencies
@@ -130,7 +130,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.4.0/install.sh | bash -s -- --version v0.4.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.5.0/install.sh | bash -s -- --version v0.5.0
           echo "$HOME/mcp-bash-framework/bin" >> $GITHUB_PATH
 
       - name: Install test dependencies

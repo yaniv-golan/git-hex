@@ -27,7 +27,7 @@ mkdir -p "${ALLOWED_ROOT}"
 create_test_repo "${FORBIDDEN_ROOT}" 1
 
 # Try to access forbidden repo via traversal
-if run_tool_expect_fail gitHex.getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${ALLOWED_ROOT}/../forbidden\"}"; then
+if run_tool_expect_fail git-hex-getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${ALLOWED_ROOT}/../forbidden\"}"; then
 	test_pass "blocks path traversal via repoPath"
 else
 	test_fail "should block path traversal"
@@ -38,7 +38,7 @@ fi
 # ============================================================
 printf ' -> blocks absolute path outside roots\n'
 
-if run_tool_expect_fail gitHex.getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${FORBIDDEN_ROOT}\"}"; then
+if run_tool_expect_fail git-hex-getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${FORBIDDEN_ROOT}\"}"; then
 	test_pass "blocks absolute path outside roots"
 else
 	test_fail "should block absolute path outside roots"
@@ -51,7 +51,7 @@ printf ' -> blocks symlink traversal\n'
 
 # Create symlink from allowed to forbidden
 if ln -sf "${FORBIDDEN_ROOT}" "${ALLOWED_ROOT}/link_to_forbidden" 2>/dev/null; then
-	if run_tool_expect_fail gitHex.getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${ALLOWED_ROOT}/link_to_forbidden\"}"; then
+	if run_tool_expect_fail git-hex-getRebasePlan "${ALLOWED_ROOT}" "{\"repoPath\": \"${ALLOWED_ROOT}/link_to_forbidden\"}"; then
 		test_pass "blocks symlink traversal"
 	else
 		test_fail "should block symlink traversal"

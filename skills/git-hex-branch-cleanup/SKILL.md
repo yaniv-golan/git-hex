@@ -23,35 +23,35 @@ Use this Skill when:
 ## Workflow
 
 1. **Plan first**
-   - Call `gitHex.getRebasePlan` to inspect the commit range you would modify.
-   - Optionally call `gitHex.checkRebaseConflicts` to estimate whether the rebase
+   - Call `git-hex-getRebasePlan` to inspect the commit range you would modify.
+   - Optionally call `git-hex-checkRebaseConflicts` to estimate whether the rebase
      is likely to conflict.
 
 2. **Prepare changes**
-   - For small edits to the last commit, prefer `gitHex.amendLastCommit`.
+   - For small edits to the last commit, prefer `git-hex-amendLastCommit`.
    - For fixes to older commits, guide the user to edit and stage changes, then
-     use `gitHex.createFixup` targeting the original commit.
-   - For large or mixed commits, consider `gitHex.splitCommit` to separate files
+     use `git-hex-createFixup` targeting the original commit.
+   - For large or mixed commits, consider `git-hex-splitCommit` to separate files
      into focused commits.
 
 3. **Apply the rewrite**
-   - Use `gitHex.rebaseWithPlan` to reorder, drop, squash, or reword commits.
+   - Use `git-hex-rebaseWithPlan` to reorder, drop, squash, or reword commits.
    - Prefer `autoStash: true` and `autosquash: true` when the working tree is dirty,
      following git-hex documentation.
    - Never use git-hex on shared or protected branches; operate on feature branches
      the user controls.
 
 4. **Safety and recovery**
-   - If the result is not what the user wanted, call `gitHex.undoLast` to restore
+   - If the result is not what the user wanted, call `git-hex-undoLast` to restore
      the previous state using git-hex backup refs.
    - If a rebase pauses with conflicts, hand off to the conflict resolution Skill.
 
 ## Tools to prefer
 
-- Planning: `gitHex.getRebasePlan`, `gitHex.checkRebaseConflicts`
-- History rewrite: `gitHex.rebaseWithPlan`, `gitHex.createFixup`,
-  `gitHex.amendLastCommit`, `gitHex.splitCommit`, `gitHex.cherryPickSingle`
-- Recovery: `gitHex.undoLast`
+- Planning: `git-hex-getRebasePlan`, `git-hex-checkRebaseConflicts`
+- History rewrite: `git-hex-rebaseWithPlan`, `git-hex-createFixup`,
+  `git-hex-amendLastCommit`, `git-hex-splitCommit`, `git-hex-cherryPickSingle`
+- Recovery: `git-hex-undoLast`
 
 ## Key constraints
 

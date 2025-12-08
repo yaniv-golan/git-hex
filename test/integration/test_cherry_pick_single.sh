@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.cherryPickSingle
+# Integration tests for git-hex-cherryPickSingle
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.cherryPickSingle ==="
+echo "=== Testing git-hex-cherryPickSingle ==="
 
 # ============================================================
 # TEST: cherry-pick-single succeeds with clean pick
@@ -49,7 +49,7 @@ rm -f /tmp/cherry_hash_$$
 
 before_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 
-result="$(run_tool gitHex.cherryPickSingle "${REPO}" "{\"commit\": \"${cherry_hash}\"}")"
+result="$(run_tool git-hex-cherryPickSingle "${REPO}" "{\"commit\": \"${cherry_hash}\"}")"
 
 assert_json_field "${result}" '.success' "true" "cherry-pick should succeed"
 assert_json_field "${result}" '.sourceCommit' "${cherry_hash}" "source commit should match"
@@ -94,7 +94,7 @@ rm -f /tmp/cherry_hash2_$$
 
 before_count="$(cd "${REPO2}" && git rev-list --count HEAD)"
 
-result="$(run_tool gitHex.cherryPickSingle "${REPO2}" "{\"commit\": \"${cherry_hash}\", \"noCommit\": true}")"
+result="$(run_tool git-hex-cherryPickSingle "${REPO2}" "{\"commit\": \"${cherry_hash}\", \"noCommit\": true}")"
 
 assert_json_field "${result}" '.success' "true" "cherry-pick should succeed"
 
@@ -144,7 +144,7 @@ rm -f /tmp/cherry_hash3_$$
 
 before_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO3}" "{\"commit\": \"${cherry_hash}\"}"; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO3}" "{\"commit\": \"${cherry_hash}\"}"; then
 	# Verify repo is not in cherry-pick state
 	if [ -f "${REPO3}/.git/CHERRY_PICK_HEAD" ]; then
 		test_fail "repo should not be in cherry-pick state after abort"
@@ -193,7 +193,7 @@ mkdir -p "${REPO4}"
 cherry_hash="$(cat /tmp/cherry_hash4_$$)"
 rm -f /tmp/cherry_hash4_$$
 
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO4}" "{\"commit\": \"${cherry_hash}\"}"; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO4}" "{\"commit\": \"${cherry_hash}\"}"; then
 	test_pass "cherry-pick-single fails on dirty working directory"
 else
 	test_fail "should fail on dirty working directory"
@@ -207,7 +207,7 @@ printf ' -> cherry-pick-single fails on invalid commit ref\n'
 REPO5="${TEST_TMPDIR}/pick-invalid"
 create_test_repo "${REPO5}" 2
 
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO5}" '{"commit": "nonexistent123"}'; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO5}" '{"commit": "nonexistent123"}'; then
 	test_pass "cherry-pick-single fails on invalid commit ref"
 else
 	test_fail "should fail on invalid commit ref"
@@ -222,7 +222,7 @@ REPO6="${TEST_TMPDIR}/pick-empty"
 mkdir -p "${REPO6}"
 (cd "${REPO6}" && git init --initial-branch=main >/dev/null 2>&1 && git config user.email "test@example.com" && git config user.name "Test" && git config commit.gpgsign false)
 
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO6}" '{"commit": "abc123"}'; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO6}" '{"commit": "abc123"}'; then
 	test_pass "cherry-pick-single fails on empty repo"
 else
 	test_fail "should fail on empty repo"
@@ -236,11 +236,11 @@ printf ' -> cherry-pick-single fails on invalid strategy\n'
 REPO7="${TEST_TMPDIR}/pick-invalid-strategy"
 create_test_repo "${REPO7}" 2
 
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO7}" '{"commit": "HEAD", "strategy": "invalid-strategy"}'; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO7}" '{"commit": "HEAD", "strategy": "invalid-strategy"}'; then
 	test_pass "cherry-pick-single fails on invalid strategy"
 else
 	test_fail "should fail on invalid strategy"
 fi
 
 echo ""
-echo "All gitHex.cherryPickSingle tests passed!"
+echo "All git-hex-cherryPickSingle tests passed!"

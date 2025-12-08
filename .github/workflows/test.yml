@@ -52,6 +52,7 @@ jobs:
         run: |
           echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
           echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
+          echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |
@@ -137,6 +138,7 @@ jobs:
         run: |
           echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
           echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
+          echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
 
       - name: Install mcp-bash framework
         run: |

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.undoLast
+# Integration tests for git-hex-undoLast
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.undoLast ==="
+echo "=== Testing git-hex-undoLast ==="
 
 # ============================================================
 # TEST: undo-last undoes an amend operation
@@ -27,14 +27,14 @@ original_head="$(cd "${REPO}" && git rev-parse HEAD)"
 original_message="$(cd "${REPO}" && git log -1 --format='%s' HEAD)"
 
 # Perform an amend
-result="$(run_tool gitHex.amendLastCommit "${REPO}" '{"message": "Amended message"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO}" '{"message": "Amended message"}')"
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 
 amended_head="$(cd "${REPO}" && git rev-parse HEAD)"
 assert_ne "${original_head}" "${amended_head}" "HEAD should change after amend"
 
 # Now undo
-result="$(run_tool gitHex.undoLast "${REPO}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 assert_json_field "${result}" '.undoneOperation' "amendLastCommit" "should report correct operation"
 
@@ -57,14 +57,14 @@ create_staged_changes_repo "${REPO2}"
 original_head="$(cd "${REPO2}" && git rev-parse HEAD)"
 
 # Perform a fixup
-result="$(run_tool gitHex.createFixup "${REPO2}" "{\"commit\": \"${original_head}\"}")"
+result="$(run_tool git-hex-createFixup "${REPO2}" "{\"commit\": \"${original_head}\"}")"
 assert_json_field "${result}" '.success' "true" "fixup should succeed"
 
 fixup_head="$(cd "${REPO2}" && git rev-parse HEAD)"
 assert_ne "${original_head}" "${fixup_head}" "HEAD should change after fixup"
 
 # Now undo
-result="$(run_tool gitHex.undoLast "${REPO2}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO2}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 assert_json_field "${result}" '.undoneOperation' "createFixup" "should report correct operation"
 
@@ -84,14 +84,14 @@ create_branch_scenario "${REPO3}"
 original_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 
 # Perform a rebase
-result="$(run_tool gitHex.rebaseWithPlan "${REPO3}" '{"onto": "main"}' 60)"
+result="$(run_tool git-hex-rebaseWithPlan "${REPO3}" '{"onto": "main"}' 60)"
 assert_json_field "${result}" '.success' "true" "rebase should succeed"
 
 rebased_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 assert_ne "${original_head}" "${rebased_head}" "HEAD should change after rebase"
 
 # Now undo
-result="$(run_tool gitHex.undoLast "${REPO3}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO3}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 assert_json_field "${result}" '.undoneOperation' "rebaseWithPlan" "should report correct operation"
 
@@ -133,14 +133,14 @@ rm -f /tmp/cherry_hash_undo_$$
 original_head="$(cd "${REPO4}" && git rev-parse HEAD)"
 
 # Perform a cherry-pick
-result="$(run_tool gitHex.cherryPickSingle "${REPO4}" "{\"commit\": \"${cherry_hash}\"}")"
+result="$(run_tool git-hex-cherryPickSingle "${REPO4}" "{\"commit\": \"${cherry_hash}\"}")"
 assert_json_field "${result}" '.success' "true" "cherry-pick should succeed"
 
 picked_head="$(cd "${REPO4}" && git rev-parse HEAD)"
 assert_ne "${original_head}" "${picked_head}" "HEAD should change after cherry-pick"
 
 # Now undo
-result="$(run_tool gitHex.undoLast "${REPO4}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO4}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 assert_json_field "${result}" '.undoneOperation' "cherryPickSingle" "should report correct operation"
 
@@ -163,7 +163,7 @@ REPO5="${TEST_TMPDIR}/undo-no-backup"
 create_test_repo "${REPO5}" 2
 
 # Try to undo without any prior git-hex operation
-if run_tool_expect_fail gitHex.undoLast "${REPO5}" '{}'; then
+if run_tool_expect_fail git-hex-undoLast "${REPO5}" '{}'; then
 	test_pass "undo-last fails when no backup exists"
 else
 	test_fail "should fail when no backup exists"
@@ -178,13 +178,13 @@ REPO6="${TEST_TMPDIR}/undo-dirty"
 create_test_repo "${REPO6}" 2
 
 # Create a backup by running an operation
-result="$(run_tool gitHex.amendLastCommit "${REPO6}" '{"message": "Test amend"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO6}" '{"message": "Test amend"}')"
 
 # Make working directory dirty
 echo "dirty" >"${REPO6}/dirty.txt"
 (cd "${REPO6}" && git add dirty.txt)
 
-if run_tool_expect_fail gitHex.undoLast "${REPO6}" '{}'; then
+if run_tool_expect_fail git-hex-undoLast "${REPO6}" '{}'; then
 	test_pass "undo-last fails on dirty working directory"
 else
 	test_fail "should fail on dirty working directory"
@@ -201,16 +201,16 @@ create_test_repo "${REPO7}" 3
 first_head="$(cd "${REPO7}" && git rev-parse HEAD)"
 
 # First operation: amend
-result="$(run_tool gitHex.amendLastCommit "${REPO7}" '{"message": "First amend"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO7}" '{"message": "First amend"}')"
 assert_json_field "${result}" '.success' "true" "first amend should succeed"
 second_head="$(cd "${REPO7}" && git rev-parse HEAD)"
 
 # Second operation: amend again
-result="$(run_tool gitHex.amendLastCommit "${REPO7}" '{"message": "Second amend"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO7}" '{"message": "Second amend"}')"
 assert_json_field "${result}" '.success' "true" "second amend should succeed"
 
 # Undo should restore to second_head, not first_head
-result="$(run_tool gitHex.undoLast "${REPO7}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO7}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 
 restored_head="$(cd "${REPO7}" && git rev-parse HEAD)"
@@ -230,18 +230,18 @@ create_test_repo "${REPO8}" 2
 original_head="$(cd "${REPO8}" && git rev-parse HEAD)"
 
 # Perform an operation
-result="$(run_tool gitHex.amendLastCommit "${REPO8}" '{"message": "Test amend"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO8}" '{"message": "Test amend"}')"
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 
 # First undo should succeed
-result="$(run_tool gitHex.undoLast "${REPO8}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO8}" '{}')"
 assert_json_field "${result}" '.success' "true" "first undo should succeed"
 
 restored_head="$(cd "${REPO8}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "should restore to original"
 
 # Second undo should report already at backup state (success but no-op)
-result="$(run_tool gitHex.undoLast "${REPO8}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO8}" '{}')"
 assert_json_field "${result}" '.success' "true" "second undo should succeed (no-op)"
 
 # HEAD should still be at original
@@ -279,7 +279,7 @@ mkdir -p "${REPO9}"
 )
 
 # First do a successful operation to create a backup
-result="$(run_tool gitHex.amendLastCommit "${REPO9}" '{"message": "Pre-conflict amend"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO9}" '{"message": "Pre-conflict amend"}')"
 
 # Now start a conflicting rebase manually to put repo in rebase state
 if ! (cd "${REPO9}" && git rebase main >/dev/null 2>&1); then
@@ -295,7 +295,7 @@ if [ ! -d "${REPO9}/.git/rebase-merge" ] && [ ! -d "${REPO9}/.git/rebase-apply" 
 	echo "  (skipped - rebase did not conflict)"
 else
 	# Try to undo - should fail
-	if run_tool_expect_fail gitHex.undoLast "${REPO9}" '{}'; then
+	if run_tool_expect_fail git-hex-undoLast "${REPO9}" '{}'; then
 		test_pass "undo-last fails during in-progress rebase"
 	else
 		test_fail "should fail during in-progress rebase"
@@ -332,11 +332,11 @@ original_branch="$(cd "${REPO10}" && git branch --show-current)"
 assert_eq "feature" "${original_branch}" "should start on feature branch"
 
 # Perform an amend
-result="$(run_tool gitHex.amendLastCommit "${REPO10}" '{"message": "Amended on feature"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO10}" '{"message": "Amended on feature"}')"
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 
 # Undo
-result="$(run_tool gitHex.undoLast "${REPO10}" '{}')"
+result="$(run_tool git-hex-undoLast "${REPO10}" '{}')"
 assert_json_field "${result}" '.success' "true" "undo should succeed"
 
 # Should still be on feature branch
@@ -378,7 +378,7 @@ rm -f /tmp/cherry_hash_nocommit_$$
 original_head="$(cd "${REPO11}" && git rev-parse HEAD)"
 
 # Perform a noCommit cherry-pick (stages changes but doesn't commit)
-result="$(run_tool gitHex.cherryPickSingle "${REPO11}" "{\"commit\": \"${cherry_hash}\", \"noCommit\": true}")"
+result="$(run_tool git-hex-cherryPickSingle "${REPO11}" "{\"commit\": \"${cherry_hash}\", \"noCommit\": true}")"
 assert_json_field "${result}" '.success' "true" "noCommit cherry-pick should succeed"
 
 # HEAD should be same (no commit made)
@@ -392,11 +392,11 @@ fi
 
 # Undo should FAIL because there are staged changes (working tree is dirty)
 # This is correct safety behavior - user must commit or reset the staged changes first
-if run_tool_expect_fail gitHex.undoLast "${REPO11}" '{}'; then
+if run_tool_expect_fail git-hex-undoLast "${REPO11}" '{}'; then
 	test_pass "undo-last fails after noCommit cherry-pick (staged changes)"
 else
 	test_fail "should fail because staged changes make working tree dirty"
 fi
 
 echo ""
-echo "All gitHex.undoLast tests passed!"
+echo "All git-hex-undoLast tests passed!"

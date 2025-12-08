@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.checkRebaseConflicts",
+  "name": "git-hex-checkRebaseConflicts",
   "description": "Check if a rebase would conflict without modifying the repository",
+  "icons": [
+    "../../assets/icons/check-rebase-conflicts.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

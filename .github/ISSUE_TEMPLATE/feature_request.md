@@ -21,7 +21,7 @@ How would this feature be used? Show example tool calls or workflows.
 
 ```json
 {
-  "tool": "gitHex.newFeature",
+  "tool": "git-hex-newFeature",
   "arguments": {
     "example": "value"
   }

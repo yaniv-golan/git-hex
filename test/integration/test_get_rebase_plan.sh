@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.getRebasePlan
+# Integration tests for git-hex-getRebasePlan
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.getRebasePlan ==="
+echo "=== Testing git-hex-getRebasePlan ==="
 
 # ============================================================
 # TEST: get-rebase-plan returns correct structure
@@ -23,7 +23,7 @@ printf ' -> get-rebase-plan returns valid JSON with commits\n'
 REPO="${TEST_TMPDIR}/test-repo-1"
 create_test_repo "${REPO}" 5
 
-result="$(run_tool gitHex.getRebasePlan "${REPO}" '{"count": 3}')"
+result="$(run_tool git-hex-getRebasePlan "${REPO}" '{"count": 3}')"
 
 # Verify JSON structure
 assert_json_field "${result}" '.success' "true" "should succeed"
@@ -47,7 +47,7 @@ printf ' -> get-rebase-plan uses default count of 10\n'
 REPO2="${TEST_TMPDIR}/test-repo-2"
 create_test_repo "${REPO2}" 15
 
-result="$(run_tool gitHex.getRebasePlan "${REPO2}" '{}')"
+result="$(run_tool git-hex-getRebasePlan "${REPO2}" '{}')"
 
 commits_count="$(echo "${result}" | jq -r '.commits | length')"
 assert_eq "10" "${commits_count}" "should return 10 commits by default"
@@ -62,7 +62,7 @@ printf ' -> get-rebase-plan fails on non-git directory\n'
 NON_GIT="${TEST_TMPDIR}/not-a-repo"
 mkdir -p "${NON_GIT}"
 
-if run_tool_expect_fail gitHex.getRebasePlan "${NON_GIT}" '{}'; then
+if run_tool_expect_fail git-hex-getRebasePlan "${NON_GIT}" '{}'; then
 	test_pass "get-rebase-plan fails on non-git directory"
 else
 	test_fail "should fail on non-git directory"
@@ -76,7 +76,7 @@ printf ' -> get-rebase-plan respects onto parameter\n'
 REPO3="${TEST_TMPDIR}/test-repo-3"
 create_test_repo "${REPO3}" 5
 
-result="$(run_tool gitHex.getRebasePlan "${REPO3}" '{"onto": "HEAD~2"}')"
+result="$(run_tool git-hex-getRebasePlan "${REPO3}" '{"onto": "HEAD~2"}')"
 
 commits_count="$(echo "${result}" | jq -r '.commits | length')"
 assert_eq "2" "${commits_count}" "should return 2 commits when onto=HEAD~2"
@@ -118,7 +118,7 @@ mkdir -p "${REPO4}"
 	git commit -m $'Message with\ttabs\tin it' >/dev/null
 )
 
-result="$(run_tool gitHex.getRebasePlan "${REPO4}" '{"count": 4}')"
+result="$(run_tool git-hex-getRebasePlan "${REPO4}" '{"count": 4}')"
 
 # Verify we got 3 commits (not counting the base)
 commits_count="$(echo "${result}" | jq -r '.commits | length')"
@@ -137,4 +137,4 @@ echo "${subject3}" | grep -q 'in it' || test_fail "full message after tab should
 test_pass "get-rebase-plan handles special characters in messages"
 
 echo ""
-echo "All gitHex.getRebasePlan tests passed!"
+echo "All git-hex-getRebasePlan tests passed!"

@@ -8,8 +8,8 @@ Thank you for your interest in contributing to git-hex! This document provides g
 
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git** 2.20+ (2.33+ recommended; 2.38+ required for `gitHex.checkRebaseConflicts`)
-- **mcp-bash framework** v0.4.0+
+- **git** 2.20+ (2.33+ recommended; 2.38+ required for `git-hex-checkRebaseConflicts`)
+- **mcp-bash framework** v0.5.0+
 
 ### Setup
 
@@ -54,7 +54,7 @@ git-hex/
 2. Create `tool.meta.json` with the tool schema:
    ```json
    {
-     "name": "gitHex.myNewTool",
+     "name": "git-hex-myNewTool",
      "description": "What this tool does",
      "inputSchema": {
        "type": "object",
@@ -101,7 +101,7 @@ git-hex/
 
 ### Tool Naming Convention
 
-- Tool names use camelCase with `gitHex.` prefix: `gitHex.myNewTool`
+- Tool names use camelCase with `git-hex-` prefix: `git-hex-myNewTool`
 - Directory names use kebab-case: `my-new-tool`
 
 ### API Conventions
@@ -164,14 +164,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.myNewTool ==="
+echo "=== Testing git-hex-myNewTool ==="
 
 # Create test repo
 REPO="${TEST_TMPDIR}/test-repo"
 create_test_repo "${REPO}" 3
 
 # Run tool
-result="$(run_tool gitHex.myNewTool "${REPO}" '{}')"
+result="$(run_tool git-hex-myNewTool "${REPO}" '{}')"
 
 # Assert results
 assert_json_field "${result}" '.success' "true" "should succeed"
@@ -219,7 +219,7 @@ Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
 
 Example:
 ```
-feat: add gitHex.rebaseWithPlan improvements
+feat: add git-hex-rebaseWithPlan improvements
 
 Adds structured plan validation and better conflict handling for rebases.
 Includes backup ref support for undo functionality.

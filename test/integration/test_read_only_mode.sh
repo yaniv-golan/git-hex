@@ -25,7 +25,7 @@ create_test_repo "${REPO}" 3
 
 # Run with read-only mode enabled
 export GIT_HEX_READ_ONLY=1
-result="$(run_tool gitHex.getRebasePlan "${REPO}" '{"count": 3}')"
+result="$(run_tool git-hex-getRebasePlan "${REPO}" '{"count": 3}')"
 unset GIT_HEX_READ_ONLY
 
 assert_json_field "${result}" '.success' "true" "getRebasePlan should succeed in read-only mode"
@@ -41,7 +41,7 @@ REPO2="${TEST_TMPDIR}/readonly-block-amend"
 create_test_repo "${REPO2}" 2
 
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.amendLastCommit "${REPO2}" '{"message": "test"}'; then
+if run_tool_expect_fail git-hex-amendLastCommit "${REPO2}" '{"message": "test"}'; then
 	test_pass "read-only mode blocks amendLastCommit"
 else
 	test_fail "amendLastCommit should fail in read-only mode"
@@ -58,7 +58,7 @@ create_staged_changes_repo "${REPO3}"
 target_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.createFixup "${REPO3}" "{\"commit\": \"${target_hash}\"}"; then
+if run_tool_expect_fail git-hex-createFixup "${REPO3}" "{\"commit\": \"${target_hash}\"}"; then
 	test_pass "read-only mode blocks createFixup"
 else
 	test_fail "createFixup should fail in read-only mode"
@@ -74,7 +74,7 @@ REPO4="${TEST_TMPDIR}/readonly-block-rebase"
 create_branch_scenario "${REPO4}"
 
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.rebaseWithPlan "${REPO4}" '{"onto": "main"}'; then
+if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO4}" '{"onto": "main"}'; then
 	test_pass "read-only mode blocks rebaseWithPlan"
 else
 	test_fail "rebaseWithPlan should fail in read-only mode"
@@ -112,7 +112,7 @@ cherry_hash="$(cat /tmp/cherry_hash_readonly_$$)"
 rm -f /tmp/cherry_hash_readonly_$$
 
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.cherryPickSingle "${REPO5}" "{\"commit\": \"${cherry_hash}\"}"; then
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO5}" "{\"commit\": \"${cherry_hash}\"}"; then
 	test_pass "read-only mode blocks cherryPickSingle"
 else
 	test_fail "cherryPickSingle should fail in read-only mode"
@@ -128,11 +128,11 @@ REPO6="${TEST_TMPDIR}/readonly-block-undo"
 create_test_repo "${REPO6}" 2
 
 # First, create a backup by running an operation (without read-only)
-result="$(run_tool gitHex.amendLastCommit "${REPO6}" '{"message": "Create backup"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO6}" '{"message": "Create backup"}')"
 
 # Now try to undo in read-only mode
 export GIT_HEX_READ_ONLY=1
-if run_tool_expect_fail gitHex.undoLast "${REPO6}" '{}'; then
+if run_tool_expect_fail git-hex-undoLast "${REPO6}" '{}'; then
 	test_pass "read-only mode blocks undoLast"
 else
 	test_fail "undoLast should fail in read-only mode"
@@ -150,7 +150,7 @@ create_test_repo "${REPO7}" 2
 # Explicitly unset to ensure it's off
 unset GIT_HEX_READ_ONLY 2>/dev/null || true
 
-result="$(run_tool gitHex.amendLastCommit "${REPO7}" '{"message": "Normal operation"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO7}" '{"message": "Normal operation"}')"
 assert_json_field "${result}" '.success' "true" "amendLastCommit should work when read-only is off"
 
 test_pass "tools work normally when read-only mode is off"

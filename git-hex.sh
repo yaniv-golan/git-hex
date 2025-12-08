@@ -6,7 +6,7 @@ FRAMEWORK_DIR="${MCPBASH_HOME:-$HOME/mcp-bash-framework}"
 
 # Framework version pinning for reproducible installs
 # Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.4.0}"
+FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.5.0}"
 
 # Auto-install framework if missing
 if [ ! -f "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then

@@ -19,11 +19,11 @@ mcp_tools_policy_check() {
 	# Read-only mode: only allow inspection tools
 	if [ "${GIT_HEX_READ_ONLY:-}" = "1" ]; then
 		case "${tool_name}" in
-		gitHex.getRebasePlan | gitHex.checkRebaseConflicts | gitHex.getConflictStatus)
+		git-hex-getRebasePlan | git-hex-checkRebaseConflicts | git-hex-getConflictStatus)
 			# Inspection tool - allowed in read-only mode
 			return 0
 			;;
-		gitHex.amendLastCommit | gitHex.createFixup | gitHex.cherryPickSingle | gitHex.rebaseWithPlan | gitHex.resolveConflict | gitHex.continueOperation | gitHex.abortOperation | gitHex.splitCommit | gitHex.undoLast)
+		git-hex-amendLastCommit | git-hex-createFixup | git-hex-cherryPickSingle | git-hex-rebaseWithPlan | git-hex-resolveConflict | git-hex-continueOperation | git-hex-abortOperation | git-hex-splitCommit | git-hex-undoLast)
 			# Mutating tools - blocked in read-only mode
 			mcp_tools_error -32602 "git-hex is running in read-only mode. Tool '${tool_name}' is disabled. Set GIT_HEX_READ_ONLY=0 to enable."
 			return 1

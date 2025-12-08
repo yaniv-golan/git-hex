@@ -19,7 +19,7 @@ Use this Skill when:
 ## Workflow
 
 1. **Inspect conflict state**
-   - Call `gitHex.getConflictStatus` to determine:
+   - Call `git-hex-getConflictStatus` to determine:
      - Whether a rebase/merge/cherry-pick is in progress.
      - Which files are conflicting and the overall operation type (`rebase`,
        `merge`, or `cherry-pick`).
@@ -30,27 +30,27 @@ Use this Skill when:
    - For text files:
      - Propose or apply edits based on `base`, `ours`, and `theirs`.
      - Ensure conflict markers are removed before resolving.
-     - Call `gitHex.resolveConflict` with the file path (and `resolution: "delete"`
+     - Call `git-hex-resolveConflict` with the file path (and `resolution: "delete"`
        for delete conflicts when appropriate).
   - For delete conflicts, use the `resolution` parameter to choose whether
      to keep or remove the file.
 
 3. **Continue or abort the operation**
    - When all conflicts are resolved (or `getConflictStatus` shows no remaining
-     conflicting files but the operation is still paused), call `gitHex.continueOperation`.
+     conflicting files but the operation is still paused), call `git-hex-continueOperation`.
    - If the user decides to give up on the rebase or cherry-pick, call
-     `gitHex.abortOperation` to restore the pre-operation state.
+     `git-hex-abortOperation` to restore the pre-operation state.
 
 4. **Escalate if needed**
    - If the final result after continuing is not what the user wanted, suggest
-     using `gitHex.undoLast` from the branch cleanup Skill to revert.
+     using `git-hex-undoLast` from the branch cleanup Skill to revert.
 
 ## Tools to prefer
 
-- Inspection: `gitHex.getConflictStatus`
-- Resolution: `gitHex.resolveConflict`
-- Control: `gitHex.continueOperation`, `gitHex.abortOperation`
-- Recovery: `gitHex.undoLast` (via the branch cleanup Skill)
+- Inspection: `git-hex-getConflictStatus`
+- Resolution: `git-hex-resolveConflict`
+- Control: `git-hex-continueOperation`, `git-hex-abortOperation`
+- Recovery: `git-hex-undoLast` (via the branch cleanup Skill)
 
 ## Conflict types
 

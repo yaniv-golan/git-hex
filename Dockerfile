@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
-ARG FRAMEWORK_VERSION=v0.4.0
+ARG FRAMEWORK_VERSION=v0.5.0
 
 RUN apt-get update && \
     apt-get install -y bash jq git && \
@@ -17,4 +17,3 @@ COPY . /app
 ENV MCPBASH_PROJECT_ROOT=/app
 
 ENTRYPOINT ["/mcp-bash-framework/bin/mcp-bash"]
-

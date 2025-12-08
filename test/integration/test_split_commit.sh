@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.splitCommit
+# Integration tests for git-hex-splitCommit
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,7 +37,7 @@ args="$(
 }
 JSON
 )"
-result="$(run_tool gitHex.splitCommit "${REPO_SPLIT}" "${args}" 120)"
+result="$(run_tool git-hex-splitCommit "${REPO_SPLIT}" "${args}" 120)"
 assert_json_field "${result}" '.success' "true" "splitCommit should succeed"
 new_messages="$(cd "${REPO_SPLIT}" && git log -3 --format='%s' | paste -sd ',' -)"
 assert_contains "${new_messages}" "First part" "new commits should include first split message"
@@ -60,7 +60,7 @@ args_invalid="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_INVALID_FILE}" "${args_invalid}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_INVALID_FILE}" "${args_invalid}"; then
 	test_pass "splitCommit rejects file not in commit"
 else
 	test_fail "splitCommit should fail when files missing"
@@ -82,7 +82,7 @@ args_dup="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_DUP_FILE}" "${args_dup}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_DUP_FILE}" "${args_dup}"; then
 	test_pass "splitCommit rejects duplicate file assignments"
 else
 	test_fail "duplicate file should fail validation"
@@ -98,7 +98,7 @@ args_single="$(
 { "commit": "${target_commit}", "splits": [ { "files": ["file1.txt","file2.txt"], "message": "Only" } ] }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_COUNT}" "${args_single}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_COUNT}" "${args_single}"; then
 	test_pass "requires at least two splits"
 else
 	test_fail "single split should be rejected"
@@ -114,7 +114,7 @@ args_empty="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_COUNT}" "${args_empty}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_COUNT}" "${args_empty}"; then
 	test_pass "empty split rejected"
 else
 	test_fail "empty split should be rejected"
@@ -136,7 +136,7 @@ args_root="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_ROOT}" "${args_root}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_ROOT}" "${args_root}"; then
 	test_pass "root commit split rejected"
 else
 	test_fail "root commit should not be split"
@@ -158,7 +158,7 @@ args_non_ancestor="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_NON_ANCESTOR}" "${args_non_ancestor}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_NON_ANCESTOR}" "${args_non_ancestor}"; then
 	test_pass "non-ancestor commit rejected"
 else
 	test_fail "splitCommit should fail for non-ancestor commit"
@@ -182,7 +182,7 @@ args_in_progress="$(
 }
 JSON
 )"
-if run_tool_expect_fail gitHex.splitCommit "${REPO_IN_PROGRESS}" "${args_in_progress}"; then
+if run_tool_expect_fail git-hex-splitCommit "${REPO_IN_PROGRESS}" "${args_in_progress}"; then
 	test_pass "splitCommit blocked during rebase"
 else
 	test_fail "splitCommit should fail when rebase already in progress"
@@ -206,7 +206,7 @@ args_autostash="$(
 }
 JSON
 )"
-result_autostash="$(run_tool gitHex.splitCommit "${REPO_AUTOSTASH}" "${args_autostash}" 120)"
+result_autostash="$(run_tool git-hex-splitCommit "${REPO_AUTOSTASH}" "${args_autostash}" 120)"
 assert_json_field "${result_autostash}" '.success' "true" "splitCommit should succeed with autoStash"
 if ! (cd "${REPO_AUTOSTASH}" && git diff --quiet -- after.txt); then
 	test_pass "dirty change restored after split"
@@ -230,7 +230,7 @@ args_conflict="$(
 }
 JSON
 )"
-result_conflict="$(run_tool gitHex.splitCommit "${REPO_CONFLICT_SPLIT}" "${args_conflict}" 120)"
+result_conflict="$(run_tool git-hex-splitCommit "${REPO_CONFLICT_SPLIT}" "${args_conflict}" 120)"
 if printf '%s' "${result_conflict}" | jq -e '.rebasePaused == true' >/dev/null 2>&1; then
 	test_pass "splitCommit reports rebasePaused on subsequent conflict"
 else

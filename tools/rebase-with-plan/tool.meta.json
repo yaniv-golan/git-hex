@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.rebaseWithPlan",
+  "name": "git-hex-rebaseWithPlan",
   "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword)",
+  "icons": [
+    "../../assets/icons/rebase-with-plan.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

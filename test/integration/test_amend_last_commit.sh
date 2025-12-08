@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Integration tests for gitHex.amendLastCommit
+# Integration tests for git-hex-amendLastCommit
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 test_verify_framework
 test_create_tmpdir
 
-echo "=== Testing gitHex.amendLastCommit ==="
+echo "=== Testing git-hex-amendLastCommit ==="
 
 # ============================================================
 # TEST: amend-last-commit with staged changes
@@ -25,7 +25,7 @@ create_staged_changes_repo "${REPO}"
 
 previous_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 
-result="$(run_tool gitHex.amendLastCommit "${REPO}" '{}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO}" '{}')"
 
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 assert_json_field "${result}" '.headBefore' "${previous_hash}" "headBefore should match"
@@ -49,7 +49,7 @@ create_test_repo "${REPO2}" 2
 
 previous_hash="$(cd "${REPO2}" && git rev-parse HEAD)"
 
-result="$(run_tool gitHex.amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
 
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 assert_json_field "${result}" '.commitMessage' "New commit message" "commitMessage should be updated"
@@ -72,7 +72,7 @@ echo "unstaged modification" >"${REPO3}/file1.txt"
 
 previous_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
-result="$(run_tool gitHex.amendLastCommit "${REPO3}" '{"addAll": true, "message": "Amended with addAll"}')"
+result="$(run_tool git-hex-amendLastCommit "${REPO3}" '{"addAll": true, "message": "Amended with addAll"}')"
 
 assert_json_field "${result}" '.success' "true" "amend should succeed"
 
@@ -90,7 +90,7 @@ printf ' -> amend-last-commit fails without changes or message\n'
 REPO4="${TEST_TMPDIR}/amend-nothing"
 create_test_repo "${REPO4}" 2
 
-if run_tool_expect_fail gitHex.amendLastCommit "${REPO4}" '{}'; then
+if run_tool_expect_fail git-hex-amendLastCommit "${REPO4}" '{}'; then
 	test_pass "amend-last-commit fails without changes or message"
 else
 	test_fail "should fail without changes or message"
@@ -105,7 +105,7 @@ REPO5="${TEST_TMPDIR}/amend-empty"
 mkdir -p "${REPO5}"
 (cd "${REPO5}" && git init --initial-branch=main >/dev/null 2>&1 && git config user.email "test@example.com" && git config user.name "Test" && git config commit.gpgsign false)
 
-if run_tool_expect_fail gitHex.amendLastCommit "${REPO5}" '{"message": "test"}'; then
+if run_tool_expect_fail git-hex-amendLastCommit "${REPO5}" '{"message": "test"}'; then
 	test_pass "amend-last-commit fails on empty repo"
 else
 	test_fail "should fail on empty repo"
@@ -122,7 +122,7 @@ create_conflict_scenario "${REPO6}"
 # Start a rebase that will conflict
 (cd "${REPO6}" && GIT_SEQUENCE_EDITOR=true git rebase -i main 2>/dev/null) || true
 
-if run_tool_expect_fail gitHex.amendLastCommit "${REPO6}" '{"message": "test"}'; then
+if run_tool_expect_fail git-hex-amendLastCommit "${REPO6}" '{"message": "test"}'; then
 	test_pass "amend-last-commit fails during rebase state"
 else
 	test_fail "should fail during rebase state"
@@ -132,4 +132,4 @@ fi
 (cd "${REPO6}" && git rebase --abort 2>/dev/null) || true
 
 echo ""
-echo "All gitHex.amendLastCommit tests passed!"
+echo "All git-hex-amendLastCommit tests passed!"

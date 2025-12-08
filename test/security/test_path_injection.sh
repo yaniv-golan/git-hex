@@ -24,7 +24,7 @@ fi
 
 # SEC-10: Path traversal rejected
 printf ' -> SEC-10 path traversal rejected\n'
-if run_tool_expect_fail gitHex.resolveConflict "${REPO_PATH_SEC}" '{"file": "../../../etc/passwd"}'; then
+if run_tool_expect_fail git-hex-resolveConflict "${REPO_PATH_SEC}" '{"file": "../../../etc/passwd"}'; then
 	test_pass "path traversal blocked"
 else
 	test_fail "path traversal should be rejected"
@@ -32,7 +32,7 @@ fi
 
 # SEC-11: Absolute path rejected
 printf ' -> SEC-11 absolute path rejected\n'
-if run_tool_expect_fail gitHex.resolveConflict "${REPO_PATH_SEC}" '{"file": "/etc/passwd"}'; then
+if run_tool_expect_fail git-hex-resolveConflict "${REPO_PATH_SEC}" '{"file": "/etc/passwd"}'; then
 	test_pass "absolute path blocked"
 else
 	test_fail "absolute paths should be rejected"
@@ -42,7 +42,7 @@ fi
 printf ' -> SEC-12 null byte in path rejected\n'
 null_path=$'a\0b'
 encoded_path="$(printf '%s' "${null_path}" | jq -Rs '.')"
-if run_tool_expect_fail gitHex.resolveConflict "${REPO_PATH_SEC}" "{\"file\": ${encoded_path}}"; then
+if run_tool_expect_fail git-hex-resolveConflict "${REPO_PATH_SEC}" "{\"file\": ${encoded_path}}"; then
 	test_pass "null byte in path rejected"
 else
 	test_fail "null byte path should be rejected"

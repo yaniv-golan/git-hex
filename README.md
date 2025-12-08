@@ -86,10 +86,10 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Requirements
 
-- **MCP Bash Framework** (`mcp-bash`) v0.4.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
+- **MCP Bash Framework** (`mcp-bash`) v0.5.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `gitHex.checkRebaseConflicts`
+- **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `git-hex-checkRebaseConflicts`
 
 ## Versioning & Releases
 
@@ -169,6 +169,10 @@ The MCP server auto-starts via `git-hex.sh`; no extra client config required. Sk
 > **Roots:** Configure MCP `roots` to limit filesystem access. When only one root is configured, `repoPath` defaults to that root; passing a path outside configured roots is rejected by the framework.
 > With multiple roots configured, always supply `repoPath` explicitly so the server can pick the correct repository.
 
+Tips:
+- From the project root, run `./git-hex.sh config --inspector` to print a ready-to-run MCP Inspector command (stdio transport) with `MCPBASH_PROJECT_ROOT` set.
+- On macOS Claude Desktop, run `./git-hex.sh config --wrapper-env` to generate a wrapper that sources your shell profile (`.zshrc`/`.bash_profile`/`.bashrc`) before exec, filling in PATH/env gaps common to non-login shells.
+
 ### Advanced: Use an Existing MCP Bash Framework Install
 
 ```json
@@ -211,16 +215,16 @@ After receiving review feedback, create targeted fixups and squash them:
 
 ```
 1. Review current commits
-   → gitHex.getRebasePlan { "onto": "main" }
+   → git-hex-getRebasePlan { "onto": "main" }
    
 2. For each piece of feedback:
    - Make the fix in your editor
    - Stage the changes: git add <files>
    - Create a fixup targeting the original commit:
-     → gitHex.createFixup { "commit": "<hash-of-commit-to-fix>" }
+     → git-hex-createFixup { "commit": "<hash-of-commit-to-fix>" }
 
 3. Squash all fixups into their targets:
-   → gitHex.rebaseWithPlan { "onto": "main", "autosquash": true }
+   → git-hex-rebaseWithPlan { "onto": "main", "autosquash": true }
 ```
 
 ### Bring Your Branch Up to Date with Main
@@ -235,10 +239,10 @@ Rebase your feature branch onto the latest main:
    git checkout feature/my-branch
 
 3. Preview what will be rebased:
-   → gitHex.getRebasePlan { "onto": "main" }
+   → git-hex-getRebasePlan { "onto": "main" }
 
 4. Perform the rebase:
-   → gitHex.rebaseWithPlan { "onto": "main" }
+   → git-hex-rebaseWithPlan { "onto": "main" }
    
    If conflicts occur, git-hex automatically aborts and restores your branch.
    Resolve conflicts manually, then retry.
@@ -252,10 +256,10 @@ Amend the most recent commit with additional changes:
 1. Make your changes in the editor
 2. Stage them: git add <files>
 3. Amend:
-   → gitHex.amendLastCommit { "addAll": true }
+   → git-hex-amendLastCommit { "addAll": true }
    
    Or with a new message:
-   → gitHex.amendLastCommit { "message": "Better commit message" }
+   → git-hex-amendLastCommit { "message": "Better commit message" }
 ```
 
 ### Cherry-Pick a Single Fix from Another Branch
@@ -267,7 +271,7 @@ Bring one specific commit to your current branch:
    git log other-branch --oneline
 
 2. Cherry-pick it:
-   → gitHex.cherryPickSingle { "commit": "<hash>" }
+   → git-hex-cherryPickSingle { "commit": "<hash>" }
    
    If conflicts occur, git-hex aborts automatically.
 ```
@@ -277,7 +281,7 @@ Bring one specific commit to your current branch:
 Made a mistake? Undo it:
 
 ```
-→ gitHex.undoLast {}
+→ git-hex-undoLast {}
 
 This restores HEAD to its state before the last git-hex operation.
 Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
@@ -291,7 +295,7 @@ Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
 
 ## Tools
 
-### gitHex.getRebasePlan
+### git-hex-getRebasePlan
 
 Get a structured view of recent commits for rebase planning and inspection.
 
@@ -333,7 +337,7 @@ Get a structured view of recent commits for rebase planning and inspection.
 }
 ```
 
-### gitHex.rebaseWithPlan
+### git-hex-rebaseWithPlan
 
 Structured interactive rebase with plan support (reorder, drop, squash, reword) plus conflict pause/resume.
 
@@ -379,7 +383,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 }
 ```
 
-### gitHex.checkRebaseConflicts
+### git-hex-checkRebaseConflicts
 
 Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
 
@@ -389,16 +393,16 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 
 ### Conflict Workflow
 
-- **gitHex.getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
-- **gitHex.resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
-- **gitHex.continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
-- **gitHex.abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
+- **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
+- **git-hex-resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
+- **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
+- **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
 
-### gitHex.splitCommit
+### git-hex-splitCommit
 
 Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
 
-### gitHex.createFixup
+### git-hex-createFixup
 
 Create a fixup commit targeting a specific commit.
 
@@ -431,7 +435,7 @@ Create a fixup commit targeting a specific commit.
 }
 ```
 
-### gitHex.amendLastCommit
+### git-hex-amendLastCommit
 
 Amend the last commit with staged changes and/or a new message.
 
@@ -463,7 +467,7 @@ Amend the last commit with staged changes and/or a new message.
 }
 ```
 
-### gitHex.cherryPickSingle
+### git-hex-cherryPickSingle
 
 Cherry-pick a single commit with configurable merge strategy.
 
@@ -497,7 +501,7 @@ Cherry-pick a single commit with configurable merge strategy.
 }
 ```
 
-### gitHex.undoLast
+### git-hex-undoLast
 
 Undo the last git-hex operation by resetting to the backup ref.
 
@@ -540,7 +544,7 @@ git-hex is designed with safety as a priority:
 
 4. **Path Validation**: When MCP roots are configured, all paths are validated to stay within allowed boundaries.
 
-5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates `refs/git-hex/backup/<timestamp>_<operation>` plus a `refs/git-hex/last/<timestamp>_<operation>` pointer to the most recent one. Use `gitHex.undoLast` or `git reset --hard <backup-ref>` to restore. Conflict-resolution helpers do not create backups.
+5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates `refs/git-hex/backup/<timestamp>_<operation>` plus a `refs/git-hex/last/<timestamp>_<operation>` pointer to the most recent one. Use `git-hex-undoLast` or `git reset --hard <backup-ref>` to restore. Conflict-resolution helpers do not create backups.
 
 6. **Read-Only Mode**: Available for inspection-only workflows (see below).
 
@@ -553,12 +557,12 @@ export GIT_HEX_READ_ONLY=1
 ```
 
 In this mode:
-- ✅ `gitHex.getRebasePlan` — allowed (inspection only)
-- ❌ `gitHex.rebaseWithPlan` — blocked
-- ❌ `gitHex.createFixup` — blocked
-- ❌ `gitHex.amendLastCommit` — blocked
-- ❌ `gitHex.cherryPickSingle` — blocked
-- ❌ `gitHex.undoLast` — blocked
+- ✅ `git-hex-getRebasePlan` — allowed (inspection only)
+- ❌ `git-hex-rebaseWithPlan` — blocked
+- ❌ `git-hex-createFixup` — blocked
+- ❌ `git-hex-amendLastCommit` — blocked
+- ❌ `git-hex-cherryPickSingle` — blocked
+- ❌ `git-hex-undoLast` — blocked
 
 Blocked tools return error code `-32602` with a clear message explaining that read-only mode is active.
 
@@ -579,13 +583,13 @@ To configure read-only mode in your MCP client:
 
 ## Recovery
 
-### Using gitHex.undoLast
+### Using git-hex-undoLast
 
 The easiest way to recover from an unwanted operation:
 
 ```json
 // Undo the last git-hex operation
-{ "tool": "gitHex.undoLast", "arguments": {} }
+{ "tool": "git-hex-undoLast", "arguments": {} }
 ```
 
 > `undoLast` refuses to run if new commits were added after the backup ref; set `force` to `true` to discard those commits explicitly.
@@ -625,7 +629,7 @@ cd /path/to/git-hex
 mcp-bash validate
 
 # Test a tool directly
-mcp-bash run-tool gitHex.getRebasePlan --roots /path/to/test/repo --args '{"count": 5}'
+mcp-bash run-tool git-hex-getRebasePlan --roots /path/to/test/repo --args '{"count": 5}'
 
 # Run with MCP Inspector (must be run from project root or use ./git-hex.sh)
 cd /path/to/git-hex
@@ -667,7 +671,7 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 ## Troubleshooting
 
 - `undoLast` fails because of new commits: re-run with `"force": true` if you intend to discard the commits added after the git-hex operation. If a rebase/merge/cherry-pick is paused, resolve/abort it first.
-- Stuck rebase/cherry-pick: run `gitHex.getConflictStatus`, resolve files, then `gitHex.continueOperation`; if you want to abandon, use `gitHex.abortOperation`.
+- Stuck rebase/cherry-pick: run `git-hex-getConflictStatus`, resolve files, then `git-hex-continueOperation`; if you want to abandon, use `git-hex-abortOperation`.
 - MCP connectivity or repo path errors: ensure `repoPath` is inside your configured `roots` and that the repo is clean when required (see tool prerequisites).
 
 ## Documentation Map
@@ -698,7 +702,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 Contributions welcome! Please ensure:
 - All tools pass `mcp-bash validate` (MCP Bash Framework CLI)
-- New tools follow the naming convention (`gitHex.toolName`)
+- New tools follow the naming convention (`git-hex-toolName`)
 - Tests are included for new functionality
 
 ## Related Projects

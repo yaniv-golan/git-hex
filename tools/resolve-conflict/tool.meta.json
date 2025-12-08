@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.resolveConflict",
+  "name": "git-hex-resolveConflict",
   "description": "Mark a conflicting file as resolved. Works for modified files and delete conflicts.",
+  "icons": [
+    "../../assets/icons/resolve-conflict.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

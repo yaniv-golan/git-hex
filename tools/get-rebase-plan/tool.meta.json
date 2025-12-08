@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.getRebasePlan",
+  "name": "git-hex-getRebasePlan",
   "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
+  "icons": [
+    "../../assets/icons/get-rebase-plan.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

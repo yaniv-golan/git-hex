@@ -1,6 +1,9 @@
 {
-  "name": "gitHex.getConflictStatus",
+  "name": "git-hex-getConflictStatus",
   "description": "Get detailed information about merge/rebase/cherry-pick conflicts in the repository",
+  "icons": [
+    "../../assets/icons/get-conflict-status.svg"
+  ],
   "inputSchema": {
     "type": "object",
     "properties": {

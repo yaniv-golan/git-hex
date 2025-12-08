@@ -2,7 +2,9 @@
   "name": "git-hex-abortOperation",
   "description": "Abort a paused rebase/merge/cherry-pick and restore original state",
   "icons": [
-    "../../assets/icons/abort-operation.svg"
+    {
+      "path": "../../assets/icons/abort-operation.svg"
+    }
   ],
   "inputSchema": {
     "type": "object",

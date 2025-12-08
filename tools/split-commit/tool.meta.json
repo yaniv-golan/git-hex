@@ -2,7 +2,9 @@
   "name": "git-hex-splitCommit",
   "description": "Split a commit into multiple commits by file. Each file from the original commit is assigned to exactly one new commit.",
   "icons": [
-    "../../assets/icons/split-commit.svg"
+    {
+      "path": "../../assets/icons/split-commit.svg"
+    }
   ],
   "inputSchema": {
     "type": "object",

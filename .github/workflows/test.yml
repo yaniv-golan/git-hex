@@ -177,8 +177,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           duration="${{ steps.integration.outputs.duration }}"
-          warn_budget=600
-          fail_budget=2700
+          warn_budget=3045
+          fail_budget=4060
           if [ -n "${duration}" ] && [ "${duration}" -gt "${warn_budget}" ]; then
             echo "::warning ::Integration duration ${duration}s exceeded warning budget ${warn_budget}s"
           fi

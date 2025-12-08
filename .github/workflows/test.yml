@@ -12,13 +12,54 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Go paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            win_home="$(cygpath -w "${HOME}")"
+            win_gopath="${win_home}\\go"
+            win_gomodcache="${win_gopath}\\pkg\\mod"
+            win_gocache="${LOCALAPPDATA:-${win_home}\\AppData\\Local}\\go-build"
+            echo "GOPATH=${win_gopath}" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${win_gomodcache}" >> "$GITHUB_ENV"
+            echo "GOCACHE=${win_gocache}" >> "$GITHUB_ENV"
+            echo "$(cygpath -u "${win_gopath}")/bin" >> "$GITHUB_PATH"
+            mkdir -p "$(cygpath -u "${win_gopath}")/bin" "$(cygpath -u "${win_gomodcache}")" "$(cygpath -u "${win_gocache}")"
+          else
+            echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+            echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+            echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+            mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+          fi
+
+      - name: Setup Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: tools/go.sum
+
+      - name: Cache Go build cache
+        id: gocache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GOCACHE }}
+          key: ${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
       - name: Install mcp-bash framework
         run: |
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
-          echo "$HOME/.local/share/mcp-bash/bin" >> $GITHUB_PATH
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "PATH=$HOME/.local/share/mcp-bash/bin:$PATH" >> "$GITHUB_ENV"
-          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> $GITHUB_ENV
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
+          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
 
       - name: Install lint dependencies
         run: |
@@ -48,6 +89,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Go paths
+        run: |
+          set -euo pipefail
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            win_home="$(cygpath -w "${HOME}")"
+            win_gopath="${win_home}\\go"
+            win_gomodcache="${win_gopath}\\pkg\\mod"
+            win_gocache="${LOCALAPPDATA:-${win_home}\\AppData\\Local}\\go-build"
+            echo "GOPATH=${win_gopath}" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${win_gomodcache}" >> "$GITHUB_ENV"
+            echo "GOCACHE=${win_gocache}" >> "$GITHUB_ENV"
+            echo "$(cygpath -u "${win_gopath}")/bin" >> "$GITHUB_PATH"
+            mkdir -p "$(cygpath -u "${win_gopath}")/bin" "$(cygpath -u "${win_gomodcache}")" "$(cygpath -u "${win_gocache}")"
+          else
+            echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+            echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+            echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+            mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+          fi
+
+      - name: Setup Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: tools/go.sum
+
+      - name: Cache Go build cache
+        id: gocache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GOCACHE }}
+          key: ${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
       - name: Set temp log dir
         run: |
           echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
@@ -57,17 +139,16 @@ jobs:
       - name: Install mcp-bash framework
         run: |
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
-          echo "$HOME/.local/share/mcp-bash/bin" >> $GITHUB_PATH
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "PATH=$HOME/.local/share/mcp-bash/bin:$PATH" >> "$GITHUB_ENV"
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
 
       - name: Install test dependencies
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            sudo apt-get update && sudo apt-get install -y jq gojq || sudo apt-get install -y jq
+            sudo apt-get update && sudo apt-get install -y jq || sudo apt-get install -y jq
           elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            brew install jq gojq || brew install jq
+            brew install jq || brew install jq
           else
             choco install jq -y
           fi
@@ -137,6 +218,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set Go paths
+        run: |
+          set -euo pipefail
+          echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+          echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+          echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+          echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+          mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+
+      - name: Setup Go
+        id: go-nightly
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+          cache-dependency-path: tools/go.sum
+
+      - name: Cache Go build cache
+        id: gocache-nightly
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.GOCACHE }}
+          key: nightly-${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go-nightly.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
       - name: Set temp log dir
         run: |
           echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
@@ -146,14 +256,13 @@ jobs:
       - name: Install mcp-bash framework
         run: |
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.6.0/install.sh | bash -s -- --version v0.6.0
-          echo "$HOME/.local/share/mcp-bash/bin" >> $GITHUB_PATH
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          echo "PATH=$HOME/.local/share/mcp-bash/bin:$PATH" >> "$GITHUB_ENV"
+          CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
+          echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
 
       - name: Install test dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y jq gojq shellcheck shfmt || sudo apt-get install -y jq shellcheck shfmt
+          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt || sudo apt-get install -y jq shellcheck shfmt
 
       - name: Validate project
         run: |
@@ -179,17 +288,8 @@ jobs:
           retention-days: 7
       - name: Verify registry and tool availability
         run: |
-          mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
-          mcp-bash run-tool git-hex-getRebasePlan \
-            --project-root "$MCPBASH_PROJECT_ROOT" \
-            --roots "$MCPBASH_PROJECT_ROOT" \
-            --args '{}' \
-            --timeout 10 \
-            --verbose
-      - name: Verify registry and tool availability
-        run: |
-          mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
-          mcp-bash run-tool git-hex-getRebasePlan \
+          "$MCPBASH_HOME/bin/mcp-bash" registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          "$MCPBASH_HOME/bin/mcp-bash" run-tool git-hex-getRebasePlan \
             --project-root "$MCPBASH_PROJECT_ROOT" \
             --roots "$MCPBASH_PROJECT_ROOT" \
             --args '{}' \

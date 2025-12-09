@@ -57,8 +57,15 @@ fi
 # Get current HEAD before undo
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 recorded_head=""
-if [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
-	recorded_head="$(git -C "${repo_path}" rev-parse "refs/git-hex/last-head/${timestamp}_${operation}" 2>/dev/null || echo "")"
+ref_suffix=""
+if [ -n "${backup_ref}" ]; then
+	ref_suffix="${backup_ref#git-hex/backup/}"
+fi
+if [ -z "${ref_suffix}" ] && [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
+	ref_suffix="${timestamp}_${operation}"
+fi
+if [ -n "${ref_suffix}" ]; then
+	recorded_head="$(git -C "${repo_path}" rev-parse "refs/git-hex/last-head/${ref_suffix}" 2>/dev/null || echo "")"
 fi
 
 # Check if we're already at the backup state

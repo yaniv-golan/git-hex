@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Backup ref management for git-hex undo functionality
 #
-# Creates refs/git-hex/backup/<timestamp>_<operation> before mutating operations
-# and maintains refs/git-hex/last-<operation> pointing to the most recent backup.
+# Creates refs/git-hex/backup/<timestamp>_<operation>_<unique> before mutating operations
+# and maintains refs/git-hex/last/<timestamp>_<operation>_<unique> pointing to the most recent backup.
 
 set -euo pipefail
 
@@ -22,13 +22,18 @@ git_hex_create_backup() {
 	local timestamp
 	timestamp="$(date +%s)"
 
-	local backup_ref="${GIT_HEX_REF_PREFIX}/backup/${timestamp}_${operation}"
+	# Add a uniqueness suffix (PID + RANDOM) to avoid collisions within the same second.
+	local uniq_suffix
+	# Unique suffix has no underscores to keep parsing simple: <operation>_<unique>
+	uniq_suffix="${timestamp}_${operation}_$$${RANDOM:-0}"
+
+	local backup_ref="${GIT_HEX_REF_PREFIX}/backup/${uniq_suffix}"
 
 	# Create the backup ref pointing to current HEAD
 	git -C "${repo_path}" update-ref "${backup_ref}" "${head_hash}"
 
 	# Also update a "last" pointer that includes the operation name
-	# Format: refs/git-hex/last/<timestamp>_<operation>
+	# Format: refs/git-hex/last/<timestamp>_<operation>_<unique>
 	# First, delete any existing "last" refs
 	local existing_last
 	existing_last="$(git -C "${repo_path}" for-each-ref --format='%(refname)' "${GIT_HEX_REF_PREFIX}/last/" 2>/dev/null || echo "")"
@@ -39,13 +44,13 @@ git_hex_create_backup() {
 	fi
 
 	# Create the new "last" ref with operation in the name
-	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last/${timestamp}_${operation}" "${head_hash}"
+	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last/${uniq_suffix}" "${head_hash}"
 
 	# Track the last backup ref for subsequent state recording
-	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${timestamp}_${operation}"
+	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${uniq_suffix}"
 
 	# Return the ref name (without refs/ prefix for display)
-	echo "git-hex/backup/${timestamp}_${operation}"
+	echo "git-hex/backup/${uniq_suffix}"
 }
 
 # Get the most recent backup info
@@ -71,26 +76,33 @@ git_hex_get_last_backup() {
 		return 0
 	fi
 
-	# Extract operation name and timestamp from ref name
-	# Format: refs/git-hex/last/<timestamp>_<operation>
+	# Extract operation name, timestamp, and unique suffix from ref name
+	# Format: refs/git-hex/last/<timestamp>_<operation>_<unique>
 	local ref_basename
-	ref_basename="${last_ref##*/}" # Get just the "timestamp_operation" part
+	ref_basename="${last_ref##*/}" # Get just the "timestamp_operation_unique" part
 
 	local timestamp=""
 	local operation=""
-	# Parse timestamp_operation format using parameter expansion (more portable than regex)
+	# Parse timestamp_operation_unique format using parameter expansion (more portable than regex)
 	if [[ "${ref_basename}" == *_* ]]; then
 		timestamp="${ref_basename%%_*}" # Everything before first underscore
-		operation="${ref_basename#*_}" # Everything after first underscore
+		local rest
+		rest="${ref_basename#*_}" # operation_unique
+		if [[ "${rest}" == *_* ]]; then
+			operation="${rest%_*}" # drop trailing _unique
+		else
+			operation="${rest}"
+		fi
 	fi
 
 	# Find the corresponding backup ref
 	local backup_ref=""
 	if [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
-		# Prefer an exact match to the last ref chosen above
-		local expected_ref="${GIT_HEX_REF_PREFIX}/backup/${timestamp}_${operation}"
+		# Prefer an exact match to the last ref chosen above (including unique suffix)
+		local suffix="${ref_basename}"
+		local expected_ref="${GIT_HEX_REF_PREFIX}/backup/${suffix}"
 		if git -C "${repo_path}" show-ref --verify --quiet "${expected_ref}" 2>/dev/null; then
-			backup_ref="git-hex/backup/${timestamp}_${operation}"
+			backup_ref="git-hex/backup/${suffix}"
 		fi
 	fi
 

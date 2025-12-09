@@ -10,14 +10,19 @@ RUN apt-get update && \
     apt-get install -y bash jq git && \
     rm -rf /var/lib/apt/lists/*
 
-# Install framework at pinned version (XDG default layout)
-RUN mkdir -p "${XDG_DATA_HOME}" /root/.local/bin && \
-    git clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
-    https://github.com/yaniv-golan/mcp-bash-framework.git "${XDG_DATA_HOME}/mcp-bash" && \
-    ln -snf "${XDG_DATA_HOME}/mcp-bash/bin/mcp-bash" /root/.local/bin/mcp-bash
-
-# Copy tool
+# Copy tool (and optionally vendored framework)
 COPY . /app
+
+# If a vendored framework exists, wire it up; otherwise fail fast to avoid remote clones during build
+RUN mkdir -p "${XDG_DATA_HOME}" /root/.local/bin && \
+    if [ -x "/app/mcp-bash-framework/bin/mcp-bash" ]; then \
+        ln -snf "/app/mcp-bash-framework" "${XDG_DATA_HOME}/mcp-bash"; \
+        ln -snf "${XDG_DATA_HOME}/mcp-bash/bin/mcp-bash" /root/.local/bin/mcp-bash; \
+    else \
+        echo "Vendored mcp-bash-framework not found in /app. Add it (e.g., submodule) or pre-bake the framework to avoid network clones in Docker builds." >&2; \
+        exit 1; \
+    fi
+
 ENV MCPBASH_PROJECT_ROOT=/app
 
 ENTRYPOINT ["mcp-bash"]

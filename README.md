@@ -466,6 +466,25 @@ Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktre
 
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 
+**Example output:**
+```json
+{
+  "success": true,
+  "wouldConflict": true,
+  "confidence": "estimate",
+  "commits": [
+    { "hash": "8b3f1c2", "subject": "Clean change", "prediction": "clean" },
+    { "hash": "a1b2c3d", "subject": "Conflicting change", "prediction": "conflict" },
+    { "hash": "c4d5e6f", "subject": "After conflict", "prediction": "unknown" }
+  ],
+  "limitExceeded": false,
+  "totalCommits": 3,
+  "checkedCommits": 3,
+  "summary": "Rebase would conflict at commit 2/3 (a1b2c3d)",
+  "note": "Predictions may not match actual rebase behavior in all cases"
+}
+```
+
 ### Conflict Workflow
 
 - **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
@@ -476,6 +495,30 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 ### git-hex-splitCommit
 
 Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository (defaults to single root) |
+| `commit` | string | **Yes** | Commit hash/ref to split (must be ancestor of HEAD, non-merge, non-root) |
+| `splits` | array | **Yes** | Array of `{ files: [...], message: "<single-line>" }` (min 2) |
+| `autoStash` | boolean | No | Automatically stash/restore uncommitted changes (default: false) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "originalCommit": "abc123...",
+  "newCommits": [
+    { "hash": "def456...", "message": "Split part 1", "files": ["file1.txt"] },
+    { "hash": "789abcd...", "message": "Split part 2", "files": ["file2.txt"] }
+  ],
+  "backupRef": "git-hex/backup/1700000000_splitCommit_xxx",
+  "rebasePaused": false,
+  "stashNotRestored": false,
+  "summary": "Split abc1234 into 2 commits"
+}
+```
 
 ### git-hex-createFixup
 

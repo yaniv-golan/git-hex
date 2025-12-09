@@ -103,13 +103,9 @@ git_hex_restore_stash() {
 					if [ -s "${patch_file}" ]; then
 						if git -C "${repo_path}" apply --3way "${patch_file}" >/dev/null 2>&1; then
 							git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
+							stash_not_restored="false"
 						else
 							stash_not_restored="true"
-							if command -v mcp_log >/dev/null 2>&1; then
-								local log_payload
-								log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop %s manually."}' "${stash_name:-${stash_ref}}")"
-								mcp_log "warn" "git-hex" "${log_payload}"
-							fi
 						fi
 					else
 						git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
@@ -118,6 +114,12 @@ git_hex_restore_stash() {
 					stash_not_restored="true"
 				fi
 				rm -f "${patch_file}" 2>/dev/null || true
+
+				if [ "${stash_not_restored}" = "true" ] && command -v mcp_log_warn >/dev/null 2>&1; then
+					local log_payload
+					log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop --index %s manually."}' "${stash_name:-${stash_ref}}")"
+					mcp_log_warn "git-hex" "${log_payload}"
+				fi
 			else
 				if ! git -C "${repo_path}" stash pop "${stash_name:-${stash_ref}}" >/dev/null 2>&1; then
 					stash_not_restored="true"

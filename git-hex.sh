@@ -19,8 +19,17 @@ else
 	FRAMEWORK_DIR="${DEFAULT_FRAMEWORK_DIR}"
 fi
 
-# Auto-install framework if missing
+# Respect a vendored framework if present
+if [ -x "${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash" ]; then
+	FRAMEWORK_DIR="${SCRIPT_DIR}/mcp-bash-framework"
+fi
+
+# Auto-install framework if missing, unless disabled
 if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
+	if [ "${GIT_HEX_AUTO_INSTALL_FRAMEWORK:-true}" != "true" ]; then
+		echo "mcp-bash framework not found at ${FRAMEWORK_DIR}. Set MCPBASH_HOME to an existing install or enable auto-install (GIT_HEX_AUTO_INSTALL_FRAMEWORK=true)." >&2
+		exit 1
+	fi
 	echo "Installing mcp-bash framework ${FRAMEWORK_VERSION} into ${FRAMEWORK_DIR}..." >&2
 	mkdir -p "${FRAMEWORK_DIR%/*}"
 	git clone --depth 1 --branch "${FRAMEWORK_VERSION}" \

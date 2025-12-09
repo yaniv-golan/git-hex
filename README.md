@@ -492,6 +492,24 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 - **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
 - **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
 
+**getConflictStatus example output:**
+```json
+{
+  "success": true,
+  "conflictType": "rebase",
+  "currentStep": 1,
+  "totalSteps": 3,
+  "conflictingFiles": [
+    {
+      "path": "conflict.txt",
+      "status": "both modified"
+    }
+  ],
+  "paused": true,
+  "summary": "Rebase paused with conflicts"
+}
+```
+
 ### git-hex-splitCommit
 
 Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
@@ -818,6 +836,39 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 - Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
 - Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see “Read-Only Mode”).
 - Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.
+
+### Using with MCP clients
+
+Minimal stdio configuration (Claude CLI/Code-style):
+```json
+{
+  "mcpServers": {
+    "git-hex": {
+      "command": "/path/to/git-hex.sh",
+      "args": [],
+      "env": {
+        "MCPBASH_PROJECT_ROOT": "/path/to/git-hex"
+      },
+      "cwd": "/path/to/git-hex",
+      "transport": "stdio",
+      "allowedRoots": ["/path/to/repo"]
+    }
+  }
+}
+```
+
+If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/env matches your login shell. Always set `allowedRoots` to the repositories you want the tools to touch.
+
+### Environment flags
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `MCPBASH_PROJECT_ROOT` | (auto when running `git-hex.sh`) | Path to this repo; required if you invoke `mcp-bash` directly. |
+| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (read-only mode). |
+| `GIT_HEX_DEBUG` | unset | `true` enables shell tracing in tools. |
+| `GIT_HEX_DEBUG_SPLIT` | unset | `true` dumps splitCommit debug JSON to `/tmp/git-hex-split-debug.json`. |
+| `MCPBASH_CI_MODE` | unset | `1` uses CI-safe defaults in tests (set automatically in CI). |
+| `MCPBASH_TRACE_TOOLS` | unset | Set to enable per-command tracing in tools (see `MCPBASH_TRACE_PS4`). |
 
 ## Security
 

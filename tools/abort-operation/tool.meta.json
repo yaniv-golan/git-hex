@@ -17,6 +17,7 @@
   },
   "outputSchema": {
     "type": "object",
+    "required": ["success", "operationType", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "operationType": { "type": "string" },

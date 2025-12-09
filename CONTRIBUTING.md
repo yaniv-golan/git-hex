@@ -191,10 +191,10 @@ test_pass "my-new-tool works"
 
 ## Code Style
 
-- Use tabs for indentation (enforced by `.editorconfig`)
+- Use tabs for indentation in shell scripts (see `.editorconfig`)
 - Use `local` for function-scoped variables
 - Quote all variable expansions: `"${var}"` not `$var`
-- Use `[[ ]]` for conditionals, not `[ ]`
+- Prefer `[[ ]]` for bash conditionals
 - Use `printf` over `echo` for output
 - Use `$(...)` for command substitution, not backticks
 

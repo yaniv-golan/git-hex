@@ -119,7 +119,6 @@ fi
 backup_ref="$(git_hex_create_backup "${repo_path}" "splitCommit")"
 
 commit_parent="$(git -C "${repo_path}" rev-parse "${full_commit}^")"
-short_commit="$(git -C "${repo_path}" rev-parse --short "${full_commit}")"
 commit_subject="$(git -C "${repo_path}" log -1 --format='%s' "${full_commit}")"
 
 seq_editor="$(mktemp)"
@@ -131,36 +130,42 @@ cat >"${seq_editor}"  <<'EDITOR_SCRIPT'
 #!/usr/bin/env bash
 set -e
 todo_file="$1"
-target_short="${GIT_HEX_TARGET_SHORT}"
 target_full="${GIT_HEX_TARGET_FULL}"
 target_subject="${GIT_HEX_TARGET_SUBJECT}"
+repo_path="${GIT_HEX_REPO_PATH}"
 found=""
 while IFS= read -r line; do
-	if [ -z "${found}" ] && echo "${line}" | grep -q "^pick ${target_short}"; then
-		echo "edit ${target_full} ${target_subject}"
-		found="true"
-	else
-		echo "${line}"
+	if [ -z "${found}" ]; then
+		IFS=' ' read -r action hash rest <<<"${line}"
+		if [ "${action}" = "pick" ] && [ -n "${hash}" ]; then
+			resolved_hash="$(git -C "${repo_path}" rev-parse --verify "${hash}^{commit}" 2>/dev/null || true)"
+			if [ -n "${resolved_hash}" ] && [ "${resolved_hash}" = "${target_full}" ]; then
+				echo "edit ${target_full} ${target_subject}"
+				found="true"
+				continue
+			fi
+		fi
 	fi
+	echo "${line}"
 done < "${todo_file}" > "${todo_file}.tmp"
 if [ -z "${found}" ]; then
-	echo "ERROR: Could not find target commit ${target_short}" >&2
+	echo "ERROR: Could not find target commit ${target_full}" >&2
 	exit 1
 fi
 mv "${todo_file}.tmp" "${todo_file}"
 EDITOR_SCRIPT
 chmod +x "${seq_editor}"
 
-export GIT_HEX_TARGET_SHORT="${short_commit}"
 export GIT_HEX_TARGET_FULL="${full_commit}"
 export GIT_HEX_TARGET_SUBJECT="${commit_subject}"
+export GIT_HEX_REPO_PATH="${repo_path}"
 
 _git_hex_rebase_started="true"
 rebase_status=0
 # shellcheck disable=SC2034
 rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
 
-unset GIT_HEX_TARGET_SHORT GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT
+unset GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT GIT_HEX_REPO_PATH
 
 if [ ! -d "${repo_path}/.git/rebase-merge" ] && [ ! -d "${repo_path}/.git/rebase-apply" ]; then
 	# Rebase did not pause as expected

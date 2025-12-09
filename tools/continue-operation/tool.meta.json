@@ -3,7 +3,7 @@
   "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
   "icons": [
     {
-      "path": "../../assets/icons/continue-operation.svg"
+      "src": "../../assets/icons/continue-operation.svg"
     }
   ],
   "inputSchema": {

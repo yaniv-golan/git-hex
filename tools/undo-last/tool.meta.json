@@ -3,7 +3,7 @@
   "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
   "icons": [
     {
-      "path": "../../assets/icons/undo-last.svg"
+      "src": "../../assets/icons/undo-last.svg"
     }
   ],
   "inputSchema": {

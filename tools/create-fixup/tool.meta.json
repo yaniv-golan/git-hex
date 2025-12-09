@@ -3,7 +3,7 @@
   "description": "Create a fixup commit for a specified commit. REQUIRES: staged changes (run 'git add' first). The fixup will be auto-squashed during rebase.",
   "icons": [
     {
-      "path": "../../assets/icons/create-fixup.svg"
+      "src": "../../assets/icons/create-fixup.svg"
     }
   ],
   "inputSchema": {

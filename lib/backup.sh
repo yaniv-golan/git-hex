@@ -19,6 +19,9 @@ git_hex_create_backup() {
 	local head_hash
 	head_hash="$(git -C "${repo_path}" rev-parse HEAD)"
 
+	local git_dir
+	git_dir="$(git -C "${repo_path}" rev-parse --git-dir)"
+
 	local timestamp
 	timestamp="$(date +%s)"
 
@@ -48,6 +51,9 @@ git_hex_create_backup() {
 
 	# Track the last backup ref for subsequent state recording
 	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${uniq_suffix}"
+
+	# Persist the last backup suffix so future invocations can record last-head safely
+	printf '%s\n' "${uniq_suffix}" >"${git_dir}/git-hex-last-backup" 2>/dev/null || true
 
 	# Return the ref name (without refs/ prefix for display)
 	echo "git-hex/backup/${uniq_suffix}"
@@ -120,9 +126,33 @@ git_hex_record_last_head() {
 	local repo_path="$1"
 	local head_after="${2:-}"
 
-	if [ -z "${GIT_HEX_LAST_BACKUP_REF:-}" ]; then
+	local suffix=""
+	if [ -n "${GIT_HEX_LAST_BACKUP_REF:-}" ]; then
+		suffix="${GIT_HEX_LAST_BACKUP_REF#git-hex/backup/}"
+	else
+		local git_dir
+		git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+		if [ -n "${git_dir}" ] && [ -f "${git_dir}/git-hex-last-backup" ]; then
+			suffix="$(head -1 "${git_dir}/git-hex-last-backup" 2>/dev/null | tr -d '\r\n')"
+		fi
+		if [ -z "${suffix}" ]; then
+			# As a fallback, derive from the most recent backup ref
+			local backup_info
+			backup_info="$(git_hex_get_last_backup "${repo_path}")"
+			if [ -n "${backup_info}" ]; then
+				IFS='|' read -r _ op ts ref <<<"${backup_info}"
+				if [ -n "${ref}" ]; then
+					suffix="${ref#git-hex/backup/}"
+				elif [ -n "${ts}" ] && [ -n "${op}" ]; then
+					suffix="${ts}_${op}"
+				fi
+			fi
+		fi
+	fi
+	if [ -z "${suffix}" ]; then
 		return 0
 	fi
+	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${suffix}"
 	if [ -z "${head_after}" ]; then
 		head_after="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || true)"
 	fi
@@ -130,8 +160,7 @@ git_hex_record_last_head() {
 		return 0
 	fi
 
-	local ref_suffix="${GIT_HEX_LAST_BACKUP_REF#git-hex/backup/}"
-	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last-head/${ref_suffix}" "${head_after}" 2>/dev/null || true
+	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last-head/${suffix}" "${head_after}" 2>/dev/null || true
 
 	# Opportunistically prune old backups to keep ref space tidy
 	git_hex_cleanup_backups "${repo_path}" 20

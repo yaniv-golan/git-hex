@@ -11,6 +11,36 @@ Name note: “git-hex” is simply a short label for this git-history refactorin
 
 See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION` and `.claude-plugin/plugin.json`.
 
+## Design Principles
+
+- **Safety first**: Conflict-prone operations abort cleanly by default and create backup refs so you can always undo.
+- **Deterministic git**: Focus on well-defined history rewrites (rebase, fixup, amend, split-by-file) with predictable outputs.
+- **Minimal surface**: Tools only—no extra services. Everything runs through the MCP Bash Framework.
+- **Respect the sandbox**: Every path is validated against MCP roots; read-only mode blocks mutating tools.
+- **Agent friendly**: Outputs are structured, include summaries, and prefer explicit parameters over magic.
+
+## MCP Spec Coverage
+
+Targets MCP protocol **2025-11-25** (downgrades handled by the MCP Bash Framework).
+
+| Category | Coverage | Notes |
+|----------|----------|-------|
+| Core | ✅ Full | Lifecycle, ping, capabilities via framework |
+| Tools | ✅ Full | git-hex tool suite (see “Tools”) |
+| Resources | ⚠️ None | Not exposed yet (future) |
+| Prompts | ⚠️ None | Not exposed yet (future) |
+| Completions | ⚠️ None | Not exposed yet |
+
+## Client Compatibility
+
+| Client | Status | Notes |
+|--------|--------|-------|
+| Claude Desktop | Tested | Use wrapper/wrapper-env on macOS |
+| Claude Code/CLI | Tested | Ships as a Claude Code plugin |
+| Cursor | Documented | JSON snippet below |
+| Windsurf | Documented | Uses same JSON snippet |
+| Windows (Git Bash) | Tested | Use wrapper; ensure paths are POSIX |
+
 ## Features
 
 - **Safe Rebasing**: Automatic abort on conflicts so git-hex operations leave the repo clean if conflicts arise
@@ -19,6 +49,26 @@ See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION`
 - **Cherry-picking**: Single-commit cherry-pick with strategy options
 - **Undo Support**: Backup refs for history-mutating operations (amend, fixup, cherry-pick, rebase, split); undo is safe unless new commits were added after the backup (see `force`)
 - **Path Security**: All operations respect MCP roots for sandboxed access
+
+## Quick Start (2 minutes)
+
+```bash
+git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
+cd ~/git-hex
+./git-hex.sh doctor          # ensures Bash/jq/git and framework presence
+./git-hex.sh validate        # MCP project validation via the framework
+# Fast smoke: list commits relative to main (adjust branch/path as needed)
+./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'
+```
+
+### 30-second end-to-end example
+
+```bash
+# Prepare staged fix for a commit, then create a fixup and autosquash
+git add <files>
+./git-hex.sh run-tool git-hex-createFixup --args '{"commit":"<target-sha>"}'
+./git-hex.sh run-tool git-hex-rebaseWithPlan --args '{"onto":"main","autosquash":true}'
+```
 
 ## How It Works
 
@@ -86,10 +136,28 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ## Requirements
 
-- **MCP Bash Framework** (`mcp-bash`) v0.6.0+ — [repo](https://github.com/yaniv-golan/mcp-bash-framework)
-- **bash** 3.2+
-- **jq** or **gojq**
-- **git**: 2.20+ required; 2.33+ recommended for `ort`; 2.38+ required for `git-hex-checkRebaseConflicts`
+| Dependency | Version/Notes |
+|------------|---------------|
+| MCP Bash Framework (`mcp-bash`) | v0.6.0+ |
+| bash | 3.2+ |
+| jq or gojq | Required for full mode |
+| git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
+
+## Configuration
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `MCPBASH_PROJECT_ROOT` | Project root containing `tools/`. **Auto-set** by `git-hex.sh` and generated wrappers; required only if you invoke `mcp-bash` directly from outside the repo. |
+
+### Optional
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see “Read-Only Mode”) |
+
+> **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (GUI/login-shell) when launching from other directories or GUI clients.
 
 ## Versioning & Releases
 
@@ -154,7 +222,7 @@ The MCP server auto-starts via `git-hex.sh`; no extra client config required. Sk
 
 ## MCP Client Configuration
 
-### Recommended (Claude Desktop / Cursor / Windsurf)
+### Recommended (Claude Code/CLI, Cursor, Windsurf)
 
 ```json
 {
@@ -169,9 +237,16 @@ The MCP server auto-starts via `git-hex.sh`; no extra client config required. Sk
 > **Roots:** Configure MCP `roots` to limit filesystem access. When only one root is configured, `repoPath` defaults to that root; passing a path outside configured roots is rejected by the framework.
 > With multiple roots configured, always supply `repoPath` explicitly so the server can pick the correct repository.
 
+**Launchers (which one to use):**
+- `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
+- `git-hex-env.sh` — login-aware launcher (sources your shell profile first). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
+- Both expose the same commands (`./git-hex.sh validate`, `./git-hex-env.sh config --inspector`, etc.). Point your client’s `command` at whichever fits the environment.
+
 Tips:
 - From the project root, run `./git-hex.sh config --inspector` to print a ready-to-run MCP Inspector command (stdio transport) with `MCPBASH_PROJECT_ROOT` set.
-- On macOS Claude Desktop, run `./git-hex.sh config --wrapper-env` to generate a wrapper that sources your shell profile (`.zshrc`/`.bash_profile`/`.bashrc`) before exec, filling in PATH/env gaps common to non-login shells.
+- On macOS Claude Desktop, prefer `git-hex-env.sh` so PATH/version managers are loaded before starting the server.
+- Claude CLI/Code: `claude mcp add --transport stdio git-hex --env MCPBASH_PROJECT_ROOT="$PWD" -- "$PWD/git-hex.sh"` (use `git-hex-env.sh` on macOS GUI shells).
+- Cursor CLI: add the same JSON to `~/.cursor/mcp.json` or `.cursor/mcp.json` in a project; point `command` at the appropriate launcher.
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
@@ -640,6 +715,13 @@ npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/git-he
 ```
 
 > **Note:** The MCP Bash Framework CLI (`mcp-bash`) auto-detects the project root when run from within the git-hex directory. If running from elsewhere, either use the `./git-hex.sh` wrapper or set `MCPBASH_PROJECT_ROOT=/path/to/git-hex`.
+
+## Diagnostics & Health
+
+- Project validation: `./git-hex.sh validate` (or `mcp-bash validate` from the repo)
+- Ready check: `./git-hex.sh --health` (stdio exit code: `0` ready, `1` unhealthy, `2` misconfigured)
+- Debug a single tool without starting MCP: `./git-hex.sh run-tool <tool> --args '{}' --roots <repo>`
+- Backup inventory: `git for-each-ref refs/git-hex/`
 
 ## Docker
 

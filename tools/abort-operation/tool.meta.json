@@ -3,7 +3,7 @@
   "description": "Abort a paused rebase/merge/cherry-pick and restore original state",
   "icons": [
     {
-      "path": "../../assets/icons/abort-operation.svg"
+      "src": "../../assets/icons/abort-operation.svg"
     }
   ],
   "inputSchema": {

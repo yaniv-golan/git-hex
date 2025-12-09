@@ -3,7 +3,7 @@
   "description": "Amend the last commit with staged changes and/or a new message",
   "icons": [
     {
-      "path": "../../assets/icons/amend-last-commit.svg"
+      "src": "../../assets/icons/amend-last-commit.svg"
     }
   ],
   "inputSchema": {

@@ -3,7 +3,7 @@
   "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
   "icons": [
     {
-      "path": "../../assets/icons/get-rebase-plan.svg"
+      "src": "../../assets/icons/get-rebase-plan.svg"
     }
   ],
   "inputSchema": {

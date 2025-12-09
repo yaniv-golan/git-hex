@@ -3,7 +3,7 @@
   "description": "Get detailed information about merge/rebase/cherry-pick conflicts in the repository",
   "icons": [
     {
-      "path": "../../assets/icons/get-conflict-status.svg"
+      "src": "../../assets/icons/get-conflict-status.svg"
     }
   ],
   "inputSchema": {

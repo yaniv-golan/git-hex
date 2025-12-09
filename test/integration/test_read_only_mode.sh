@@ -88,6 +88,7 @@ printf ' -> read-only mode blocks cherryPickSingle\n'
 
 REPO5="${TEST_TMPDIR}/readonly-block-cherry"
 mkdir -p "${REPO5}"
+tmp_cherry_hash_readonly="$(mktemp "${TEST_TMPDIR}/cherry_hash_readonly.XXXXXX")"
 (
 	cd "${REPO5}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -105,11 +106,11 @@ mkdir -p "${REPO5}"
 
 	git checkout main >/dev/null 2>&1
 
-	echo "${cherry_hash}" >/tmp/cherry_hash_readonly_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash_readonly}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash_readonly_$$)"
-rm -f /tmp/cherry_hash_readonly_$$
+cherry_hash="$(cat "${tmp_cherry_hash_readonly}")"
+rm -f "${tmp_cherry_hash_readonly}"
 
 export GIT_HEX_READ_ONLY=1
 if run_tool_expect_fail git-hex-cherryPickSingle "${REPO5}" "{\"commit\": \"${cherry_hash}\"}"; then

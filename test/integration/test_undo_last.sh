@@ -107,6 +107,7 @@ printf ' -> undo-last undoes a cherry-pick operation\n'
 
 REPO4="${TEST_TMPDIR}/undo-cherry-pick"
 mkdir -p "${REPO4}"
+tmp_cherry_hash_undo="$(mktemp "${TEST_TMPDIR}/cherry_hash_undo.XXXXXX")"
 (
 	cd "${REPO4}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -124,11 +125,11 @@ mkdir -p "${REPO4}"
 
 	git checkout main >/dev/null 2>&1
 
-	echo "${cherry_hash}" >/tmp/cherry_hash_undo_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash_undo}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash_undo_$$)"
-rm -f /tmp/cherry_hash_undo_$$
+cherry_hash="$(cat "${tmp_cherry_hash_undo}")"
+rm -f "${tmp_cherry_hash_undo}"
 
 original_head="$(cd "${REPO4}" && git rev-parse HEAD)"
 
@@ -352,6 +353,7 @@ printf ' -> undo-last fails after noCommit cherry-pick (staged changes)\n'
 
 REPO11="${TEST_TMPDIR}/undo-nocommit"
 mkdir -p "${REPO11}"
+tmp_cherry_hash_nocommit="$(mktemp "${TEST_TMPDIR}/cherry_hash_nocommit.XXXXXX")"
 (
 	cd "${REPO11}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -369,11 +371,11 @@ mkdir -p "${REPO11}"
 
 	git checkout main >/dev/null 2>&1
 
-	echo "${cherry_hash}" >/tmp/cherry_hash_nocommit_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash_nocommit}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash_nocommit_$$)"
-rm -f /tmp/cherry_hash_nocommit_$$
+cherry_hash="$(cat "${tmp_cherry_hash_nocommit}")"
+rm -f "${tmp_cherry_hash_nocommit}"
 
 original_head="$(cd "${REPO11}" && git rev-parse HEAD)"
 

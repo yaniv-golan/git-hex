@@ -22,6 +22,7 @@ printf ' -> cherry-pick-single succeeds with clean pick\n'
 
 REPO="${TEST_TMPDIR}/pick-clean"
 mkdir -p "${REPO}"
+tmp_cherry_hash="$(mktemp "${TEST_TMPDIR}/cherry_hash.XXXXXX")"
 (
 	cd "${REPO}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -41,11 +42,11 @@ mkdir -p "${REPO}"
 	# Go back to main
 	git checkout main >/dev/null 2>&1
 
-	echo "${cherry_hash}" >/tmp/cherry_hash_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash_$$)"
-rm -f /tmp/cherry_hash_$$
+cherry_hash="$(cat "${tmp_cherry_hash}")"
+rm -f "${tmp_cherry_hash}"
 
 before_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 
@@ -69,6 +70,7 @@ printf ' -> cherry-pick-single with noCommit applies without committing\n'
 
 REPO2="${TEST_TMPDIR}/pick-nocommit"
 mkdir -p "${REPO2}"
+tmp_cherry_hash2="$(mktemp "${TEST_TMPDIR}/cherry_hash2.XXXXXX")"
 (
 	cd "${REPO2}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -86,11 +88,11 @@ mkdir -p "${REPO2}"
 
 	git checkout main >/dev/null 2>&1
 
-	echo "${cherry_hash}" >/tmp/cherry_hash2_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash2}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash2_$$)"
-rm -f /tmp/cherry_hash2_$$
+cherry_hash="$(cat "${tmp_cherry_hash2}")"
+rm -f "${tmp_cherry_hash2}"
 
 before_count="$(cd "${REPO2}" && git rev-list --count HEAD)"
 
@@ -115,6 +117,7 @@ printf ' -> cherry-pick-single aborts on conflict and restores state\n'
 
 REPO3="${TEST_TMPDIR}/pick-conflict"
 mkdir -p "${REPO3}"
+tmp_cherry_hash3="$(mktemp "${TEST_TMPDIR}/cherry_hash3.XXXXXX")"
 (
 	cd "${REPO3}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -136,11 +139,11 @@ mkdir -p "${REPO3}"
 	echo "main version" >conflict.txt
 	git add conflict.txt && git commit -m "Main change" >/dev/null
 
-	echo "${cherry_hash}" >/tmp/cherry_hash3_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash3}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash3_$$)"
-rm -f /tmp/cherry_hash3_$$
+cherry_hash="$(cat "${tmp_cherry_hash3}")"
+rm -f "${tmp_cherry_hash3}"
 
 before_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 
@@ -166,6 +169,7 @@ printf ' -> cherry-pick-single fails on dirty working directory\n'
 
 REPO4="${TEST_TMPDIR}/pick-dirty"
 mkdir -p "${REPO4}"
+tmp_cherry_hash4="$(mktemp "${TEST_TMPDIR}/cherry_hash4.XXXXXX")"
 (
 	cd "${REPO4}"
 	git init --initial-branch=main >/dev/null 2>&1
@@ -187,11 +191,11 @@ mkdir -p "${REPO4}"
 	echo "dirty" >dirty.txt
 	git add dirty.txt
 
-	echo "${cherry_hash}" >/tmp/cherry_hash4_$$
+	echo "${cherry_hash}" >"${tmp_cherry_hash4}"
 )
 
-cherry_hash="$(cat /tmp/cherry_hash4_$$)"
-rm -f /tmp/cherry_hash4_$$
+cherry_hash="$(cat "${tmp_cherry_hash4}")"
+rm -f "${tmp_cherry_hash4}"
 
 if run_tool_expect_fail git-hex-cherryPickSingle "${REPO4}" "{\"commit\": \"${cherry_hash}\"}"; then
 	test_pass "cherry-pick-single fails on dirty working directory"

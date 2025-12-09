@@ -53,16 +53,17 @@ commits_json="[]"
 commit_index=0
 limit_exceeded="false"
 
+log_format='%H%x1f%P%x1f%s'
+commit_stream="$(git -C "${repo_path}" log --reverse --format="${log_format}" "${onto}..HEAD")"
 if [ "${total_commits}" -gt "${max_commits}" ]; then
 	limit_exceeded="true"
-	commits_to_check="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD" | head -n "${max_commits}")"
-else
-	commits_to_check="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD")"
+	commit_stream="$(printf '%s\n' "${commit_stream}" | head -n "${max_commits}")"
 fi
 
-for commit in ${commits_to_check}; do
+while IFS=$'\x1f' read -r commit parents subject; do
+	[ -z "${commit}" ] && continue
 	commit_index=$((commit_index + 1))
-	subject="$(git -C "${repo_path}" log -1 --format='%s' "${commit}")"
+
 	if [ "${would_conflict}" = "true" ]; then
 		# shellcheck disable=SC2016
 		commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -74,9 +75,8 @@ for commit in ${commits_to_check}; do
 		continue
 	fi
 
-	if git -C "${repo_path}" rev-parse --verify "${commit}^" >/dev/null 2>&1; then
-		parent="$(git -C "${repo_path}" rev-parse "${commit}^")"
-	else
+	parent="${parents%% *}"
+	if [ -z "${parent}" ]; then
 		parent="$(git -C "${repo_path}" hash-object -t tree /dev/null)"
 	fi
 
@@ -120,7 +120,7 @@ for commit in ${commits_to_check}; do
 	fi
 	# shellcheck disable=SC2016
 	commits_json="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
-done
+done <<<"${commit_stream}"
 
 if [ "${would_conflict}" = "true" ]; then
 	summary="Rebase would conflict at commit ${first_conflict_index}/${total_commits} (${first_conflict_hash:0:7})"

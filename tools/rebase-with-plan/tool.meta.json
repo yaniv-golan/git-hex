@@ -65,6 +65,7 @@
   },
   "outputSchema": {
     "type": "object",
+    "required": ["success", "headBefore", "headAfter", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "headBefore": { "type": "string" },

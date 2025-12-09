@@ -555,12 +555,16 @@ Cherry-pick a single commit with configurable merge strategy.
 | `commit` | string | **Yes** | Commit hash/ref to cherry-pick |
 | `strategy` | string | No | Merge strategy: recursive, ort, resolve |
 | `noCommit` | boolean | No | Apply without committing (default: false) |
+| `abortOnConflict` | boolean | No | If false, pause on conflicts instead of aborting (default: true) |
+| `autoStash` | boolean | No | Automatically stash/restore tracked changes (requires `abortOnConflict=true`, default: false) |
 
 **Example:**
 ```json
 {
   "commit": "abc123",
-  "strategy": "ort"
+  "strategy": "ort",
+  "abortOnConflict": true,
+  "autoStash": true
 }
 ```
 

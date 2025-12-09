@@ -24,8 +24,7 @@ elif [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
 elif [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
 	operation="merge"
 else
-	mcp_emit_json '{"success": false, "error": "No rebase/merge/cherry-pick in progress", "summary": "Nothing to continue"}'
-	exit 0
+	mcp_fail_invalid_args "No rebase/merge/cherry-pick in progress"
 fi
 
 status="true"

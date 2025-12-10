@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Framework version pinning for reproducible installs
 # Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.6.0}"
+FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.7.0}"
 
 # Resolve framework location with preference for XDG Base Directory defaults
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -24,6 +24,62 @@ if [ -x "${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash" ]; then
 	FRAMEWORK_DIR="${SCRIPT_DIR}/mcp-bash-framework"
 fi
 
+install_from_verified_archive() {
+	local version="$1"
+	local target_dir="$2"
+	local sha_expected="${3:-}"
+	local archive_url="${4:-}"
+
+	if [ -z "${sha_expected}" ]; then
+		return 1
+	fi
+
+	if [ -z "${archive_url}" ]; then
+		archive_url="https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/${version}.tar.gz"
+	fi
+
+	local tmp_archive
+	tmp_archive="$(mktemp "${TMPDIR:-/tmp}/mcpbash.${version}.XXXXXX.tar.gz")"
+	if [ -z "${tmp_archive}" ]; then
+		echo "Failed to allocate temp archive path" >&2
+		return 1
+	fi
+
+	echo "Downloading verified archive ${archive_url}..." >&2
+	if ! curl -fsSL "${archive_url}" -o "${tmp_archive}"; then
+		echo "Failed to download ${archive_url}" >&2
+		rm -f "${tmp_archive}" || true
+		return 1
+	fi
+
+	local sha_actual=""
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha_actual="$(sha256sum "${tmp_archive}" | awk '{print $1}')"
+	elif command -v shasum >/dev/null 2>&1; then
+		sha_actual="$(shasum -a 256 "${tmp_archive}" | awk '{print $1}')"
+	else
+		echo "sha256sum/shasum not available for verification" >&2
+		rm -f "${tmp_archive}" || true
+		return 1
+	fi
+
+	if [ "${sha_actual}" != "${sha_expected}" ]; then
+		echo "Checksum mismatch for ${archive_url}. Expected ${sha_expected}, got ${sha_actual}" >&2
+		rm -f "${tmp_archive}" || true
+		return 1
+	fi
+
+	echo "Checksum verified; extracting to ${target_dir}..." >&2
+	mkdir -p "${target_dir}"
+	if ! tar -xzf "${tmp_archive}" -C "${target_dir}" --strip-components 1; then
+		echo "Failed to extract archive" >&2
+		rm -f "${tmp_archive}" || true
+		return 1
+	fi
+	rm -f "${tmp_archive}" || true
+	return 0
+}
+
 # Auto-install framework if missing, unless disabled
 if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 	if [ "${GIT_HEX_AUTO_INSTALL_FRAMEWORK:-true}" != "true" ]; then
@@ -32,8 +88,15 @@ if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 	fi
 	echo "Installing mcp-bash framework ${FRAMEWORK_VERSION} into ${FRAMEWORK_DIR}..." >&2
 	mkdir -p "${FRAMEWORK_DIR%/*}"
-	git clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
-		https://github.com/yaniv-golan/mcp-bash-framework.git "${FRAMEWORK_DIR}"
+	if [ -n "${GIT_HEX_MCPBASH_SHA256:-}" ]; then
+		install_from_verified_archive "${FRAMEWORK_VERSION}" "${FRAMEWORK_DIR}" "${GIT_HEX_MCPBASH_SHA256}" "${GIT_HEX_MCPBASH_ARCHIVE_URL:-}" || {
+			echo "Verified archive install failed; aborting." >&2
+			exit 1
+		}
+	else
+		git clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
+			https://github.com/yaniv-golan/mcp-bash-framework.git "${FRAMEWORK_DIR}"
+	fi
 	# Create a convenience symlink matching the installer behavior
 	mkdir -p "$HOME/.local/bin"
 	ln -snf "${FRAMEWORK_DIR}/bin/mcp-bash" "$HOME/.local/bin/mcp-bash"

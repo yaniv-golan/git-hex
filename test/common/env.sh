@@ -19,7 +19,7 @@ else
 	if [ -d "${XDG_FRAMEWORK_DIR}" ]; then
 		FRAMEWORK_DIR="${XDG_FRAMEWORK_DIR}"
 	else
-		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install via the v0.6.0 installer." >&2
+		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install via the v0.7.0 installer (prefer --verify)." >&2
 		exit 1
 	fi
 fi

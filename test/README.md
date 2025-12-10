@@ -8,7 +8,9 @@ The tests require the `mcp-bash` framework. You can either:
 
 1. **Install the framework** (recommended for CI):
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes --version v0.6.0
+   # Replace $MCPBASH_SHA256 with the published checksum for v0.7.0
+   curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | \
+     bash -s -- --yes --version v0.7.0 --verify "$MCPBASH_SHA256"
    ```
 
 2. **Use a local development version** by setting `MCPBASH_HOME`:
@@ -154,7 +156,7 @@ mcp-bash run-tool git-hex-rebaseWithPlan \
 ## CI Integration
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
-1. Installs the mcp-bash framework (pinned to v0.6.0).
+1. Installs the mcp-bash framework (pinned to v0.7.0; prefer passing the published checksum with `--verify`).
 2. Runs lint on Linux (shellcheck + shfmt).
 3. Runs `mcp-bash validate`, integration tests, and security tests on Linux and macOS (with failure logs artifacted).
 4. Runs integration tests on Windows with a time budget guard.

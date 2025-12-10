@@ -49,37 +49,6 @@ test_verify_framework() {
 		echo "ERROR: mcp-bash not found in PATH" >&2
 		exit 1
 	fi
-	test_verify_json_tool_exec
-}
-
-test_verify_json_tool_exec() {
-	local bin="" tool="gojq" rc=0
-
-	if [ -n "${MCPBASH_JSON_TOOL_BIN:-}" ]; then
-		bin="${MCPBASH_JSON_TOOL_BIN}"
-		tool="${MCPBASH_JSON_TOOL:-unknown}"
-	elif command -v jq >/dev/null 2>&1; then
-		bin="$(command -v jq)"
-		tool="jq"
-	elif command -v gojq >/dev/null 2>&1; then
-		bin="$(command -v gojq)"
-		tool="gojq"
-	fi
-
-	[ -z "${bin}" ] && return 0
-
-	if ! "${bin}" --version >/dev/null 2>&1; then
-		rc=$?
-		printf 'WARNING: JSON tool %s failed to execute (%s). On Windows runners, set MCPBASH_JSON_TOOL=jq and MCPBASH_JSON_TOOL_BIN=jq to avoid gojq exec limits.\n' "${tool}" "${bin}" >&2
-		return "${rc}"
-	fi
-
-	if [ "${tool}" = "gojq" ] && [[ "${OSTYPE:-}" != "linux-gnu" && "${OSTYPE:-}" != darwin* ]]; then
-		# Windows/MSYS/Cygwin: hint to prefer jq if available
-		if command -v jq >/dev/null 2>&1; then
-			printf 'INFO: gojq detected (%s). jq is also available; set MCPBASH_JSON_TOOL=jq to avoid Windows exec limits if needed.\n' "${bin}" >&2
-		fi
-	fi
 }
 
 # Run a tool and extract the structured content from the response

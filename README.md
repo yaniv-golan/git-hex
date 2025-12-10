@@ -138,7 +138,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 | Dependency | Version/Notes |
 |------------|---------------|
-| MCP Bash Framework (`mcp-bash`) | v0.6.0+ |
+| MCP Bash Framework (`mcp-bash`) | v0.7.0+ |
 | bash | 3.2+ |
 | jq or gojq | Required for full mode |
 | git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
@@ -156,6 +156,8 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see “Read-Only Mode”) |
+| `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
+| `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
 
 > **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (GUI/login-shell) when launching from other directories or GUI clients.
 
@@ -181,18 +183,25 @@ git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
 ./git-hex.sh  # Auto-installs framework on first run
 ```
+In CI, set `GIT_HEX_MCPBASH_SHA256` (and optional `GIT_HEX_MCPBASH_ARCHIVE_URL`) to enforce a verified tarball install; otherwise the wrapper clones the tagged ref.
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
-If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.6.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`):
+If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.7.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`). Prefer the release tarball + checksum for reproducible installs:
 
 ```bash
 # Clone git-hex
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 
 # Ensure the MCP Bash Framework is installed and on PATH
-curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.6.0
+# Replace $MCPBASH_SHA256 with the published checksum for v0.7.0
+curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | \
+  bash -s -- --version v0.7.0 --verify "$MCPBASH_SHA256"
 ```
+
+#### JSON tooling and Windows/MSYS
+
+The framework auto-detects JSON tooling (prefers `jq`, falls back to `gojq`) and includes MSYS/Git Bash guidance via `mcp-bash doctor`. No extra env is required in typical setups. If you hit Windows path/exec-limit issues, set `MCPBASH_JSON_TOOL=jq` and `MSYS2_ARG_CONV_EXCL="*"` manually.
 
 ## Claude Code Plugin
 

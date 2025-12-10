@@ -2,7 +2,7 @@ FROM debian:bookworm-slim
 
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
-ARG FRAMEWORK_VERSION=v0.6.0
+ARG FRAMEWORK_VERSION=v0.7.0
 ENV XDG_DATA_HOME=/root/.local/share
 ENV PATH="/root/.local/bin:${PATH}"
 

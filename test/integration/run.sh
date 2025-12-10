@@ -26,8 +26,21 @@ capture_environment() {
 		printf 'Bash: %s\n' "${BASH_VERSION}"
 		printf 'Shell options: %s\n' "$-"
 		printf 'PWD: %s\n' "${PWD}"
+		printf 'PATH length (bytes): %s\n' "${#PATH}"
+		printf 'Env size (bytes): %s\n' "$(env | wc -c | tr -d ' ')"
 		printf '\n--- Relevant Environment Variables ---\n'
 		env | grep -E '^(GIT_|MCPBASH_|GITHEX_|PATH=|HOME=|TMPDIR=|RUNNER_|GITHUB_)' | sort || true
+		printf '\n--- JSON Tool Detection ---\n'
+		if command -v jq >/dev/null 2>&1; then
+			printf 'jq: %s\n' "$(command -v jq)"
+		else
+			printf 'jq: not found\n'
+		fi
+		if command -v gojq >/dev/null 2>&1; then
+			printf 'gojq: %s\n' "$(command -v gojq)"
+		else
+			printf 'gojq: not found\n'
+		fi
 		printf '\n--- Tool Versions ---\n'
 		printf 'git: %s\n' "$(git --version 2>/dev/null || echo 'not found')"
 		printf 'jq: %s\n' "$(jq --version 2>/dev/null || echo 'not found')"

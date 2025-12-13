@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "completions": [
+    {"name": "git-hex-ref", "path": "completions/git-ref.sh", "timeoutSecs": 2},
+    {"name": "git-hex-commit", "path": "completions/commit-sha.sh", "timeoutSecs": 2},
+    {"name": "git-hex-conflict-path", "path": "completions/conflict-path.sh", "timeoutSecs": 2}
+  ]
+}

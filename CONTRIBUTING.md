@@ -26,6 +26,8 @@ curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main
 ```
 
 > Note: mcp-bash-framework v0.7.0+ requires tool allowlisting. The `./git-hex.sh` and `./git-hex-env.sh` launchers set `MCPBASH_TOOL_ALLOWLIST` to the explicit git-hex tool set (and narrow it further in read-only mode) so tools can run safely.
+>
+> Completions are registered declaratively via `server.d/register.json` (no hook enable required).
 
 ## Development Workflow
 

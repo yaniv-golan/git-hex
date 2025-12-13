@@ -52,10 +52,4 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	fi
 fi
 
-# mcp-bash-framework v0.7.0+: project registry hooks (server.d/register.sh) are opt-in.
-# Keep hooks disabled by default; allow explicit enabling for completions/manual registries.
-if [ "${GIT_HEX_ENABLE_PROJECT_HOOKS:-}" = "1" ] && [ -z "${MCPBASH_ALLOW_PROJECT_HOOKS:-}" ]; then
-	export MCPBASH_ALLOW_PROJECT_HOOKS="true"
-fi
-
 exec "${MCP_BASH}" "$@"

@@ -34,12 +34,6 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	export MCPBASH_TOOL_ALLOWLIST="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
 fi
 
-# Project registry hooks (server.d/register.sh) are opt-in in framework v0.7.0+.
-# Allow tests to opt in via the same flag used by the launchers.
-if [ "${GIT_HEX_ENABLE_PROJECT_HOOKS:-}" = "1" ] && [ -z "${MCPBASH_ALLOW_PROJECT_HOOKS:-}" ]; then
-	export MCPBASH_ALLOW_PROJECT_HOOKS="true"
-fi
-
 # Prefer CI-safe defaults when running under automation
 if [ "${CI:-}" = "true" ] && [ -z "${MCPBASH_CI_MODE:-}" ]; then
 	export MCPBASH_CI_MODE=1

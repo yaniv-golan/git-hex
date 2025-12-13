@@ -27,6 +27,12 @@ fi
 export MCPBASH_PROJECT_ROOT="${PROJECT_ROOT}"
 export PATH="${FRAMEWORK_DIR}/bin:${PATH}"
 
+# mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
+# Default to allowing only git-hex tools for tests; callers can override (e.g., "*" in trusted projects).
+if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
+	export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
+fi
+
 # Prefer CI-safe defaults when running under automation
 if [ "${CI:-}" = "true" ] && [ -z "${MCPBASH_CI_MODE:-}" ]; then
 	export MCPBASH_CI_MODE=1

@@ -140,6 +140,7 @@ For manual testing or debugging:
 
 ```bash
 # Test a tool directly
+export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
 mcp-bash run-tool git-hex-getRebasePlan \
     --args '{"repoPath": "/path/to/repo", "count": 5}' \
     --roots '/path/to/repo'

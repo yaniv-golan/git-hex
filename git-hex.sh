@@ -35,7 +35,8 @@ install_from_verified_archive() {
 	fi
 
 	if [ -z "${archive_url}" ]; then
-		archive_url="https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/${version}.tar.gz"
+		# v0.7.0+: verification is published for the release tarball + SHA256SUMS.
+		archive_url="https://github.com/yaniv-golan/mcp-bash-framework/releases/download/${version}/mcp-bash-${version}.tar.gz"
 	fi
 
 	local tmp_archive
@@ -103,4 +104,11 @@ if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 fi
 
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
+
+# mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
+# Default to allowing only git-hex tools; callers can override (e.g., "*" in trusted projects).
+if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
+	export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
+fi
+
 exec "${FRAMEWORK_DIR}/bin/mcp-bash" "$@"

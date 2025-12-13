@@ -1,0 +1,8 @@
+{
+  "name": "git-hex-rebase-todo",
+  "title": "Git rebase todo (rebase-merge)",
+  "uriTemplate": "file:///{repoPath}/.git/rebase-merge/git-rebase-todo",
+  "description": "Read the interactive rebase todo file when a rebase is paused (git rebase --merge backend). Expand repoPath to the absolute repo path without a leading slash (e.g., Users/me/repo).",
+  "mimeType": "text/plain",
+  "annotations": {"audience": ["user", "assistant"]}
+}

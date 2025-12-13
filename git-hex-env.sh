@@ -40,9 +40,22 @@ fi
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
 
 # mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
-# Default to allowing only git-hex tools; callers can override (e.g., "*" in trusted projects).
+# The allowlist is exact-match (no globs), so we set the full tool set explicitly.
+# Callers can override (e.g., "*" in trusted projects).
 if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
-	export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
+	GIT_HEX_TOOL_ALLOWLIST_READONLY="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus"
+	GIT_HEX_TOOL_ALLOWLIST_ALL="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+	if [ "${GIT_HEX_READ_ONLY:-}" = "1" ]; then
+		export MCPBASH_TOOL_ALLOWLIST="${GIT_HEX_TOOL_ALLOWLIST_READONLY}"
+	else
+		export MCPBASH_TOOL_ALLOWLIST="${GIT_HEX_TOOL_ALLOWLIST_ALL}"
+	fi
+fi
+
+# mcp-bash-framework v0.7.0+: project registry hooks (server.d/register.sh) are opt-in.
+# Keep hooks disabled by default; allow explicit enabling for completions/manual registries.
+if [ "${GIT_HEX_ENABLE_PROJECT_HOOKS:-}" = "1" ] && [ -z "${MCPBASH_ALLOW_PROJECT_HOOKS:-}" ]; then
+	export MCPBASH_ALLOW_PROJECT_HOOKS="true"
 fi
 
 exec "${MCP_BASH}" "$@"

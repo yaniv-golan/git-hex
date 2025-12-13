@@ -86,7 +86,7 @@ jobs:
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
-      MCPBASH_TOOL_ALLOWLIST: "git-hex-*"
+      MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
     steps:
       - uses: actions/checkout@v4
 
@@ -216,7 +216,7 @@ jobs:
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
-      MCPBASH_TOOL_ALLOWLIST: "git-hex-*"
+      MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
     steps:
       - uses: actions/checkout@v4
 

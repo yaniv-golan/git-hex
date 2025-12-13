@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main
 ./git-hex.sh  # Should start without errors (Ctrl+C to exit)
 ```
 
-> Note: mcp-bash-framework v0.7.0+ requires tool allowlisting. The `./git-hex.sh` and `./git-hex-env.sh` launchers default `MCPBASH_TOOL_ALLOWLIST=git-hex-*` so tools can run safely.
+> Note: mcp-bash-framework v0.7.0+ requires tool allowlisting. The `./git-hex.sh` and `./git-hex-env.sh` launchers set `MCPBASH_TOOL_ALLOWLIST` to the explicit git-hex tool set (and narrow it further in read-only mode) so tools can run safely.
 
 ## Development Workflow
 

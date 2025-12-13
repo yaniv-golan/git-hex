@@ -28,9 +28,16 @@ export MCPBASH_PROJECT_ROOT="${PROJECT_ROOT}"
 export PATH="${FRAMEWORK_DIR}/bin:${PATH}"
 
 # mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
-# Default to allowing only git-hex tools for tests; callers can override (e.g., "*" in trusted projects).
+# The allowlist is exact-match (no globs), so we set the full tool set explicitly.
+# Callers can override (e.g., "*" in trusted projects).
 if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
-	export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
+	export MCPBASH_TOOL_ALLOWLIST="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+fi
+
+# Project registry hooks (server.d/register.sh) are opt-in in framework v0.7.0+.
+# Allow tests to opt in via the same flag used by the launchers.
+if [ "${GIT_HEX_ENABLE_PROJECT_HOOKS:-}" = "1" ] && [ -z "${MCPBASH_ALLOW_PROJECT_HOOKS:-}" ]; then
+	export MCPBASH_ALLOW_PROJECT_HOOKS="true"
 fi
 
 # Prefer CI-safe defaults when running under automation

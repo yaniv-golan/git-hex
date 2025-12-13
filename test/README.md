@@ -140,16 +140,17 @@ For manual testing or debugging:
 
 ```bash
 # Test a tool directly
-export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
 mcp-bash run-tool git-hex-getRebasePlan \
     --args '{"repoPath": "/path/to/repo", "count": 5}' \
-    --roots '/path/to/repo'
+    --roots '/path/to/repo' \
+    --allow-self
 
 # With custom timeout
 mcp-bash run-tool git-hex-rebaseWithPlan \
     --args '{"onto": "main"}' \
     --roots '/path/to/repo' \
-    --timeout 120
+    --timeout 120 \
+    --allow-self
 ```
 
 > **Windows/Git Bash Note**: Set `MSYS2_ARG_CONV_EXCL="*"` before running commands with path arguments to prevent automatic path mangling.

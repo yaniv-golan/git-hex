@@ -32,9 +32,17 @@ fi
 
 if [ -z "${MCP_BASH}" ]; then
 	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
-	printf 'Install: curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0\n' >&2
+	printf "Install (recommended, verified): curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0 --verify \"\$MCPBASH_SHA256\"\n" >&2
+	printf 'Install (fallback): curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0\n' >&2
 	exit 1
 fi
 
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
+
+# mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
+# Default to allowing only git-hex tools; callers can override (e.g., "*" in trusted projects).
+if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
+	export MCPBASH_TOOL_ALLOWLIST="git-hex-*"
+fi
+
 exec "${MCP_BASH}" "$@"

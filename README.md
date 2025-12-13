@@ -27,7 +27,7 @@ Targets MCP protocol **2025-11-25** (downgrades handled by the MCP Bash Framewor
 |----------|----------|-------|
 | Core | ✅ Full | Lifecycle, ping, capabilities via framework |
 | Tools | ✅ Full | git-hex tool suite (see “Tools”) |
-| Resources | ⚠️ None | Not exposed yet (future) |
+| Resources | ⚠️ Templates only | Optional file-based templates for debugging git state (requires roots) |
 | Prompts | ⚠️ None | Not exposed yet (future) |
 | Completions | ⚠️ Framework capability only | No completion providers are registered by git-hex |
 
@@ -156,9 +156,10 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see “Read-Only Mode”) |
+| `GIT_HEX_ENABLE_PROJECT_HOOKS` | unset | If `1`, enables mcp-bash project hooks (`server.d/register.sh`) to register optional completions and other manual registries. Only enable on trusted checkouts. |
 | `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
-| `MCPBASH_TOOL_ALLOWLIST` | `git-hex-*` (via launchers) | Framework v0.7.0+: allowlisted tools may execute. Override to `*` only for trusted environments. |
+| `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Framework v0.7.0+: allowlisted tools may execute. The launchers set an explicit list of git-hex tool names by default (and narrow it in read-only mode). Override to `*` only for trusted environments. |
 
 > **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (GUI/login-shell) when launching from other directories or GUI clients.
 

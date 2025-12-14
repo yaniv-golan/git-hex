@@ -56,7 +56,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.7.0/install.sh | bash -s -- --version v0.7.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
           CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
           echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
@@ -139,7 +139,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.7.0/install.sh | bash -s -- --version v0.7.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
           CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
           echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
@@ -257,7 +257,7 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/v0.7.0/install.sh | bash -s -- --version v0.7.0
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
           CLEAN_PATH="$(printf '%s' "$PATH" | tr ':' '\n' | grep -v '/.local/bin$' | paste -sd: -)"
           echo "PATH=$HOME/.local/share/mcp-bash/bin:${CLEAN_PATH}" >> "$GITHUB_ENV"
           echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"

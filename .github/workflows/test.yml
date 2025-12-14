@@ -138,7 +138,11 @@ jobs:
         run: |
           echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
           echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
-          echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "MCPBASH_PROJECT_ROOT=$(cygpath -u "${GITHUB_WORKSPACE}")" >> "$GITHUB_ENV"
+          else
+            echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+          fi
 
       - name: Install mcp-bash framework
         run: |

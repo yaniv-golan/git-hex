@@ -39,15 +39,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: true
-          cache-dependency-path: tools/go.sum
+          cache: false
 
-      - name: Cache Go build cache
+      - name: Cache Go (gojq)
         id: gocache
         uses: actions/cache@v4
         with:
-          path: ${{ env.GOCACHE }}
-          key: ${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go.outputs.go-version }}
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: ${{ runner.os }}-gojq-v0.12.16-${{ steps.go.outputs.go-version }}
 
       - name: Install gojq
         run: |
@@ -116,15 +118,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: true
-          cache-dependency-path: tools/go.sum
+          cache: false
 
-      - name: Cache Go build cache
+      - name: Cache Go (gojq)
         id: gocache
         uses: actions/cache@v4
         with:
-          path: ${{ env.GOCACHE }}
-          key: ${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go.outputs.go-version }}
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: ${{ runner.os }}-gojq-v0.12.16-${{ steps.go.outputs.go-version }}
 
       - name: Install gojq
         run: |
@@ -234,15 +238,17 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-          cache: true
-          cache-dependency-path: tools/go.sum
+          cache: false
 
-      - name: Cache Go build cache
+      - name: Cache Go (gojq)
         id: gocache-nightly
         uses: actions/cache@v4
         with:
-          path: ${{ env.GOCACHE }}
-          key: nightly-${{ runner.os }}-gocache-${{ hashFiles('tools/go.sum') }}-${{ steps.go-nightly.outputs.go-version }}
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: nightly-${{ runner.os }}-gojq-v0.12.16-${{ steps.go-nightly.outputs.go-version }}
 
       - name: Install gojq
         run: |

@@ -170,7 +170,9 @@ jobs:
           win_mcpbash="${HOME}/.local/share/mcp-bash/bin"
           trimmed="${win_mcpbash}:${win_gopath}/bin:/usr/bin:/mingw64/bin:/c/ProgramData/Chocolatey/bin"
           echo "PATH=${trimmed}" >> "$GITHUB_ENV"
-          echo "MSYS2_ARG_CONV_EXCL=*" >> "$GITHUB_ENV"
+          # Keep MSYS path conversion enabled for native tools (e.g., jq.exe reading files),
+          # but prevent conversion of the JSON string passed to `mcp-bash run-tool --args`.
+          echo "MSYS2_ARG_CONV_EXCL=--args" >> "$GITHUB_ENV"
 
       - name: Validate project
         run: |

@@ -26,13 +26,22 @@ if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 # Check for any in-progress git operations
-if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+merge_head_path="${git_dir}/MERGE_HEAD"
+if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 

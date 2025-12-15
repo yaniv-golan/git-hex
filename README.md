@@ -138,7 +138,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 | Dependency | Version/Notes |
 |------------|---------------|
-| MCP Bash Framework (`mcp-bash`) | v0.7.0+ |
+| MCP Bash Framework (`mcp-bash`) | v0.8.0+ |
 | bash | 3.2+ |
 | jq or gojq | Required for full mode |
 | git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
@@ -156,6 +156,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see “Read-Only Mode”) |
+| `GIT_HEX_AUTO_INSTALL_FRAMEWORK` | `true` | If `true`, `git-hex.sh` auto-installs the pinned MCP Bash Framework when missing. Set to `false` to require a preinstalled framework (or use `git-hex-env.sh`). |
 | `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
 | `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Framework v0.7.0+: allowlisted tools may execute. The launchers set an explicit list of git-hex tool names by default (and narrow it in read-only mode). Override to `*` only for trusted environments. |
@@ -192,16 +193,16 @@ In CI, set `GIT_HEX_MCPBASH_SHA256` (and optional `GIT_HEX_MCPBASH_ARCHIVE_URL`)
 
 ### Advanced: Use an Existing MCP Bash Framework Install
 
-If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.7.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`). Prefer the release tarball + checksum for reproducible installs:
+If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.8.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`). Prefer the release tarball + checksum for reproducible installs:
 
 ```bash
 # Clone git-hex
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 
-# Ensure the MCP Bash Framework is installed and on PATH
-# Replace $MCPBASH_SHA256 with the published checksum for v0.7.0
-curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | \
-  bash -s -- --version v0.7.0 --verify "$MCPBASH_SHA256"
+# Verified install (recommended): let `git-hex.sh` download the pinned release tarball and verify it.
+# v0.8.0 tarball SHA256 (from the mcp-bash-framework release SHA256SUMS).
+export GIT_HEX_MCPBASH_SHA256="488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d33761e8edb9be45349"
+cd ~/git-hex && ./git-hex.sh
 ```
 
 #### JSON tooling and Windows/MSYS
@@ -253,7 +254,7 @@ The MCP server auto-starts via `git-hex.sh`; no extra client config required. Sk
 
 **Launchers (which one to use):**
 - `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
-- `git-hex-env.sh` — login-aware launcher (sources your shell profile first). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
+- `git-hex-env.sh` — login-aware launcher (sources your login profile first, e.g., `~/.zprofile` or `~/.bash_profile`). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
 - Both expose the same commands (`./git-hex.sh validate`, `./git-hex-env.sh config --inspector`, etc.). Point your client’s `command` at whichever fits the environment.
 
 Tips:
@@ -516,7 +517,7 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
   "conflictingFiles": [
     {
       "path": "conflict.txt",
-      "status": "both modified"
+      "conflictType": "both_modified"
     }
   ],
   "paused": true,
@@ -806,7 +807,7 @@ npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/git-he
 
 ```bash
 docker build -t git-hex .
-docker run -i --rm -v /path/to/repos:/repos git-hex
+docker run -i --rm -v /path/to/repo:/repo git-hex --roots /repo
 ```
 
 Pass MCP roots and the target repo explicitly when running the container (examples):
@@ -846,32 +847,25 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 
 ## MCP Details
 
-- Capabilities: git-hex currently exposes tools only (no MCP `resources` or `prompts` yet; `resources/` and `prompts/` are placeholders for future use).
+- Capabilities: git-hex exposes MCP tools, completion providers, and optional file-based resource templates under `resources/` for debugging git state (no MCP `prompts` yet).
 - Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
 - Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see “Read-Only Mode”).
 - Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.
 
 ### Using with MCP clients
 
-Minimal stdio configuration (Claude CLI/Code-style):
+Minimal stdio configuration (client JSON varies; start with the wrapper and add roots per your client):
 ```json
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/git-hex.sh",
-      "args": [],
-      "env": {
-        "MCPBASH_PROJECT_ROOT": "/path/to/git-hex"
-      },
-      "cwd": "/path/to/git-hex",
-      "transport": "stdio",
-      "allowedRoots": ["/path/to/repo"]
+      "command": "/path/to/git-hex/git-hex.sh"
     }
   }
 }
 ```
 
-If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/env matches your login shell. Always set `allowedRoots` to the repositories you want the tools to touch.
+If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/env matches your login shell. Always configure your client’s `roots`/`allowedRoots` (name varies by client) to the repositories you want the tools to touch.
 
 ### Environment flags
 
@@ -880,7 +874,7 @@ If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/en
 | `MCPBASH_PROJECT_ROOT` | (auto when running `git-hex.sh`) | Path to this repo; required if you invoke `mcp-bash` directly. |
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (read-only mode). |
 | `GIT_HEX_DEBUG` | unset | `true` enables shell tracing in tools. |
-| `GIT_HEX_DEBUG_SPLIT` | unset | `true` dumps splitCommit debug JSON to `/tmp/git-hex-split-debug.json`. |
+| `GIT_HEX_DEBUG_SPLIT` | unset | `true` dumps splitCommit debug JSON to `${TMPDIR:-/tmp}/git-hex-split-debug.json`. |
 | `MCPBASH_CI_MODE` | unset | `1` uses CI-safe defaults in tests (set automatically in CI). |
 | `MCPBASH_TRACE_TOOLS` | unset | Set to enable per-command tracing in tools (see `MCPBASH_TRACE_PS4`). |
 

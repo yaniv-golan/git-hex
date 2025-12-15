@@ -27,6 +27,17 @@ auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 autosquash="$(mcp_args_bool '.autosquash' --default true)"
 require_complete="$(mcp_args_bool '.requireComplete' --default false)"
 
+_git_hex_cleanup_files=""
+_git_hex_cleanup() {
+	if [ -n "${_git_hex_cleanup_files}" ]; then
+		# shellcheck disable=SC2086
+		rm -f ${_git_hex_cleanup_files} 2>/dev/null || true
+	fi
+	unset GIT_HEX_TODO_FILE
+	return 0
+}
+trap '_git_hex_cleanup' EXIT
+
 # Validate repo
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
@@ -38,19 +49,28 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 # Check for in-progress operations
-if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+merge_head_path="${git_dir}/MERGE_HEAD"
+if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
 # Dirty working tree check (unless using native autostash)
 if [ "${auto_stash}" = "false" ]; then
-	if ! git -C "${repo_path}" diff-index --quiet HEAD -- 2>/dev/null; then
+	if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
 		mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
 	fi
 fi
@@ -76,13 +96,13 @@ if [ -z "${actual_commits}" ]; then
 fi
 
 # Parse plan into arrays
-plan_length="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+plan_length="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
 plan_actions=()
 plan_commits=()
 plan_messages=()
 
 if [ "${plan_length}" -gt 0 ]; then
-	has_null_message="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
+	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
 	if [ "${has_null_message}" = "true" ]; then
 		mcp_fail_invalid_args "Commit message cannot contain null bytes"
 	fi
@@ -95,9 +115,9 @@ fi
 
 if [ "${plan_length}" -gt 0 ]; then
 	for i in $(seq 0 $((plan_length - 1))); do
-		action="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].action")"
-		commit_ref="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].commit")"
-		message="$(echo "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"")"
+		action="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].action")"
+		commit_ref="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].commit")"
+		message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"")"
 
 		full_hash="$(git -C "${repo_path}" rev-parse --verify "${commit_ref}^{commit}" 2>/dev/null || true)"
 		if [ -z "${full_hash}" ]; then
@@ -134,7 +154,7 @@ fi
 # Each reword/fixup message is written to a file and read with git commit -F
 # NOTE: These files are NOT cleaned up by the tool - they must persist until
 # git rebase completes all exec commands. The OS will clean /tmp eventually.
-_git_hex_msg_dir="$(mktemp -d)"
+_git_hex_msg_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.rebase.msg.XXXXXX")"
 _git_hex_msg_counter=0
 
 # Helper to create a message file and return exec command
@@ -170,18 +190,11 @@ $(create_reword_exec "${message}")
 		fi
 	done
 else
-	plan_actions_file="$(mktemp)"
-	plan_messages_file="$(mktemp)"
+	plan_actions_file="$(mktemp "${TMPDIR:-/tmp}/githex.rebase.actions.XXXXXX")"
+	plan_messages_file="$(mktemp "${TMPDIR:-/tmp}/githex.rebase.messages.XXXXXX")"
 	# These action/message index files CAN be cleaned up (they're read before rebase starts)
 	# But _git_hex_msg_dir must NOT be cleaned up (exec commands read from it during rebase)
-	_git_hex_prev_exit_trap="$(trap -p EXIT | sed -E "s/trap -- '(.*)' EXIT/\1/" || true)"
-	_git_hex_cleanup() {
-		# shellcheck disable=SC2086
-		rm -f "${plan_actions_file}" "${plan_messages_file}" 2>/dev/null || true
-		[ -n "${_git_hex_prev_exit_trap:-}" ] && eval "${_git_hex_prev_exit_trap}"
-		return 0
-	}
-	trap '_git_hex_cleanup' EXIT
+	_git_hex_cleanup_files="${_git_hex_cleanup_files} ${plan_actions_file} ${plan_messages_file}"
 
 	if [ "${plan_length}" -gt 0 ]; then
 		for i in $(seq 0 $((plan_length - 1))); do
@@ -227,7 +240,7 @@ fi
 
 # Create todo file and sequence editor command
 if [ "${use_custom_todo}" = "true" ]; then
-	todo_file="$(mktemp)"
+	todo_file="$(mktemp "${TMPDIR:-/tmp}/githex.rebase.todo.XXXXXX")"
 	printf '%s' "${complete_todo}" >"${todo_file}"
 	# Export the todo file path so the sequence editor can access it
 	# This avoids quoting issues with paths containing special characters
@@ -235,21 +248,7 @@ if [ "${use_custom_todo}" = "true" ]; then
 	# shellcheck disable=SC2016 # Variables must expand at runtime, not parse time
 	seq_editor='sh -c '\''cat "$GIT_HEX_TODO_FILE" > "$1"'\'' --'
 
-	# Cleanup temp files on exit
-	if [ -n "${_git_hex_cleanup_files:-}" ]; then
-		_git_hex_cleanup_files="${_git_hex_cleanup_files} ${todo_file}"
-	else
-		_git_hex_prev_exit_trap="$(trap -p EXIT | sed -E "s/trap -- '(.*)' EXIT/\1/" || true)"
-		_git_hex_cleanup_files="${todo_file}"
-		_git_hex_cleanup() {
-			# shellcheck disable=SC2086
-			rm -f ${_git_hex_cleanup_files} 2>/dev/null || true
-			unset GIT_HEX_TODO_FILE
-			[ -n "${_git_hex_prev_exit_trap}" ] && eval "${_git_hex_prev_exit_trap}"
-			return 0
-		}
-		trap '_git_hex_cleanup' EXIT
-	fi
+	_git_hex_cleanup_files="${_git_hex_cleanup_files} ${todo_file}"
 else
 	seq_editor=""
 fi
@@ -305,7 +304,7 @@ else
 			while IFS= read -r cf; do
 				[ -z "${cf}" ] && continue
 				# shellcheck disable=SC2016
-				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicting_files}"
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
 			# shellcheck disable=SC2016

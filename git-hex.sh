@@ -5,7 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Framework version pinning for reproducible installs
 # Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.7.0}"
+FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.8.0}"
+FRAMEWORK_VERSION_DEFAULT="v0.8.0"
+FRAMEWORK_GIT_SHA_DEFAULT_V080="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
 
 # Resolve framework location with preference for XDG Base Directory defaults
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -40,7 +42,8 @@ install_from_verified_archive() {
 	fi
 
 	local tmp_archive
-	tmp_archive="$(mktemp "${TMPDIR:-/tmp}/mcpbash.${version}.XXXXXX.tar.gz")"
+	# BSD/macOS `mktemp` requires the XXXXXX template to be at the end of the path.
+	tmp_archive="$(mktemp "${TMPDIR:-/tmp}/mcpbash.${version}.XXXXXX")"
 	if [ -z "${tmp_archive}" ]; then
 		echo "Failed to allocate temp archive path" >&2
 		return 1
@@ -95,8 +98,25 @@ if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 			exit 1
 		}
 	else
-		git clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
+		expected_git_sha="${GIT_HEX_MCPBASH_GIT_SHA:-}"
+		if [ -z "${expected_git_sha}" ] && [ "${FRAMEWORK_VERSION}" = "${FRAMEWORK_VERSION_DEFAULT}" ]; then
+			expected_git_sha="${FRAMEWORK_GIT_SHA_DEFAULT_V080}"
+		fi
+		if [ -z "${expected_git_sha}" ] && [ "${GIT_HEX_ALLOW_UNVERIFIED_FRAMEWORK:-}" != "true" ]; then
+			echo "Refusing to auto-install an unverified mcp-bash framework." >&2
+			echo "Set GIT_HEX_MCPBASH_SHA256 (preferred) or GIT_HEX_MCPBASH_GIT_SHA to enable verified installs." >&2
+			echo "To bypass (not recommended), set GIT_HEX_ALLOW_UNVERIFIED_FRAMEWORK=true." >&2
+			exit 1
+		fi
+		git -c fetch.fsckobjects=true -c transfer.fsckobjects=true clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
 			https://github.com/yaniv-golan/mcp-bash-framework.git "${FRAMEWORK_DIR}"
+		if [ -n "${expected_git_sha}" ]; then
+			actual_git_sha="$(git -C "${FRAMEWORK_DIR}" rev-parse HEAD 2>/dev/null || true)"
+			if [ "${actual_git_sha}" != "${expected_git_sha}" ]; then
+				echo "Unexpected mcp-bash-framework revision: ${actual_git_sha} (expected ${expected_git_sha})" >&2
+				exit 1
+			fi
+		fi
 	fi
 	# Create a convenience symlink matching the installer behavior
 	mkdir -p "$HOME/.local/bin"

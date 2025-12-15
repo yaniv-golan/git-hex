@@ -8,6 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHELL_PROFILE=""
 
 if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
+	# MCP servers run over stdio; any output emitted before the server starts can break
+	# some clients. Default to silencing profile output while still applying env changes.
+	GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT="${GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT:-1}"
+
 	if [ -n "${GIT_HEX_ENV_PROFILE:-}" ] && [ -f "${GIT_HEX_ENV_PROFILE}" ]; then
 		SHELL_PROFILE="${GIT_HEX_ENV_PROFILE}"
 	else
@@ -45,8 +49,13 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 	fi
 
 	if [ -n "${SHELL_PROFILE}" ]; then
-		# shellcheck source=/dev/null
-		. "${SHELL_PROFILE}"
+		if [ "${GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT}" = "1" ]; then
+			# shellcheck source=/dev/null
+			. "${SHELL_PROFILE}" >/dev/null 2>&1 || true
+		else
+			# shellcheck source=/dev/null
+			. "${SHELL_PROFILE}"
+		fi
 	fi
 fi
 

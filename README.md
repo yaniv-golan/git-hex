@@ -21,7 +21,7 @@ See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION`
 
 ## MCP Spec Coverage
 
-Targets MCP protocol **2025-11-25** (downgrades handled by the MCP Bash Framework).
+Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (version negotiation and client downgrades handled by the framework).
 
 | Category | Coverage | Notes |
 |----------|----------|-------|
@@ -170,7 +170,7 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 ## Versioning & Releases
 
 - Current development version: `0.1.0` (see `VERSION`).
-- No tags or GitHub releases have been published yet; pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`). We will tag v0.1.0 for release.
+- Tags/GitHub releases may not be published yet; pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`). We plan to tag v0.1.0 for release.
 
 ## Lint & Tests
 
@@ -254,7 +254,7 @@ The MCP server auto-starts via `git-hex.sh`; no extra client config required. Sk
 
 **Launchers (which one to use):**
 - `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
-- `git-hex-env.sh` — login-aware launcher (sources your login profile first, e.g., `~/.zprofile` or `~/.bash_profile`). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
+- `git-hex-env.sh` — login-aware launcher (sources your login profile first, e.g., `~/.zprofile` or `~/.bash_profile`). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop). It silences profile output by default to avoid corrupting stdio-based MCP sessions; set `GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT=0` to disable.
 - Both expose the same commands (`./git-hex.sh validate`, `./git-hex-env.sh config --inspector`, etc.). Point your client’s `command` at whichever fits the environment.
 
 Tips:
@@ -841,7 +841,6 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 - Tool reference: this README (see “Tools”).
 - Skills: `skills/git-hex-branch-cleanup/SKILL.md`, `skills/git-hex-conflict-resolution/SKILL.md`.
 - CHANGELOG: `CHANGELOG.md`.
-- Internal design/plan docs: `docs/internal/`.
 - Plugin metadata: `.claude-plugin/`.
 - Server policy and metadata: `server.d/`.
 

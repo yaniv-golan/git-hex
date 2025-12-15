@@ -17,11 +17,20 @@ if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 operation=""
-if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+merge_head_path="${git_dir}/MERGE_HEAD"
+if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	operation="rebase"
-elif [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+elif [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	operation="cherry-pick"
-elif [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+elif [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	operation="merge"
 else
 	mcp_fail_invalid_args "No rebase/merge/cherry-pick in progress"
@@ -45,7 +54,7 @@ if [ "${operation}" = "rebase" ]; then
 			while IFS= read -r cf; do
 				[ -z "${cf}" ] && continue
 				# shellcheck disable=SC2016
-				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicts}"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"
@@ -66,7 +75,7 @@ elif [ "${operation}" = "cherry-pick" ]; then
 			while IFS= read -r cf; do
 				[ -z "${cf}" ] && continue
 				# shellcheck disable=SC2016
-				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicts}"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"
@@ -87,7 +96,7 @@ else
 			while IFS= read -r cf; do
 				[ -z "${cf}" ] && continue
 				# shellcheck disable=SC2016
-				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicts}"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"

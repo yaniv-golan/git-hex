@@ -7,17 +7,47 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHELL_PROFILE=""
 
-if [ -f "${HOME}/.zshrc" ]; then
-	SHELL_PROFILE="${HOME}/.zshrc"
-elif [ -f "${HOME}/.bash_profile" ]; then
-	SHELL_PROFILE="${HOME}/.bash_profile"
-elif [ -f "${HOME}/.bashrc" ]; then
-	SHELL_PROFILE="${HOME}/.bashrc"
-fi
+if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
+	if [ -n "${GIT_HEX_ENV_PROFILE:-}" ] && [ -f "${GIT_HEX_ENV_PROFILE}" ]; then
+		SHELL_PROFILE="${GIT_HEX_ENV_PROFILE}"
+	else
+		user_shell="$(basename "${SHELL:-}" 2>/dev/null || echo "")"
+		case "${user_shell}" in
+		zsh)
+			# Login shells typically source .zprofile; interactive shells source .zshrc.
+			# Prefer login profile first so PATH/version managers are set for GUI apps.
+			if [ -f "${HOME}/.zprofile" ]; then
+				SHELL_PROFILE="${HOME}/.zprofile"
+			elif [ -f "${HOME}/.zshrc" ]; then
+				SHELL_PROFILE="${HOME}/.zshrc"
+			fi
+			;;
+		bash)
+			if [ -f "${HOME}/.bash_profile" ]; then
+				SHELL_PROFILE="${HOME}/.bash_profile"
+			elif [ -f "${HOME}/.bashrc" ]; then
+				SHELL_PROFILE="${HOME}/.bashrc"
+			elif [ -f "${HOME}/.profile" ]; then
+				SHELL_PROFILE="${HOME}/.profile"
+			fi
+			;;
+		*)
+			# Fallback for other shells: best-effort PATH setup via .profile
+			if [ -f "${HOME}/.profile" ]; then
+				SHELL_PROFILE="${HOME}/.profile"
+			elif [ -f "${HOME}/.zprofile" ]; then
+				SHELL_PROFILE="${HOME}/.zprofile"
+			elif [ -f "${HOME}/.bash_profile" ]; then
+				SHELL_PROFILE="${HOME}/.bash_profile"
+			fi
+			;;
+		esac
+	fi
 
-if [ -n "${SHELL_PROFILE}" ]; then
-	# shellcheck source=/dev/null
-	. "${SHELL_PROFILE}"
+	if [ -n "${SHELL_PROFILE}" ]; then
+		# shellcheck source=/dev/null
+		. "${SHELL_PROFILE}"
+	fi
 fi
 
 # Prefer PATH (after profile), then XDG location, then MCPBASH_HOME override
@@ -32,8 +62,7 @@ fi
 
 if [ -z "${MCP_BASH}" ]; then
 	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
-	printf "Install (recommended, verified): curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0 --verify \"\$MCPBASH_SHA256\"\n" >&2
-	printf 'Install (fallback): curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0\n' >&2
+	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the published checksum for v0.8.0, then run ./git-hex.sh (it will download + verify the release tarball).\n" >&2
 	exit 1
 fi
 

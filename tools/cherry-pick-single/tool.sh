@@ -20,7 +20,17 @@ source "${SCRIPT_DIR}/../../lib/stash.sh"
 # Cleanup function to abort cherry-pick on failure
 cleanup() {
 	if [ -n "${repo_path:-}" ]; then
-		if [ "${_git_hex_cleanup_abort:-true}" = "true" ] && [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+		git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+		if [ -n "${git_dir}" ]; then
+			case "${git_dir}" in
+			/*) ;;
+			*) git_dir="${repo_path}/${git_dir}" ;;
+			esac
+			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+		else
+			cherry_pick_head_path=""
+		fi
+		if [ "${_git_hex_cleanup_abort:-true}" = "true" ] && [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 			git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true
 		fi
 	fi
@@ -76,13 +86,22 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 # Check for any in-progress git operations
-if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+merge_head_path="${git_dir}/MERGE_HEAD"
+if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
 fi
-if [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
 fi
 
@@ -98,7 +117,7 @@ stash_not_restored="false"
 if [ "${auto_stash}" = "true" ]; then
 	stash_created="$(git_hex_auto_stash "${repo_path}")"
 else
-	if ! git -C "${repo_path}" diff-index --quiet HEAD -- 2>/dev/null; then
+	if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
 		mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
 	fi
 fi
@@ -170,23 +189,33 @@ else
 		if [ "${abort_on_conflict}" = "false" ]; then
 			_git_hex_cleanup_abort="false"
 			trap - EXIT
+			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
 			conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
 			conflicting_json="[]"
 			while IFS= read -r cf; do
 				[ -z "${cf}" ] && continue
 				# shellcheck disable=SC2016
-				conflicting_json="$(echo "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
 			done <<<"${conflicting_files}"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson success false \
 				--argjson paused true \
 				--arg reason "conflict" \
+				--arg headBefore "${head_before}" \
+				--arg headAfter "${head_after_pause}" \
+				--arg sourceCommit "${source_hash}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
-				'{success: $success, paused: $paused, reason: $reason, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
 		else
-			if [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+			git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+			case "${git_dir}" in
+			/*) ;;
+			*) git_dir="${repo_path}/${git_dir}" ;;
+			esac
+			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+			if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 				git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true
 			fi
 			if [ "${auto_stash}" = "true" ]; then

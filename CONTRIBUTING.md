@@ -9,7 +9,7 @@ Thank you for your interest in contributing to git-hex! This document provides g
 - **bash** 3.2+
 - **jq** or **gojq**
 - **git** 2.20+ (2.33+ recommended; 2.38+ required for `git-hex-checkRebaseConflicts`)
-- **mcp-bash framework** v0.7.0+
+- **mcp-bash framework** v0.8.0+
 
 ### Setup
 
@@ -19,7 +19,9 @@ git clone https://github.com/yaniv-golan/git-hex.git
 cd git-hex
 
 # Install the mcp-bash framework (if not already installed)
-curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0 --verify "$MCPBASH_SHA256"
+# v0.8.0 tarball SHA256 (from the mcp-bash-framework release SHA256SUMS).
+export GIT_HEX_MCPBASH_SHA256="488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d33761e8edb9be45349"
+./git-hex.sh
 
 # Verify setup
 ./git-hex.sh  # Should start without errors (Ctrl+C to exit)

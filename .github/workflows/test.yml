@@ -58,9 +58,18 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
-          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
-          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
+          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$expected_sha" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install lint dependencies
         run: |
@@ -81,8 +90,8 @@ jobs:
     env:
       KEEP_INTEGRATION_LOGS: "1"
       MCPBASH_KEEP_LOGS: "1"
-      GIT_HEX_DEBUG: "true"
-      GIT_HEX_DEBUG_REBASE: "true"
+      GIT_HEX_DEBUG: "false"
+      GIT_HEX_DEBUG_REBASE: "false"
       MCPBASH_CI_MODE: "1"
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
@@ -146,9 +155,18 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
-          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
-          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
+          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$expected_sha" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |
@@ -230,8 +248,8 @@ jobs:
     env:
       KEEP_INTEGRATION_LOGS: "1"
       MCPBASH_KEEP_LOGS: "1"
-      GIT_HEX_DEBUG: "true"
-      GIT_HEX_DEBUG_REBASE: "true"
+      GIT_HEX_DEBUG: "false"
+      GIT_HEX_DEBUG_REBASE: "false"
       MCPBASH_CI_MODE: "1"
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
@@ -279,9 +297,18 @@ jobs:
 
       - name: Install mcp-bash framework
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --version v0.7.0
-          echo "MCPBASH_HOME=$HOME/.local/share/mcp-bash" >> "$GITHUB_ENV"
-          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
+          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$expected_sha" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |

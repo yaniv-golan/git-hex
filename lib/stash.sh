@@ -14,7 +14,9 @@ git_hex_should_stash() {
 	local repo_path="$1"
 	local mode="${2:-normal}"
 
-	if ! git -C "${repo_path}" diff-index --quiet HEAD -- 2>/dev/null; then
+	# We intentionally ignore untracked files for safety; tools generally only
+	# require that tracked changes are clean unless explicitly documented.
+	if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
 		echo "true"
 		return 0
 	fi
@@ -88,7 +90,7 @@ git_hex_restore_stash() {
 			fi
 			if [ "${mode_hint}" = "keep-index" ]; then
 				local patch_file
-				patch_file="$(mktemp)"
+				patch_file="$(mktemp "${TMPDIR:-/tmp}/git-hex.stash.patch.XXXXXX")"
 				# Apply only the unstaged portion (worktree minus index) to avoid reapplying staged changes.
 				# Stash commits have three parents: base (^1), index (^2), worktree (^3). For older formats or
 				# keep-index with fewer parents, fall back to ^2.

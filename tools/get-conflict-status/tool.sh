@@ -13,6 +13,30 @@ repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 include_content="$(mcp_args_bool '.includeContent' --default false)"
 max_content="$(mcp_args_int '.maxContentSize' --default 10000 --min 0)"
 
+# Defensive path validation for repo-relative file paths (defense-in-depth).
+is_safe_repo_relative_path() {
+	local path="$1"
+
+	local orig_len clean_len
+	orig_len="$(printf '%s' "${path}" | LC_ALL=C wc -c | tr -d ' ')"
+	clean_len="$(printf '%s' "${path}" | LC_ALL=C tr -d '\0' | wc -c | tr -d ' ')"
+	if [ "${orig_len}" -ne "${clean_len}" ]; then
+		return 1
+	fi
+	if [[ "${path}" == /* ]]; then
+		return 1
+	fi
+	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/.."* || "${path}" == *"/../"* ]]; then
+		return 1
+	fi
+	case "${path}" in
+	[A-Za-z]:/* | [A-Za-z]:\\*)
+		return 1
+		;;
+	esac
+	return 0
+}
+
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
@@ -23,31 +47,41 @@ current_step=0
 total_steps=0
 conflicting_commit=""
 
-if [ -d "${repo_path}/.git/rebase-merge" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+merge_head_path="${git_dir}/MERGE_HEAD"
+
+if [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
 	conflict_type="rebase"
-	if [ -f "${repo_path}/.git/rebase-merge/msgnum" ]; then
-		current_step="$(cat "${repo_path}/.git/rebase-merge/msgnum")"
+	if [ -f "${rebase_merge_dir}/msgnum" ]; then
+		current_step="$(cat "${rebase_merge_dir}/msgnum")"
 	fi
-	if [ -f "${repo_path}/.git/rebase-merge/end" ]; then
-		total_steps="$(cat "${repo_path}/.git/rebase-merge/end")"
+	if [ -f "${rebase_merge_dir}/end" ]; then
+		total_steps="$(cat "${rebase_merge_dir}/end")"
 	fi
-	if [ -f "${repo_path}/.git/rebase-merge/stopped-sha" ]; then
-		conflicting_commit="$(cat "${repo_path}/.git/rebase-merge/stopped-sha")"
+	if [ -f "${rebase_merge_dir}/stopped-sha" ]; then
+		conflicting_commit="$(cat "${rebase_merge_dir}/stopped-sha")"
 	fi
-elif [ -d "${repo_path}/.git/rebase-apply" ]; then
+elif [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
 	conflict_type="rebase"
-	if [ -f "${repo_path}/.git/rebase-apply/next" ]; then
-		current_step="$(cat "${repo_path}/.git/rebase-apply/next")"
+	if [ -f "${rebase_apply_dir}/next" ]; then
+		current_step="$(cat "${rebase_apply_dir}/next")"
 	fi
-	if [ -f "${repo_path}/.git/rebase-apply/last" ]; then
-		total_steps="$(cat "${repo_path}/.git/rebase-apply/last")"
+	if [ -f "${rebase_apply_dir}/last" ]; then
+		total_steps="$(cat "${rebase_apply_dir}/last")"
 	fi
-elif [ -f "${repo_path}/.git/CHERRY_PICK_HEAD" ]; then
+elif [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	conflict_type="cherry-pick"
-	conflicting_commit="$(cat "${repo_path}/.git/CHERRY_PICK_HEAD")"
-elif [ -f "${repo_path}/.git/MERGE_HEAD" ]; then
+	conflicting_commit="$(cat "${cherry_pick_head_path}")"
+elif [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
-	conflicting_commit="$(cat "${repo_path}/.git/MERGE_HEAD")"
+	conflicting_commit="$(cat "${merge_head_path}")"
 else
 	mcp_emit_json '{"success": true, "inConflict": false, "summary": "No conflicts detected"}'
 	exit 0
@@ -83,31 +117,29 @@ while IFS= read -r file; do
 	esac
 
 	if [ "${include_content}" = "true" ]; then
-		is_binary=""
-		if [ -f "${repo_path}/${file}" ]; then
-			if [ ! -s "${repo_path}/${file}" ]; then
-				is_binary=""
-			elif grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
-				is_binary=""
-			else
-				if grep -q '[^[:space:]]' "${repo_path}/${file}" 2>/dev/null; then
-					is_binary="true"
-				else
-					is_binary=""
-				fi
-			fi
-		else
-			# Working copy missing; inspect staged blob (ours) for binary detection
-			if git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
-				is_binary=""
+		if ! is_safe_repo_relative_path "${file}"; then
+			# shellcheck disable=SC2016
+			files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
+				--arg path "${file}" \
+				--arg type "${file_conflict_type}" \
+				'. + [{path: $path, conflictType: $type, note: "Unsafe path; content omitted"}]')"
+			continue
+		fi
+
+		is_binary="false"
+		if [ -f "${repo_path}/${file}" ] && [ -s "${repo_path}/${file}" ]; then
+			if grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
+				is_binary="false"
 			else
 				is_binary="true"
 			fi
+		elif ! git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
+			is_binary="true"
 		fi
 
 		if [ "${is_binary}" = "true" ]; then
 			# shellcheck disable=SC2016
-			files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
+			files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
 				--argjson isBinary true \
@@ -119,7 +151,7 @@ while IFS= read -r file; do
 			working_content="$(head -c "${max_content}" "${repo_path}/${file}" 2>/dev/null || echo "")"
 
 			# shellcheck disable=SC2016
-			files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
+			files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
 				--argjson isBinary false \
@@ -131,14 +163,14 @@ while IFS= read -r file; do
 		fi
 	else
 		# shellcheck disable=SC2016
-		files_json="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
+		files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 			--arg path "${file}" \
 			--arg type "${file_conflict_type}" \
 			'. + [{path: $path, conflictType: $type}]')"
 	fi
 done <<<"${conflicting_files}"
 
-file_count="$(echo "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
+file_count="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
 
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \

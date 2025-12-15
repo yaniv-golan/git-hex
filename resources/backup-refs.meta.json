@@ -1,8 +1,8 @@
 {
   "name": "git-hex-backup-refs",
-  "title": "git-hex backup refs (loose refs)",
-  "uriTemplate": "file:///{repoPath}/.git/refs/git-hex/{refPath}",
-  "description": "Read loose git-hex backup ref files under .git/refs/git-hex/. Note: refs may be packed (no loose ref files). Expand repoPath to the absolute repo path without a leading slash (e.g., Users/me/repo) and refPath to a path like backup/1700000000_rebaseWithPlan.",
+  "title": "git-hex backup ref (loose ref)",
+  "uriTemplate": "file://{+repoPath}/.git/refs/git-hex/backup/{backupId}",
+  "description": "Read a loose git-hex backup ref file under .git/refs/git-hex/backup/. Note: refs may be packed (no loose ref files). Expand repoPath to the absolute repo path (RFC 6570, e.g., /Users/me/repo) and backupId to a single filename like 1700000000_rebaseWithPlan_1234512345.",
   "mimeType": "text/plain",
   "annotations": {"audience": ["assistant"]}
 }

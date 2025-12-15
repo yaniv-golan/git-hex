@@ -19,7 +19,7 @@ else
 	if [ -d "${XDG_FRAMEWORK_DIR}" ]; then
 		FRAMEWORK_DIR="${XDG_FRAMEWORK_DIR}"
 	else
-		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install via the v0.7.0 installer (prefer --verify)." >&2
+		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or install via the v0.8.0 installer (prefer --verify)." >&2
 		exit 1
 	fi
 fi
@@ -45,7 +45,8 @@ fi
 
 # Create temp directory for test artifacts
 test_create_tmpdir() {
-	TEST_TMPDIR="$(mktemp -d)"
+	# BSD/macOS `mktemp` requires an explicit template (or `-t`).
+	TEST_TMPDIR="$(mktemp -d "${TMPDIR:-/tmp}/githex.test.XXXXXX")"
 	export TEST_TMPDIR
 	trap 'rm -rf "${TEST_TMPDIR}"' EXIT
 }
@@ -69,7 +70,7 @@ run_tool() {
 	local timeout="${4:-30}"
 
 	local raw_output stderr_file
-	stderr_file="$(mktemp)"
+	stderr_file="$(mktemp "${TEST_TMPDIR:-${TMPDIR:-/tmp}}/githex.stderr.XXXXXX")"
 
 	# Framework sends diagnostics to stderr, stdout is clean JSON (may be multiple lines)
 	# Capture stderr to a temp file for debugging on failure

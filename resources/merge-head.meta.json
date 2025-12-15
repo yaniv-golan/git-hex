@@ -1,8 +1,8 @@
 {
   "name": "git-hex-merge-head",
   "title": "MERGE_HEAD",
-  "uriTemplate": "file:///{repoPath}/.git/MERGE_HEAD",
-  "description": "Read MERGE_HEAD when a merge is in progress. Expand repoPath to the absolute repo path without a leading slash (e.g., Users/me/repo).",
+  "uriTemplate": "file://{+repoPath}/.git/MERGE_HEAD",
+  "description": "Read MERGE_HEAD when a merge is in progress. Expand repoPath to the absolute repo path (RFC 6570, e.g., /Users/me/repo).",
   "mimeType": "text/plain",
   "annotations": {"audience": ["user", "assistant"]}
 }

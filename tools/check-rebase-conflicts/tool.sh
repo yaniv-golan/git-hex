@@ -32,7 +32,7 @@ if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 
-object_dir="$(mktemp -d)"
+object_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.objects.XXXXXX")"
 alt_objects="$(git -C "${repo_path}" rev-parse --git-path objects 2>/dev/null || true)"
 cleanup() {
 	rm -rf "${object_dir}" 2>/dev/null || true
@@ -71,7 +71,7 @@ while IFS=$'\x1f' read -r commit parents subject; do
 			--arg subject "${subject}" \
 			'{hash: $hash, subject: $subject, prediction: "unknown"}')"
 		# shellcheck disable=SC2016
-		commits_json="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+		commits_json="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 		continue
 	fi
 
@@ -119,7 +119,7 @@ while IFS=$'\x1f' read -r commit parents subject; do
 		current_tree="${tree_sha}"
 	fi
 	# shellcheck disable=SC2016
-	commits_json="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+	commits_json="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 done <<<"${commit_stream}"
 
 if [ "${would_conflict}" = "true" ]; then

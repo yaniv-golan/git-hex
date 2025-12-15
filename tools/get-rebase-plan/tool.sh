@@ -98,7 +98,7 @@ if [ "${onto}" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
 fi
 
 # Count commits for summary
-commit_count="$(echo "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'length')"
+commit_count="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'length')"
 
 # Build and emit result
 # shellcheck disable=SC2016

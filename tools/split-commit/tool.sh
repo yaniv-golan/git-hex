@@ -42,7 +42,14 @@ if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
 fi
 
-if [ -d "${repo_path}/.git/rebase-merge" ] || [ -d "${repo_path}/.git/rebase-apply" ]; then
+git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+case "${git_dir}" in
+/*) ;;
+*) git_dir="${repo_path}/${git_dir}" ;;
+esac
+rebase_merge_dir="${git_dir}/rebase-merge"
+rebase_apply_dir="${git_dir}/rebase-apply"
+if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	mcp_fail_invalid_args "Cannot split commit while rebase is in progress"
 fi
 
@@ -68,7 +75,7 @@ if ! git -C "${repo_path}" merge-base --is-ancestor "${full_commit}" HEAD 2>/dev
 fi
 
 # Validate splits array
-split_count="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+split_count="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
 if [ "${split_count}" -lt 2 ]; then
 	mcp_fail_invalid_args "At least 2 splits required"
 fi
@@ -81,8 +88,8 @@ fi
 # Validate coverage
 covered_files=""
 for i in $(seq 0 $((split_count - 1))); do
-	split_files="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
-	message="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
+	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	if [ -z "${split_files}" ]; then
 		mcp_fail_invalid_args "Split $((i + 1)) has no files"
 	fi
@@ -121,8 +128,8 @@ backup_ref="$(git_hex_create_backup "${repo_path}" "splitCommit")"
 commit_parent="$(git -C "${repo_path}" rev-parse "${full_commit}^")"
 commit_subject="$(git -C "${repo_path}" log -1 --format='%s' "${full_commit}")"
 
-seq_editor="$(mktemp)"
-msg_dir="$(mktemp -d)"
+seq_editor="$(mktemp "${TMPDIR:-/tmp}/githex.split.seq-editor.XXXXXX")"
+msg_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.split.msg.XXXXXX")"
 _git_hex_split_cleanup_files="${seq_editor}"
 _git_hex_split_cleanup_dirs="${msg_dir}"
 
@@ -167,7 +174,7 @@ rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebas
 
 unset GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT GIT_HEX_REPO_PATH
 
-if [ ! -d "${repo_path}/.git/rebase-merge" ] && [ ! -d "${repo_path}/.git/rebase-apply" ]; then
+if { [ -z "${rebase_merge_dir}" ] || [ ! -d "${rebase_merge_dir}" ]; } && { [ -z "${rebase_apply_dir}" ] || [ ! -d "${rebase_apply_dir}" ]; }; then
 	# Rebase did not pause as expected
 	if [ "${auto_stash}" = "true" ]; then
 		git_hex_restore_stash "${repo_path}" "${stash_created}" >/dev/null
@@ -189,8 +196,8 @@ git -C "${repo_path}" reset HEAD >/dev/null 2>&1
 
 new_commits_json="[]"
 for i in $(seq 0 $((split_count - 1))); do
-	split_files="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
-	message="$(echo "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
+	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	msg_file="${msg_dir}/msg_${i}.txt"
 	printf '%s\n' "${message}" >"${msg_file}"
 	while IFS= read -r file; do
@@ -199,7 +206,7 @@ for i in $(seq 0 $((split_count - 1))); do
 	done <<<"${split_files}"
 	git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
-	files_json="$(echo "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
+	files_json="$(printf '%s' "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
 	# shellcheck disable=SC2016
 	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg hash "${new_hash}" \
@@ -207,7 +214,7 @@ for i in $(seq 0 $((split_count - 1))); do
 		--argjson files "${files_json}" \
 		'{hash: $hash, message: $message, files: $files}')"
 	# shellcheck disable=SC2016
-	new_commits_json="$(echo "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+	new_commits_json="$(printf '%s' "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 done
 
 # Continue rebase
@@ -248,7 +255,7 @@ output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 
 if [ "${GIT_HEX_DEBUG_SPLIT:-}" = "true" ]; then
 	printf '%s\n' "${output_json}" >&2
-	printf '%s\n' "${output_json}" >/tmp/git-hex-split-debug.json
+	printf '%s\n' "${output_json}" >"${TMPDIR:-/tmp}/git-hex-split-debug.json"
 fi
 
 mcp_emit_json "${output_json}"

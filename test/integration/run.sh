@@ -78,6 +78,8 @@ run_test() {
 	log_file="${LOG_DIR}/${test_script}.log"
 	start="$(date +%s)"
 
+	printf '[%02d/%02d] %s ... RUNNING (log: %s)\n' "${index}" "${total}" "${test_script}" "${log_file}"
+
 	if [ "${VERBOSE}" = "1" ]; then
 		(
 			set -o pipefail

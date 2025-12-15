@@ -4,7 +4,7 @@ set -euo pipefail
 # Completion provider: git ref suggestions (branches/tags).
 #
 # Inputs:
-# - MCP_COMPLETION_ARGS_JSON: normalized args (MCP 2025-11-25)
+# - MCP_COMPLETION_ARGS_JSON: normalized args (provided by MCP Bash Framework)
 # - MCP_COMPLETION_LIMIT / MCP_COMPLETION_OFFSET
 #
 # Expected args (best-effort):

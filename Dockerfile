@@ -35,5 +35,8 @@ RUN set -euo pipefail; \
     ln -snf "${XDG_DATA_HOME}/mcp-bash/bin/mcp-bash" /root/.local/bin/mcp-bash
 
 ENV MCPBASH_PROJECT_ROOT=/app
+# mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
+# Default to the full git-hex tool set; callers can override at runtime.
+ENV MCPBASH_TOOL_ALLOWLIST="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
 
 ENTRYPOINT ["mcp-bash"]

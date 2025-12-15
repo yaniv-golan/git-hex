@@ -8,7 +8,7 @@
 .DS_Store
 Thumbs.db
 
-# Internal docs (local-only)
+# Local-only docs and IDE config
 docs/internal/
 git-hex.code-workspace
 .cursor/rules/

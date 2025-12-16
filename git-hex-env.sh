@@ -5,6 +5,7 @@ set -euo pipefail
 # and version managers are only set in your shell profile.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REQUIRED_MCPBASH_MIN_VERSION="0.8.0"
 SHELL_PROFILE=""
 
 if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
@@ -59,19 +60,60 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 	fi
 fi
 
-# Prefer PATH (after profile), then XDG location, then MCPBASH_HOME override
+# Prefer vendored/framework install locations over whatever happens to be in PATH,
+# so the plugin runs on a known-good mcp-bash version.
 MCP_BASH=""
-if command -v mcp-bash >/dev/null 2>&1; then
-	MCP_BASH="$(command -v mcp-bash)"
-elif [ -f "${HOME}/.local/bin/mcp-bash" ]; then
-	MCP_BASH="${HOME}/.local/bin/mcp-bash"
-elif [ -f "${MCPBASH_HOME:-}/bin/mcp-bash" ]; then
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+DEFAULT_FRAMEWORK_DIR="${DATA_HOME}/mcp-bash"
+
+if [ -x "${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash" ]; then
+	MCP_BASH="${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash"
+elif [ -n "${MCPBASH_HOME:-}" ] && [ -x "${MCPBASH_HOME}/bin/mcp-bash" ]; then
 	MCP_BASH="${MCPBASH_HOME}/bin/mcp-bash"
+elif [ -x "${DEFAULT_FRAMEWORK_DIR}/bin/mcp-bash" ]; then
+	MCP_BASH="${DEFAULT_FRAMEWORK_DIR}/bin/mcp-bash"
+elif [ -x "${HOME}/.local/bin/mcp-bash" ]; then
+	MCP_BASH="${HOME}/.local/bin/mcp-bash"
+elif command -v mcp-bash >/dev/null 2>&1; then
+	MCP_BASH="$(command -v mcp-bash)"
 fi
 
 if [ -z "${MCP_BASH}" ]; then
 	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
 	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the published checksum for v0.8.0, then run ./git-hex.sh (it will download + verify the release tarball).\n" >&2
+	exit 1
+fi
+
+version_ge() {
+	# Returns 0 if $1 >= $2 for simple semver "X.Y.Z" (numeric parts only).
+	local a="$1" b="$2"
+	local a1 a2 a3 b1 b2 b3
+	IFS='.' read -r a1 a2 a3 <<<"${a}"
+	IFS='.' read -r b1 b2 b3 <<<"${b}"
+	a1="${a1:-0}"
+	a2="${a2:-0}"
+	a3="${a3:-0}"
+	b1="${b1:-0}"
+	b2="${b2:-0}"
+	b3="${b3:-0}"
+	if [ "${a1}" -gt "${b1}" ]; then
+		return 0
+	elif [ "${a1}" -lt "${b1}" ]; then
+		return 1
+	fi
+	if [ "${a2}" -gt "${b2}" ]; then
+		return 0
+	elif [ "${a2}" -lt "${b2}" ]; then
+		return 1
+	fi
+	[ "${a3}" -ge "${b3}" ]
+}
+
+mcp_bash_version_raw="$("${MCP_BASH}" --version 2>/dev/null || true)"
+mcp_bash_version="$(printf '%s' "${mcp_bash_version_raw}" | tr -d '\r' | grep -Eo '([0-9]+\\.){2}[0-9]+' | head -n1 || true)"
+if [ -n "${mcp_bash_version}" ] && ! version_ge "${mcp_bash_version}" "${REQUIRED_MCPBASH_MIN_VERSION}"; then
+	printf 'Error: mcp-bash %s found at %s, but git-hex requires v%s+.\n' "${mcp_bash_version}" "${MCP_BASH}" "${REQUIRED_MCPBASH_MIN_VERSION}" >&2
+	printf 'Run ./git-hex.sh to install the pinned framework, or set MCPBASH_HOME to a v%s+ install.\n' "${REQUIRED_MCPBASH_MIN_VERSION}" >&2
 	exit 1
 fi
 

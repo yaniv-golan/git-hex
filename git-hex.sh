@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.8.0}"
 FRAMEWORK_VERSION_DEFAULT="v0.8.0"
 FRAMEWORK_GIT_SHA_DEFAULT_V080="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+REQUIRED_MCPBASH_MIN_VERSION="0.8.0"
 
 # Resolve framework location with preference for XDG Base Directory defaults
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -25,6 +26,71 @@ fi
 if [ -x "${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash" ]; then
 	FRAMEWORK_DIR="${SCRIPT_DIR}/mcp-bash-framework"
 fi
+
+version_ge() {
+	# Returns 0 if $1 >= $2 for simple semver "X.Y.Z" (numeric parts only).
+	local a="$1" b="$2"
+	local a1 a2 a3 b1 b2 b3
+	IFS='.' read -r a1 a2 a3 <<<"${a}"
+	IFS='.' read -r b1 b2 b3 <<<"${b}"
+	a1="${a1:-0}"
+	a2="${a2:-0}"
+	a3="${a3:-0}"
+	b1="${b1:-0}"
+	b2="${b2:-0}"
+	b3="${b3:-0}"
+	if [ "${a1}" -gt "${b1}" ]; then
+		return 0
+	elif [ "${a1}" -lt "${b1}" ]; then
+		return 1
+	fi
+	if [ "${a2}" -gt "${b2}" ]; then
+		return 0
+	elif [ "${a2}" -lt "${b2}" ]; then
+		return 1
+	fi
+	[ "${a3}" -ge "${b3}" ]
+}
+
+get_mcp_bash_version() {
+	local mcp_bash_bin="$1"
+	local raw version
+	raw="$("${mcp_bash_bin}" --version 2>/dev/null || true)"
+	version="$(printf '%s' "${raw}" | tr -d '\r' | grep -Eo '([0-9]+\\.){2}[0-9]+' | head -n1 || true)"
+	printf '%s' "${version}"
+}
+
+ensure_min_framework_version_or_install() {
+	# If an existing install is too old, upgrade in-place only for the default XDG dir.
+	# For explicit MCPBASH_HOME/vendored installs, fail with instructions instead.
+	if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
+		return 0
+	fi
+
+	local found_version
+	found_version="$(get_mcp_bash_version "${FRAMEWORK_DIR}/bin/mcp-bash")"
+	if [ -z "${found_version}" ]; then
+		return 0
+	fi
+	if version_ge "${found_version}" "${REQUIRED_MCPBASH_MIN_VERSION}"; then
+		return 0
+	fi
+
+	if [ "${FRAMEWORK_DIR}" != "${DEFAULT_FRAMEWORK_DIR}" ]; then
+		echo "mcp-bash ${found_version} found at ${FRAMEWORK_DIR}, but git-hex requires v${REQUIRED_MCPBASH_MIN_VERSION}+." >&2
+		echo "Upgrade your mcp-bash install or set MCPBASH_HOME to a v${REQUIRED_MCPBASH_MIN_VERSION}+ install (recommended: run ./git-hex.sh without MCPBASH_HOME to auto-install the pinned framework)." >&2
+		exit 1
+	fi
+
+	echo "Upgrading mcp-bash ${found_version} at ${FRAMEWORK_DIR} to ${FRAMEWORK_VERSION} (git-hex requires v${REQUIRED_MCPBASH_MIN_VERSION}+)..." >&2
+	if [ -z "${FRAMEWORK_DIR}" ] || [ "${FRAMEWORK_DIR}" = "/" ]; then
+		echo "Refusing to remove unsafe framework dir path: ${FRAMEWORK_DIR}" >&2
+		exit 1
+	fi
+	rm -rf "${FRAMEWORK_DIR}"
+}
+
+ensure_min_framework_version_or_install
 
 install_from_verified_archive() {
 	local version="$1"
@@ -74,6 +140,12 @@ install_from_verified_archive() {
 	fi
 
 	echo "Checksum verified; extracting to ${target_dir}..." >&2
+	if [ -z "${target_dir}" ] || [ "${target_dir}" = "/" ]; then
+		echo "Refusing to extract to unsafe target dir path: ${target_dir}" >&2
+		rm -f "${tmp_archive}" || true
+		return 1
+	fi
+	rm -rf "${target_dir}"
 	mkdir -p "${target_dir}"
 	if ! tar -xzf "${tmp_archive}" -C "${target_dir}" --strip-components 1; then
 		echo "Failed to extract archive" >&2

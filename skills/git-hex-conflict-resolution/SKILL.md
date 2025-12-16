@@ -1,20 +1,24 @@
 ---
 name: git-hex-conflict-resolution
 description: >
-  Inspect and resolve git-hex rebase/merge/cherry-pick conflicts. Use this Skill
-  when a git operation is paused due to conflicts and the user wants the agent
-  to resolve and continue or abort safely.
+  This skill should be used when the user is stuck in a git-hex-driven rebase,
+  merge, or cherry-pick due to conflicts and wants the agent to inspect, resolve,
+  and then continue or abort safely. Trigger phrases include: "resolve conflicts",
+  "rebase is stuck", "conflict markers", "continue the rebase", "abort the rebase".
 ---
 
 # Git-hex Conflict Resolution
 
 ## When to use this Skill
 
-Use this Skill when:
+This skill should be used when:
 
 - A git-hex tool reports that an operation is paused because of conflicts.
 - The user says a rebase or cherry-pick is "stuck", "paused", or "in conflict".
 - You need to see which files conflict and decide whether to continue or abort.
+
+Trigger phrases include: "rebase conflict", "cherry-pick conflict", "merge conflict",
+"stuck on conflicts", "continue the rebase", "abort the cherry-pick".
 
 ## Workflow
 

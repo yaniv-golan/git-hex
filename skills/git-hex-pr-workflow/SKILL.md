@@ -2,18 +2,23 @@
 name: git-hex-pr-workflow
 description: >
   Complete pull request workflow combining git-hex (local craft) with remote
-  collaboration (GitHub plugin or CLI). Use when the user wants to prepare,
-  submit, and iterate on a PR with clean commit history.
+  collaboration (GitHub plugin or CLI). This skill should be used when the user
+  wants to prepare, submit, and iterate on a PR with clean commit history.
+  Trigger phrases include: "prepare a PR", "open a pull request", "address review
+  feedback", "update my PR", "clean up commits for PR".
 ---
 
 # Git-hex PR Workflow
 
 ## When to use this Skill
 
-Use this Skill when:
+This skill should be used when:
 - The user wants to prepare a branch for PR submission with clean history
 - The user is iterating on a PR after receiving review feedback
 - The user asks about combining git-hex with GitHub/PR workflows
+
+Trigger phrases include: "prepare a PR", "open a PR", "create a pull request",
+"address PR feedback", "update the PR", "force-push after rebase".
 
 ## Workflow
 

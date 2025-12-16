@@ -61,11 +61,15 @@ jobs:
           set -euo pipefail
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
-          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
-          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="b2737e20ee52af1067a19f3ea88e81c47aa34a6d"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
           actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
-          if [ "$actual_sha" != "$expected_sha" ]; then
-            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
             exit 1
           fi
           echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
@@ -158,11 +162,15 @@ jobs:
           set -euo pipefail
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
-          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
-          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="b2737e20ee52af1067a19f3ea88e81c47aa34a6d"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
           actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
-          if [ "$actual_sha" != "$expected_sha" ]; then
-            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
             exit 1
           fi
           echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
@@ -300,11 +308,15 @@ jobs:
           set -euo pipefail
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
-          git clone --depth 1 --branch v0.8.0 https://github.com/yaniv-golan/mcp-bash-framework.git "$MCPBASH_HOME"
-          expected_sha="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="b2737e20ee52af1067a19f3ea88e81c47aa34a6d"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
           actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
-          if [ "$actual_sha" != "$expected_sha" ]; then
-            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $expected_sha)" >&2
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
             exit 1
           fi
           echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"

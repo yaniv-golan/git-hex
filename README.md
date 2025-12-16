@@ -215,16 +215,14 @@ git-hex ships as a Claude Code plugin with bundled Skills.
 
 ### Installation (Claude Code)
 
-From the parent directory of this repo:
+Run these slash commands in Claude Code's chat interface:
 
 ```text
+# From the parent directory of this repo:
 /plugin marketplace add ./git-hex
 /plugin install git-hex@git-hex-marketplace
-```
 
-Or from GitHub:
-
-```text
+# Or from GitHub:
 /plugin marketplace add yaniv-golan/git-hex
 /plugin install git-hex@git-hex-marketplace
 ```
@@ -236,10 +234,10 @@ Bundled Skills:
 
 ### Updating
 
-git-hex (as a third-party plugin) does not auto-update by default. To update:
+git-hex (as a third-party plugin) does not auto-update by default. To update, use these slash commands in Claude Code:
 
 - **Manual update**: `/plugin marketplace update git-hex-marketplace`
-- **Enable auto-update**: `/plugin` → Marketplaces → git-hex-marketplace → Enable auto-update
+- **Enable auto-update**: `/plugin` → select Marketplaces → git-hex-marketplace → Enable auto-update
 
 See [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) for details.
 

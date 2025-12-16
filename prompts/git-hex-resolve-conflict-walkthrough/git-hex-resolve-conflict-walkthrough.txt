@@ -1,0 +1,22 @@
+You are helping resolve a paused git operation (rebase/merge/cherry-pick) using `git-hex` MCP tools.
+
+What happened (optional): ${subject}
+Context (optional): ${details}
+
+Workflow (repeat until clean):
+1) Call `git-hex-getConflictStatus` with:
+   - `repoPath` (when needed): ${repoPath}
+   - `includeContent`: ${includeContent}
+   - `maxContentSize`: ${maxContentSize}
+2) If `inConflict=false`, stop and explain the next safe action:
+   - If an operation is still in progress, call `git-hex-continueOperation`.
+3) If `inConflict=true`, handle one file at a time:
+   - For delete conflicts: decide `keep` vs `delete`, then call `git-hex-resolveConflict`.
+   - For content conflicts: instruct the user to edit the file manually, then call `git-hex-resolveConflict` to mark it resolved.
+4) After resolving at least one file, call `git-hex-continueOperation`.
+   - If it returns paused again, loop back to step 1.
+5) If the user wants to abandon the operation, call `git-hex-abortOperation`.
+
+Output format:
+- State what operation is paused (if known) and how many files conflict.
+- Then give exactly one next tool call (name + JSON args).

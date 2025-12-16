@@ -27,8 +27,8 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 |----------|----------|-------|
 | Core | ✅ Full | Lifecycle, ping, capabilities via framework |
 | Tools | ✅ Full | git-hex tool suite (see “Tools”) |
-| Resources | ⚠️ Templates only | Optional file-based templates for debugging git state (requires roots) |
-| Prompts | ⚠️ None | Not exposed yet (future) |
+| Resources | ✅ Templates | `resources/templates/list` returns templates discovered from `resources/*.meta.json` (`uriTemplate`). Note: framework capabilities don’t currently advertise templates, so some clients may not discover them automatically. |
+| Prompts | ✅ Some | Workflow prompts under `prompts/` (listed via `prompts/list`) |
 | Completions | ✅ Providers | Completion providers registered via `server.d/register.json` (full mode requires jq/gojq) |
 
 ## Client Compatibility
@@ -846,7 +846,7 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 
 ## MCP Details
 
-- Capabilities: git-hex exposes MCP tools, completion providers, and optional file-based resource templates under `resources/` for debugging git state (no MCP `prompts` yet).
+- Capabilities: git-hex exposes MCP tools, completion providers, resource templates, and workflow prompts. Note: framework capabilities don’t currently advertise templates even though `resources/templates/list` is implemented.
 - Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
 - Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see “Read-Only Mode”).
 - Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.

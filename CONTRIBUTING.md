@@ -38,7 +38,7 @@ export GIT_HEX_MCPBASH_SHA256="488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d337
 ```
 git-hex/
 ├── tools/                    # MCP tools (one directory per tool)
-│   ├── amend-last-commit/
+│   ├── git-hex-amendLastCommit/
 │   │   ├── tool.meta.json    # Tool schema and metadata
 │   │   └── tool.sh           # Tool implementation
 │   └── ...
@@ -54,7 +54,7 @@ git-hex/
 
 1. Create a new directory under `tools/`:
    ```bash
-   mkdir -p tools/my-new-tool
+   mkdir -p tools/git-hex-myNewTool
    ```
 
 2. Create `tool.meta.json` with the tool schema:
@@ -102,13 +102,13 @@ git-hex/
 
 4. Make it executable:
    ```bash
-   chmod +x tools/my-new-tool/tool.sh
+   chmod +x tools/git-hex-myNewTool/tool.sh
    ```
 
 ### Tool Naming Convention
 
 - Tool names use camelCase with `git-hex-` prefix: `git-hex-myNewTool`
-- Directory names use kebab-case: `my-new-tool`
+- Tool directory names match the tool name: `tools/git-hex-myNewTool/`
 
 ### API Conventions
 

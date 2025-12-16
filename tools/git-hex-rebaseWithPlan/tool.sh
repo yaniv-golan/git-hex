@@ -27,11 +27,10 @@ auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 autosquash="$(mcp_args_bool '.autosquash' --default true)"
 require_complete="$(mcp_args_bool '.requireComplete' --default false)"
 
-_git_hex_cleanup_files=""
+_git_hex_cleanup_files=()
 _git_hex_cleanup() {
-	if [ -n "${_git_hex_cleanup_files}" ]; then
-		# shellcheck disable=SC2086
-		rm -f ${_git_hex_cleanup_files} 2>/dev/null || true
+	if [ "${#_git_hex_cleanup_files[@]}" -gt 0 ]; then
+		rm -f -- "${_git_hex_cleanup_files[@]}" 2>/dev/null || true
 	fi
 	unset GIT_HEX_TODO_FILE
 	return 0
@@ -194,7 +193,7 @@ else
 	plan_messages_file="$(mktemp "${TMPDIR:-/tmp}/githex.rebase.messages.XXXXXX")"
 	# These action/message index files CAN be cleaned up (they're read before rebase starts)
 	# But _git_hex_msg_dir must NOT be cleaned up (exec commands read from it during rebase)
-	_git_hex_cleanup_files="${_git_hex_cleanup_files} ${plan_actions_file} ${plan_messages_file}"
+	_git_hex_cleanup_files+=("${plan_actions_file}" "${plan_messages_file}")
 
 	if [ "${plan_length}" -gt 0 ]; then
 		for i in $(seq 0 $((plan_length - 1))); do
@@ -248,7 +247,7 @@ if [ "${use_custom_todo}" = "true" ]; then
 	# shellcheck disable=SC2016 # Variables must expand at runtime, not parse time
 	seq_editor='sh -c '\''cat "$GIT_HEX_TODO_FILE" > "$1"'\'' --'
 
-	_git_hex_cleanup_files="${_git_hex_cleanup_files} ${todo_file}"
+	_git_hex_cleanup_files+=("${todo_file}")
 else
 	seq_editor=""
 fi

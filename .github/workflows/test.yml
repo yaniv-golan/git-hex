@@ -75,6 +75,9 @@ jobs:
           echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
           echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
 
+      - name: Run doctor (read-only)
+        run: ./git-hex.sh doctor
+
       - name: Install lint dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt

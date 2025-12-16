@@ -55,7 +55,8 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
-./git-hex.sh doctor          # ensures Bash/jq/git and framework presence
+./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
+./git-hex.sh doctor          # diagnostics (read-only; no persistent changes)
 ./git-hex.sh validate        # MCP project validation via the framework
 # Fast smoke: list commits relative to main (adjust branch/path as needed)
 ./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'

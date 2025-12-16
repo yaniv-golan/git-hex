@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tool schemas align with emitted `error` fields and mark required inputs where applicable.
 - Auto-stash keep-index mode stores stash object IDs instead of symbolic refs.
 - README clarifies undo semantics, roots expectations, and Git version requirements.
+- `./git-hex.sh doctor` is now diagnostics-only by default (no persistent changes); use `./git-hex.sh doctor --fix` for install/repair and `./git-hex.sh doctor --dry-run` to preview changes.
 
 ## [0.1.0] - 2025-12-07
 

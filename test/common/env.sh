@@ -27,6 +27,20 @@ fi
 export MCPBASH_PROJECT_ROOT="${PROJECT_ROOT}"
 export PATH="${FRAMEWORK_DIR}/bin:${PATH}"
 
+# Windows Git Bash/MSYS has relatively small exec argument limits (E2BIG).
+# mcp-bash constructs registry JSON using jq/gojq --argjson with the full items array
+# on the command line; forcing compact jq output keeps that payload small enough.
+if [ -z "${MCPBASH_JSON_TOOL_BIN:-}" ]; then
+	case "$(uname -s 2>/dev/null || printf '')" in
+	MINGW* | MSYS* | CYGWIN*)
+		if command -v jq >/dev/null 2>&1; then
+			export MCPBASH_JSON_TOOL="jq"
+			export MCPBASH_JSON_TOOL_BIN="${TEST_COMMON_DIR}/jq-compact.sh"
+		fi
+		;;
+	esac
+fi
+
 # mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
 # The allowlist is exact-match (no globs), so we set the full tool set explicitly.
 # Callers can override (e.g., "*" in trusted projects).

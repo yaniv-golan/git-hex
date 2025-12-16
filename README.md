@@ -826,6 +826,7 @@ npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/git-he
 
 - Project validation: `./git-hex.sh validate` (or `mcp-bash validate` from the repo)
 - Ready check: `./git-hex.sh --health` (stdio exit code: `0` ready, `1` unhealthy, `2` misconfigured)
+- `doctor --fix` policy refusal: exits `3` when refusing to modify a user-managed framework install (e.g., `MCPBASH_HOME` points outside the managed path).
 - Debug a single tool without starting MCP: `./git-hex.sh run-tool <tool> --args '{}' --roots <repo>`
 - Backup inventory: `git for-each-ref refs/git-hex/`
 

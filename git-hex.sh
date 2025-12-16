@@ -7,7 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Update this when upgrading to a new framework version
 FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.8.0}"
 FRAMEWORK_VERSION_DEFAULT="v0.8.0"
-FRAMEWORK_GIT_SHA_DEFAULT_V080="88403cd8bd423fe73cdc44c8068a8adc58c7374d"
+# Pinned commit for v0.8.0 installs (annotated tags have distinct object SHAs).
+FRAMEWORK_GIT_SHA_DEFAULT_V080="b2737e20ee52af1067a19f3ea88e81c47aa34a6d"
 REQUIRED_MCPBASH_MIN_VERSION="0.8.0"
 
 # Resolve framework location with preference for XDG Base Directory defaults
@@ -164,6 +165,7 @@ if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 	fi
 	echo "Installing mcp-bash framework ${FRAMEWORK_VERSION} into ${FRAMEWORK_DIR}..." >&2
 	mkdir -p "${FRAMEWORK_DIR%/*}"
+	rm -rf "${FRAMEWORK_DIR}"
 	if [ -n "${GIT_HEX_MCPBASH_SHA256:-}" ]; then
 		install_from_verified_archive "${FRAMEWORK_VERSION}" "${FRAMEWORK_DIR}" "${GIT_HEX_MCPBASH_SHA256}" "${GIT_HEX_MCPBASH_ARCHIVE_URL:-}" || {
 			echo "Verified archive install failed; aborting." >&2
@@ -180,14 +182,20 @@ if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
 			echo "To bypass (not recommended), set GIT_HEX_ALLOW_UNVERIFIED_FRAMEWORK=true." >&2
 			exit 1
 		fi
-		git -c fetch.fsckobjects=true -c transfer.fsckobjects=true clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
-			https://github.com/yaniv-golan/mcp-bash-framework.git "${FRAMEWORK_DIR}"
 		if [ -n "${expected_git_sha}" ]; then
+			git init "${FRAMEWORK_DIR}"
+			git -C "${FRAMEWORK_DIR}" -c fetch.fsckobjects=true -c transfer.fsckobjects=true remote add origin \
+				https://github.com/yaniv-golan/mcp-bash-framework.git
+			git -C "${FRAMEWORK_DIR}" -c fetch.fsckobjects=true -c transfer.fsckobjects=true fetch --depth 1 origin "${expected_git_sha}"
+			git -C "${FRAMEWORK_DIR}" checkout --detach FETCH_HEAD
 			actual_git_sha="$(git -C "${FRAMEWORK_DIR}" rev-parse HEAD 2>/dev/null || true)"
 			if [ "${actual_git_sha}" != "${expected_git_sha}" ]; then
 				echo "Unexpected mcp-bash-framework revision: ${actual_git_sha} (expected ${expected_git_sha})" >&2
 				exit 1
 			fi
+		else
+			git -c fetch.fsckobjects=true -c transfer.fsckobjects=true clone --depth 1 --branch "${FRAMEWORK_VERSION}" \
+				https://github.com/yaniv-golan/mcp-bash-framework.git "${FRAMEWORK_DIR}"
 		fi
 	fi
 	# Create a convenience symlink matching the installer behavior

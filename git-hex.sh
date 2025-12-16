@@ -10,6 +10,7 @@ FRAMEWORK_VERSION_DEFAULT="v0.8.0"
 # Pinned commit for v0.8.0 installs (annotated tags have distinct object SHAs).
 FRAMEWORK_GIT_SHA_DEFAULT_V080="b2737e20ee52af1067a19f3ea88e81c47aa34a6d"
 REQUIRED_MCPBASH_MIN_VERSION="0.8.0"
+FRAMEWORK_DOCTOR_FIX_MIN_VERSION="0.8.1"
 
 # Wrapper mode flags (parsed for `doctor` only).
 GIT_HEX_DOCTOR_MODE="false"
@@ -70,6 +71,13 @@ framework_doctor_supports_fix="false"
 framework_doctor_supports_dry_run="false"
 detect_framework_doctor_caps() {
 	if [ ! -x "${framework_bin}" ]; then
+		return 0
+	fi
+	local found_version
+	found_version="$(get_mcp_bash_version "${framework_bin}")"
+	if [ -n "${found_version}" ] && version_ge "${found_version}" "${FRAMEWORK_DOCTOR_FIX_MIN_VERSION}"; then
+		framework_doctor_supports_fix="true"
+		framework_doctor_supports_dry_run="true"
 		return 0
 	fi
 	local help
@@ -324,11 +332,11 @@ if [ "${GIT_HEX_DELEGATE_DOCTOR}" != "true" ]; then
 	if [ "${GIT_HEX_DOCTOR_MODE}" = "true" ] && [ "${GIT_HEX_DOCTOR_FIX_MODE}" = "true" ] && [ -n "${MCPBASH_HOME:-}" ]; then
 		# In wrapper-mode, treat user-managed installs as unsupported fix targets.
 		# Future framework versions may return a distinct policy refusal code (e.g. 3).
-		die 2 "ERROR: doctor --fix does not modify MCPBASH_HOME-managed installs (${FRAMEWORK_DIR}). Unset MCPBASH_HOME to use the managed default (${DEFAULT_FRAMEWORK_DIR}), or upgrade that install manually."
+		die 3 "ERROR: doctor --fix does not modify MCPBASH_HOME-managed installs (${FRAMEWORK_DIR}). Unset MCPBASH_HOME to use the managed default (${DEFAULT_FRAMEWORK_DIR}), or upgrade that install manually."
 	fi
 
 	if [ "${GIT_HEX_DOCTOR_MODE}" = "true" ] && [ "${GIT_HEX_DOCTOR_FIX_MODE}" = "true" ] && [ "${FRAMEWORK_DIR}" != "${DEFAULT_FRAMEWORK_DIR}" ]; then
-		die 2 "ERROR: doctor --fix only operates on the managed default install path (${DEFAULT_FRAMEWORK_DIR}); current framework path is ${FRAMEWORK_DIR}."
+		die 3 "ERROR: doctor --fix only operates on the managed default install path (${DEFAULT_FRAMEWORK_DIR}); current framework path is ${FRAMEWORK_DIR}."
 	fi
 fi
 

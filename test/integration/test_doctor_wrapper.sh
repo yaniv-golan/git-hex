@@ -62,6 +62,40 @@ EOF
 	printf '%s\n' "marker" >"${fw_dir}/MARKER.txt"
 }
 
+make_stub_framework_081() {
+	local home_dir="$1"
+
+	local fw_dir="${home_dir}/.local/share/mcp-bash"
+	mkdir -p "${fw_dir}/bin"
+
+	cat >"${fw_dir}/bin/mcp-bash" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+case "${1:-}" in
+--version)
+  echo "mcp-bash 0.8.1"
+  ;;
+doctor)
+  shift || true
+  if [ "${1:-}" = "--help" ]; then
+    echo "Usage: mcp-bash doctor [--json] [--fix] [--dry-run]"
+    exit 0
+  fi
+  if [ "${1:-}" = "--dry-run" ]; then
+    echo "framework doctor dry-run"
+    exit 0
+  fi
+  echo "framework doctor"
+  exit 0
+  ;;
+*)
+  echo "stub"
+  ;;
+esac
+EOF
+	chmod +x "${fw_dir}/bin/mcp-bash"
+}
+
 test_missing_framework_read_only_doctor() {
 	(
 		local home_dir
@@ -131,11 +165,27 @@ test_doctor_fix_refuses_mcpbash_home() {
 		rc=$?
 		set -e
 
-		if [ "${rc}" != "2" ] && [ "${rc}" != "3" ]; then
-			test_fail "doctor --fix should exit 2 (wrapper refusal) or 3 (framework policy refusal) when MCPBASH_HOME is set (got: '${rc}')"
-		fi
+		assert_eq "3" "${rc}" "doctor --fix should exit 3 on policy refusal when MCPBASH_HOME is set"
 		assert_contains "${output}" "does not modify MCPBASH_HOME-managed installs" "doctor --fix should explain refusal"
 		test_pass "doctor --fix refuses MCPBASH_HOME targets"
+	)
+}
+
+test_doctor_delegates_for_081_plus() {
+	(
+		local home_dir
+		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
+		trap 'rm -rf "${home_dir}"' EXIT
+
+		make_stub_framework_081 "${home_dir}"
+
+		capture_run_in_home "${home_dir}" doctor --dry-run
+		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.8.1"
+		assert_contains "${CAPTURE_OUTPUT}" "framework doctor dry-run" "doctor --dry-run should be handled by framework"
+		if [[ "${CAPTURE_OUTPUT}" == *"Would install framework"* ]]; then
+			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.8.1"
+		fi
+		test_pass "doctor delegates to framework for >=0.8.1"
 	)
 }
 
@@ -144,6 +194,7 @@ test_missing_framework_read_only_doctor
 test_missing_framework_dry_run
 test_too_old_framework_read_only_does_not_delete
 test_doctor_fix_refuses_mcpbash_home
+test_doctor_delegates_for_081_plus
 
 echo ""
 echo "All doctor wrapper tests passed!"

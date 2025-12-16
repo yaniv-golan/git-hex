@@ -12,3 +12,6 @@ Thumbs.db
 docs/internal/
 git-hex.code-workspace
 .cursor/rules/
+
+# Local dev wrapper (uses sibling mcp-bash checkout)
+git-hex-local.sh

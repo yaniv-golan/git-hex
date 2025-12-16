@@ -1,17 +1,18 @@
 ---
 name: git-hex-branch-cleanup
 description: >
-  Clean up a feature branch's history using git-hex. Use this Skill when the user
-  wants to rewrite or polish their git history (squash/fixup commits, reorder,
-  drop, split commits, or rebase a branch onto main) without using an interactive
-  terminal.
+  This skill should be used when the user wants to clean up a feature branch's
+  history using git-hex (squash/fixup commits, reorder/drop/split commits, or
+  rebase a branch onto main) without using an interactive terminal. Trigger
+  phrases include: "clean up my branch", "polish history", "squash these commits",
+  "fixup commits", "rebase onto main", "rewrite commits".
 ---
 
 # Git-hex Branch Cleanup
 
 ## When to use this Skill
 
-Use this Skill when:
+This skill should be used when:
 
 - The user says they want to "clean up", "rewrite", "polish", or "squash" a git
   history or feature branch.
@@ -19,6 +20,9 @@ Use this Skill when:
   a clean, reviewable set of commits.
 - The user wants to split, squash, or reword commits using git-hex tools instead
   of manual interactive rebase.
+
+Trigger phrases include: "clean up my commits", "squash fixups", "polish history",
+"rewrite commits", "rebase onto main", "make this branch reviewable".
 
 ## Workflow
 

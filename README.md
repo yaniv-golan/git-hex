@@ -383,6 +383,23 @@ Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
 - **For hunk-level splitting** — `splitCommit` splits by file only; use `git add -p` + manual commits for line-level splits
 - **On repos with contribution models you don't control** — Understand the project's rebase policy first
 
+### Using git-hex with GitHub
+
+git-hex handles the **local craft** of shaping commits, while remote collaboration tools handle working with teammates. Together, they cover the complete pull request lifecycle:
+
+1. **Local craft (git-hex)** — shape your commits:
+   - `git-hex-getRebasePlan` — review messy history
+   - `git-hex-createFixup` — fix earlier commits
+   - `git-hex-rebaseWithPlan` — squash/reword for clean history
+
+2. **Push**: `git push --force-with-lease`
+
+3. **Remote collaboration** — work with teammates:
+   - **With [GitHub Plugin](https://github.com/anthropics/claude-plugins-official/tree/main/external_plugins/github)** (from the [Official Claude Plugin Marketplace](https://github.com/anthropics/claude-plugins-official)): use its tools for PRs, reviewers, comments
+   - **With GitHub CLI**: `gh pr create`, `gh pr view`, `gh pr edit`
+
+4. **After review feedback**: return to step 1 for more local craft
+
 ## Tools
 
 ### git-hex-getRebasePlan

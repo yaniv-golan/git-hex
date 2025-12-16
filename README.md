@@ -232,6 +232,16 @@ Or from GitHub:
 Bundled Skills:
 - `git-hex-branch-cleanup` — history rewrite, fixups, split/reorder/squash
 - `git-hex-conflict-resolution` — inspect/resolve paused rebase/cherry-pick conflicts
+- `git-hex-pr-workflow` — complete PR lifecycle (local craft + remote collaboration)
+
+### Updating
+
+git-hex (as a third-party plugin) does not auto-update by default. To update:
+
+- **Manual update**: `/plugin marketplace update git-hex-marketplace`
+- **Enable auto-update**: `/plugin` → Marketplaces → git-hex-marketplace → Enable auto-update
+
+See [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) for details.
 
 The MCP server auto-starts via `git-hex.sh`; no extra client config required. Skill definitions live in `skills/` and can be customized there. The Claude plugin bundle is described in `.claude-plugin/`.
 

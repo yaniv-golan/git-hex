@@ -73,11 +73,19 @@ jobs:
 
       - name: Set temp log dir
         run: |
-          echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
-          echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Keep tmp/state under the runner temp drive (usually D:) to avoid the slower
+            # user profile temp (C:) which can make the integration suite exceed its budget.
+            win_temp_posix="$(cygpath -u "${RUNNER_TEMP}")"
+            echo "TMPDIR=${win_temp_posix}" >> "$GITHUB_ENV"
+            echo "MCPBASH_TMP_ROOT=${win_temp_posix}" >> "$GITHUB_ENV"
+            # Keep Windows-native paths for non-bash actions (e.g., upload-artifact).
+            echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+            echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
             echo "MCPBASH_PROJECT_ROOT=$(cygpath -u "${GITHUB_WORKSPACE}")" >> "$GITHUB_ENV"
           else
+            echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+            echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
             echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
           fi
 

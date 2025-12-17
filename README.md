@@ -35,7 +35,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 - **Safety first**: Conflict-prone operations abort cleanly by default and create backup refs so you can always undo.
 - **Deterministic git**: Focus on well-defined history rewrites (rebase, fixup, amend, split-by-file) with predictable outputs.
 - **Minimal surface**: Tools only—no extra services. Everything runs through the MCP Bash Framework.
-- **Respect the sandbox**: Every path is validated against MCP roots; read-only mode blocks mutating tools.
+- **Respect the sandbox**: Every path is validated against your client’s allowed folders (MCP `roots`); read-only mode blocks mutating tools.
 - **Agent friendly**: Outputs are structured, include summaries, and prefer explicit parameters over magic.
 
 ## Features
@@ -45,7 +45,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 - **Commit Amendments**: Safely amend the last commit with staged changes
 - **Cherry-picking**: Single-commit cherry-pick with strategy options
 - **Undo Support**: Backup refs for history-mutating operations (amend, fixup, cherry-pick, rebase, split); undo is safe unless new commits were added after the backup (see `force`)
-- **Path Security**: All operations respect MCP roots for sandboxed access
+- **Path Security**: All operations respect your client’s allowed folders (MCP `roots`) for sandboxed access
 
 ## Quick Start (2 minutes)
 
@@ -60,11 +60,11 @@ cd ~/git-hex
 
 What `doctor --fix` may write (and how to uninstall): [`docs/install.md`](docs/install.md)
 
-For real repositories, configure MCP `roots`/`allowedRoots` in your client (or pass `--roots /path/to/repo` when using `run-tool`): [`docs/clients.md`](docs/clients.md)
+For real repositories, configure your client’s allowed folders (MCP `roots` — directories the server is allowed to access), or pass `--roots /path/to/repo` when using `run-tool`: [`docs/clients.md`](docs/clients.md) and [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
 
 ## Safety First
 
-- **Roots enforcement**: repo paths must be inside configured MCP `roots`.
+- **Allowed folders enforcement**: repo paths must be inside configured allowed folders (MCP `roots`).
 - **Backups for mutations**: every history-mutating tool creates `refs/git-hex/backup/...` so you can recover.
 - **Conflict safety**: rebases/cherry-picks abort and restore by default on conflicts.
 - **Read-only mode**: set `GIT_HEX_READ_ONLY=1` to block all mutating tools.
@@ -360,7 +360,7 @@ docker build -t git-hex .
 docker run -i --rm -v /path/to/repo:/repo git-hex --roots /repo
 ```
 
-Pass MCP roots and the target repo explicitly when running the container (examples):
+Pass allowed folders (MCP `roots`) and the target repo explicitly when running the container (examples):
 
 - With MCP Inspector:
   ```bash
@@ -378,13 +378,13 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
   }
   ```
 
-`repoPath` must be within a configured root; pass it explicitly when you mount multiple repositories.
+`repoPath` must be within an allowed folder (MCP `roots`); pass it explicitly when you mount multiple repositories.
 
 ## Troubleshooting
 
 - `undoLast` fails because of new commits: re-run with `"force": true` if you intend to discard the commits added after the git-hex operation. If a rebase/merge/cherry-pick is paused, resolve/abort it first.
 - Stuck rebase/cherry-pick: run `git-hex-getConflictStatus`, resolve files, then `git-hex-continueOperation`; if you want to abandon, use `git-hex-abortOperation`.
-- MCP connectivity or repo path errors: ensure `repoPath` is inside your configured `roots` and that the repo is clean when required (see tool prerequisites).
+- MCP connectivity or repo path errors: ensure `repoPath` is inside your configured allowed folders (MCP `roots`) and that the repo is clean when required (see tool prerequisites and [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
 
 ## Documentation Map
 

@@ -4,7 +4,7 @@ git-hex is designed for Git history refactoring (rebases, fixups, amend, split-b
 
 ## Safety first (what’s protected by default)
 
-- **Scoped filesystem access**: when MCP `roots` are configured, repository paths are validated to stay within allowed roots.
+- **Scoped filesystem access**: when your client’s allowed folders (MCP `roots`) are configured, repository paths are validated to stay within those folders (see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
 - **Conflict safety**: operations that can conflict (rebase, cherry-pick) abort and restore the repository by default.
 - **Backups for mutating ops**: every history-mutating operation creates a backup ref under `refs/git-hex/backup/...` (and updates `refs/git-hex/last/...`).
 - **Read-only mode**: set `GIT_HEX_READ_ONLY=1` to block all mutating tools.
@@ -61,4 +61,3 @@ git reset --hard refs/git-hex/backup/<timestamp>_<operation>
 - On shared/protected branches (use personal feature branches only).
 - For hunk-level splitting (`splitCommit` is file-level only).
 - On repositories where you don’t control/understand the project’s history-rewrite policy.
-

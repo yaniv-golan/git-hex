@@ -204,6 +204,10 @@ test_pass "my-new-tool works"
 - Use `printf` over `echo` for output
 - Use `$(...)` for command substitution, not backticks
 
+## Documentation style
+
+- When writing user-facing docs, prefer “allowed folders” and introduce the MCP term once: “allowed folders (MCP `roots`)”. See `docs/concepts.md`.
+
 ## Submitting Changes
 
 1. Fork the repository

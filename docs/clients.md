@@ -48,8 +48,9 @@ Recommended:
 ```
 
 Roots guidance:
-- Configure MCP `roots`/`allowedRoots` to limit filesystem access.
-- With one configured root, `repoPath` defaults to that root; with multiple roots, pass `repoPath` explicitly.
+Allowed folders guidance:
+- Configure your client’s allowed folders (MCP `roots` / `allowedRoots`) to limit filesystem access. See [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots).
+- With one allowed folder, `repoPath` may default to that folder; with multiple allowed folders, pass `repoPath` explicitly. See [`docs/concepts.md`](docs/concepts.md#repopath).
 
 ### Choose a launcher
 

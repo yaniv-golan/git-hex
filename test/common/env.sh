@@ -94,7 +94,9 @@ run_tool() {
 		--args "${args_json}" \
 		--timeout "${timeout}" 2>"${stderr_file}")" || true
 
-	local jq_status error_obj structured
+	local jq_status=0
+	local error_obj=""
+	local structured=""
 	# Single jq pass:
 	# - If an MCP tool error exists, emit that error object and exit non-zero.
 	# - Otherwise, emit the first structuredContent payload (or empty).

@@ -58,6 +58,10 @@ cd ~/git-hex
 ./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'
 ```
 
+What `doctor --fix` may write (and how to uninstall): [`docs/install.md`](docs/install.md)
+
+For real repositories, configure MCP `roots`/`allowedRoots` in your client (or pass `--roots /path/to/repo` when using `run-tool`): [`docs/clients.md`](docs/clients.md)
+
 ## Safety First
 
 - **Roots enforcement**: repo paths must be inside configured MCP `roots`.

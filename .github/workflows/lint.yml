@@ -70,3 +70,5 @@ jobs:
       - name: Run lint
         run: ./test/lint.sh
 
+      - name: Check Markdown local links
+        run: python3 ./test/check_doc_links.py

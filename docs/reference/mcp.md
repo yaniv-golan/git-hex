@@ -9,7 +9,7 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 | Category | Coverage | Notes |
 |----------|----------|-------|
 | Core | ✅ Full | Lifecycle, ping, capabilities via framework |
-| Tools | ✅ Full | git-hex tool suite (see `docs/reference/tools.md`) |
+| Tools | ✅ Full | git-hex tool suite (see [`tools.md`](tools.md)) |
 | Resources | ✅ Templates | `resources/templates/list` returns templates discovered from `resources/*.meta.json` (`uriTemplate`). Note: framework capabilities don’t currently advertise templates, so some clients may not discover them automatically. |
 | Prompts | ✅ Some | Workflow prompts under `prompts/` (listed via `prompts/list`) |
 | Completions | ✅ Providers | Completion providers registered via `server.d/register.json` (full mode requires jq/gojq) |
@@ -18,12 +18,12 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 
 - Capabilities: git-hex exposes MCP tools, completion providers, resource templates, and workflow prompts. Note: framework capabilities don’t currently advertise templates even though `resources/templates/list` is implemented.
 - Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
-- Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see `docs/safety.md`).
+- Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see [`../safety.md`](../safety.md)).
 - Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.
 
 ### Using with MCP clients
 
-Minimal stdio configuration (client JSON varies; start with the wrapper and add allowed folders (MCP `roots`) per your client; see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)):
+Minimal stdio configuration (client JSON varies; start with the wrapper and add allowed folders (MCP `roots`) per your client; see [`../concepts.md`](../concepts.md#allowed-folders-mcp-roots)):
 ```json
 {
   "mcpServers": {
@@ -34,7 +34,7 @@ Minimal stdio configuration (client JSON varies; start with the wrapper and add 
 }
 ```
 
-If launching from a macOS app launched from Finder/Spotlight/Dock, prefer `git-hex-env.sh` so PATH/version managers match your Terminal environment (see `docs/clients.md`). Always configure your client’s allowed folders (`roots`/`allowedRoots`, name varies by client) to the repositories you want the tools to touch (see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
+If launching from a macOS app launched from Finder/Spotlight/Dock, prefer `git-hex-env.sh` so PATH/version managers match your Terminal environment (see [`../clients.md`](../clients.md)). Always configure your client’s allowed folders (`roots`/`allowedRoots`, name varies by client) to the repositories you want the tools to touch (see [`../concepts.md`](../concepts.md#allowed-folders-mcp-roots)).
 
 ### Environment flags
 

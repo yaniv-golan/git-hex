@@ -94,19 +94,34 @@ run_tool() {
 		--args "${args_json}" \
 		--timeout "${timeout}" 2>"${stderr_file}")" || true
 
-	# Check if any line is an error response (framework may emit notifications first)
-	if echo "${raw_output}" | jq -es 'map(select(._mcpToolError == true)) | length > 0' >/dev/null 2>&1; then
+	local parsed has_error error_obj structured
+	parsed="$(printf '%s' "${raw_output}" | jq -s -r '
+		def first_err: (map(select(._mcpToolError == true)) | .[0] // null);
+		def first_struct: (map(select(.structuredContent)) | .[0].structuredContent // null);
+		[
+			(if first_err != null then "1" else "0" end),
+			(if first_err != null then (first_err | tojson) else "" end),
+			(if first_struct != null then (first_struct | tojson) else "" end)
+		] | @tsv
+	' 2>/dev/null || true)"
+
+	if [ -n "${parsed}" ]; then
+		IFS=$'\t' read -r has_error error_obj structured <<<"${parsed}" || true
+	else
+		has_error="0"
+		error_obj=""
+		structured=""
+	fi
+
+	# If any line is an error response (framework may emit notifications first)
+	if [ "${has_error}" = "1" ]; then
 		# Print stderr for debugging
 		if [ -s "${stderr_file}" ]; then
 			printf '[run_tool %s] stderr:\n' "${tool_name}" >&2
 			cat "${stderr_file}" >&2
 		fi
-		# Print the error object for debugging
-		local error_obj
-		error_obj="$(echo "${raw_output}" | jq -s 'map(select(._mcpToolError == true)) | .[0]')"
 		printf '[run_tool %s] error: %s\n' "${tool_name}" "${error_obj}" >&2
 		rm -f "${stderr_file}"
-		# Return the error object
 		echo "${error_obj}"
 		return 1
 	fi
@@ -129,11 +144,8 @@ run_tool() {
 	fi
 	rm -f "${stderr_file}"
 
-	# Extract structuredContent from the result line (skip notifications)
-	local structured
-	structured="$(echo "${raw_output}" | jq -s 'map(select(.structuredContent)) | .[0].structuredContent // empty' 2>/dev/null || echo "${raw_output}")"
 	if [ -z "${structured}" ]; then
-		# Fallback: maybe it's the raw output format
+		# Fallback: maybe it's the raw output format (or jq failed to parse output)
 		structured="${raw_output}"
 	fi
 

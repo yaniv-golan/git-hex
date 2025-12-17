@@ -20,8 +20,7 @@ printf ' -> CHK-01 predicts clean rebase\n'
 REPO_CLEAN="${TEST_TMPDIR}/check-clean"
 create_branch_scenario "${REPO_CLEAN}"
 result_clean="$(run_tool git-hex-checkRebaseConflicts "${REPO_CLEAN}" '{"onto": "main"}')"
-assert_json_field "${result_clean}" '.wouldConflict' "false" "should predict clean rebase"
-assert_json_field "${result_clean}" '.limitExceeded' "false" "limitExceeded should be false"
+assert_json_fields_eq "${result_clean}" '.wouldConflict' "false" '.limitExceeded' "false"
 test_pass "clean rebase predicted"
 
 # CHK-02: Conflict predicted

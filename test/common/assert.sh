@@ -8,6 +8,18 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
+_test_json_bin() {
+	if [ -n "${TEST_JSON_TOOL_BIN:-}" ] && command -v "${TEST_JSON_TOOL_BIN}" >/dev/null 2>&1; then
+		printf '%s\n' "${TEST_JSON_TOOL_BIN}"
+		return 0
+	fi
+	if [ -n "${MCPBASH_JSON_TOOL_BIN:-}" ] && command -v "${MCPBASH_JSON_TOOL_BIN}" >/dev/null 2>&1; then
+		printf '%s\n' "${MCPBASH_JSON_TOOL_BIN}"
+		return 0
+	fi
+	printf '%s\n' "jq"
+}
+
 test_require_command() {
 	local cmd="$1"
 	if ! command -v "${cmd}" >/dev/null 2>&1; then
@@ -81,9 +93,49 @@ assert_json_field() {
 	local message="${4:-JSON field should match}"
 
 	local actual
-	actual="$(printf '%s' "${json}" | jq -r "${field}" 2>/dev/null || echo "")"
+	actual="$(printf '%s' "${json}" | "$(_test_json_bin)" -r "${field}" 2>/dev/null || echo "")"
 
 	if [ "${expected}" != "${actual}" ]; then
 		test_fail "${message} (field ${field}: expected '${expected}', got '${actual}')"
 	fi
+}
+
+# Assert multiple JSON fields with a single jq invocation.
+# Usage: assert_json_fields_eq "$json" ".success" "true" ".undoneOperation" "amendLastCommit" ...
+assert_json_fields_eq() {
+	local json="$1"
+	shift
+	if [ $(($# % 2)) -ne 0 ]; then
+		test_fail "assert_json_fields_eq requires field/expected pairs"
+	fi
+
+	local -a fields expecteds
+	while [ "$#" -gt 0 ]; do
+		fields+=("$1")
+		expecteds+=("$2")
+		shift 2
+	done
+
+	local jq_filter values
+	jq_filter='['
+	local field
+	for field in "${fields[@]}"; do
+		jq_filter+="(${field}),"
+	done
+	jq_filter="${jq_filter%,}] | map(if . == null then \"\" else tostring end) | @tsv"
+
+	values="$(printf '%s' "${json}" | "$(_test_json_bin)" -r "${jq_filter}" 2>/dev/null || true)"
+	if [ -z "${values}" ]; then
+		test_fail "assert_json_fields_eq could not extract fields"
+	fi
+
+	local -a actuals
+	IFS=$'\t' read -r -a actuals <<<"${values}"
+
+	local i
+	for i in "${!expecteds[@]}"; do
+		if [ "${expecteds[$i]}" != "${actuals[$i]:-}" ]; then
+			test_fail "JSON field mismatch at index ${i} (expected: '${expecteds[$i]}', got: '${actuals[$i]:-}')"
+		fi
+	done
 }

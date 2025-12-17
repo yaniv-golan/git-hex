@@ -52,8 +52,7 @@ before_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 
 result="$(run_tool git-hex-cherryPickSingle "${REPO}" "{\"commit\": \"${cherry_hash}\"}")"
 
-assert_json_field "${result}" '.success' "true" "cherry-pick should succeed"
-assert_json_field "${result}" '.sourceCommit' "${cherry_hash}" "source commit should match"
+assert_json_fields_eq "${result}" '.success' "true" '.sourceCommit' "${cherry_hash}"
 
 after_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 assert_eq "$((before_count + 1))" "${after_count}" "should have one more commit"

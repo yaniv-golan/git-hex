@@ -35,8 +35,7 @@ assert_ne "${original_head}" "${amended_head}" "HEAD should change after amend"
 
 # Now undo
 result="$(run_tool git-hex-undoLast "${REPO}" '{}')"
-assert_json_field "${result}" '.success' "true" "undo should succeed"
-assert_json_field "${result}" '.undoneOperation' "amendLastCommit" "should report correct operation"
+assert_json_fields_eq "${result}" '.success' "true" '.undoneOperation' "amendLastCommit"
 
 restored_head="$(cd "${REPO}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "HEAD should be restored to original"
@@ -65,8 +64,7 @@ assert_ne "${original_head}" "${fixup_head}" "HEAD should change after fixup"
 
 # Now undo
 result="$(run_tool git-hex-undoLast "${REPO2}" '{}')"
-assert_json_field "${result}" '.success' "true" "undo should succeed"
-assert_json_field "${result}" '.undoneOperation' "createFixup" "should report correct operation"
+assert_json_fields_eq "${result}" '.success' "true" '.undoneOperation' "createFixup"
 
 restored_head="$(cd "${REPO2}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "HEAD should be restored to original"
@@ -92,8 +90,7 @@ assert_ne "${original_head}" "${rebased_head}" "HEAD should change after rebase"
 
 # Now undo
 result="$(run_tool git-hex-undoLast "${REPO3}" '{}')"
-assert_json_field "${result}" '.success' "true" "undo should succeed"
-assert_json_field "${result}" '.undoneOperation' "rebaseWithPlan" "should report correct operation"
+assert_json_fields_eq "${result}" '.success' "true" '.undoneOperation' "rebaseWithPlan"
 
 restored_head="$(cd "${REPO3}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "HEAD should be restored to original"
@@ -142,8 +139,7 @@ assert_ne "${original_head}" "${picked_head}" "HEAD should change after cherry-p
 
 # Now undo
 result="$(run_tool git-hex-undoLast "${REPO4}" '{}')"
-assert_json_field "${result}" '.success' "true" "undo should succeed"
-assert_json_field "${result}" '.undoneOperation' "cherryPickSingle" "should report correct operation"
+assert_json_fields_eq "${result}" '.success' "true" '.undoneOperation' "cherryPickSingle"
 
 restored_head="$(cd "${REPO4}" && git rev-parse HEAD)"
 assert_eq "${original_head}" "${restored_head}" "HEAD should be restored to original"

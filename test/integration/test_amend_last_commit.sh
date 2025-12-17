@@ -27,8 +27,7 @@ previous_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-amendLastCommit "${REPO}" '{}')"
 
-assert_json_field "${result}" '.success' "true" "amend should succeed"
-assert_json_field "${result}" '.headBefore' "${previous_hash}" "headBefore should match"
+assert_json_fields_eq "${result}" '.success' "true" '.headBefore' "${previous_hash}"
 
 new_hash="$(echo "${result}" | jq -r '.headAfter')"
 assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"
@@ -51,8 +50,7 @@ previous_hash="$(cd "${REPO2}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
 
-assert_json_field "${result}" '.success' "true" "amend should succeed"
-assert_json_field "${result}" '.commitMessage' "New commit message" "commitMessage should be updated"
+assert_json_fields_eq "${result}" '.success' "true" '.commitMessage' "New commit message"
 
 new_hash="$(echo "${result}" | jq -r '.headAfter')"
 assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"

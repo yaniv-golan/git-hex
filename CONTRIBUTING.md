@@ -143,7 +143,7 @@ git_hex_create_backup "${repo_path}" "myNewTool" >/dev/null
 ./test/security/run.sh
 
 # Validate project structure
-mcp-bash validate
+./git-hex.sh validate
 ```
 
 ### Pre-commit Hook (optional but recommended)

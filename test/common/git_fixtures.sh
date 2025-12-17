@@ -51,9 +51,30 @@ _fixture_clone_from_template() {
 	git clone --local "${template_dir}" "${dest_dir}" >/dev/null 2>&1
 	(
 		cd "${dest_dir}"
-		# Clones set up an `origin` remote and configure upstream tracking, which
+		# Clones set up an `origin` remote and can configure upstream tracking, which
 		# changes behavior in tools that default to `@{upstream}` (e.g., getRebasePlan).
-		# Fixtures should behave like `git init` repos (no remotes, no upstream).
+		# Fixtures should behave like `git init` repos (no upstream). We also want
+		# local branches like `feature` to exist (templates often rely on them).
+		local current_branch
+		current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+		while IFS= read -r remote_branch; do
+			case "${remote_branch}" in
+			origin/HEAD | "") continue ;;
+			esac
+			local local_branch
+			local_branch="${remote_branch#origin/}"
+			# Skip the currently checked-out branch and any branch that already exists locally.
+			if [ "${local_branch}" = "${current_branch}" ]; then
+				continue
+			fi
+			if git show-ref --verify --quiet "refs/heads/${local_branch}"; then
+				continue
+			fi
+			# Create local branch without tracking (avoid recreating @{upstream}).
+			git branch --no-track "${local_branch}" "${remote_branch}" >/dev/null 2>&1 || true
+		done < <(git for-each-ref --format='%(refname:short)' refs/remotes/origin 2>/dev/null || true)
+
+		# Drop origin to fully emulate `git init` fixtures (after local branches exist).
 		git remote remove origin >/dev/null 2>&1 || true
 		while IFS= read -r branch; do
 			[ -n "${branch}" ] || continue

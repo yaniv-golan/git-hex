@@ -6,3 +6,8 @@ repos:
         entry: ./test/lint.sh
         language: system
         pass_filenames: false
+      - id: docs-links
+        name: Check Markdown local links
+        entry: python3 ./test/check_doc_links.py
+        language: system
+        pass_filenames: false

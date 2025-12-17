@@ -54,12 +54,12 @@ In your AI chat (in a Git repo under your allowed folders), ask:
 > “Show me the last 5 commits I could rebase onto `main`.”
 
 When connected, the AI should be able to use tools like `git-hex-getRebasePlan` to answer. If the tools aren’t available or repo access is denied, check:
-- allowed folders (MCP `roots`): [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
+- allowed folders (MCP `roots`): [`concepts.md`](concepts.md#allowed-folders-mcp-roots)
 - launcher choice (macOS apps launched from Finder/Spotlight/Dock): use `git-hex-env.sh` (see below)
 
 Allowed folders guidance:
-- Configure your client’s allowed folders (MCP `roots` / `allowedRoots`) to limit filesystem access. See [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots).
-- With one allowed folder, `repoPath` may default to that folder; with multiple allowed folders, pass `repoPath` explicitly. See [`docs/concepts.md`](docs/concepts.md#repopath).
+- Configure your client’s allowed folders (MCP `roots` / `allowedRoots`) to limit filesystem access. See [`concepts.md`](concepts.md#allowed-folders-mcp-roots).
+- With one allowed folder, `repoPath` may default to that folder; with multiple allowed folders, pass `repoPath` explicitly. See [`concepts.md`](concepts.md#repopath).
 
 ### Choose a launcher
 

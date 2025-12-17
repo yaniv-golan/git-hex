@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Login-aware launcher for GUI clients (e.g., macOS Claude Desktop) where PATH
-# and version managers are only set in your shell profile.
+# Launcher for macOS apps (e.g., Claude Desktop) that may not inherit your Terminal
+# environment (PATH/version managers). It sources your login profile files before
+# starting the server so tool discovery matches your Terminal setup.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REQUIRED_MCPBASH_MIN_VERSION="0.8.0"
@@ -19,8 +20,7 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 		user_shell="$(basename "${SHELL:-}" 2>/dev/null || echo "")"
 		case "${user_shell}" in
 		zsh)
-			# Login shells typically source .zprofile; interactive shells source .zshrc.
-			# Prefer login profile first so PATH/version managers are set for GUI apps.
+			# Prefer profile files that typically contain PATH/version manager setup.
 			if [ -f "${HOME}/.zprofile" ]; then
 				SHELL_PROFILE="${HOME}/.zprofile"
 			elif [ -f "${HOME}/.zshrc" ]; then

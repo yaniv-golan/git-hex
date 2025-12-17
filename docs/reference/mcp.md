@@ -34,7 +34,7 @@ Minimal stdio configuration (client JSON varies; start with the wrapper and add 
 }
 ```
 
-If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/env matches your login shell. Always configure your client’s allowed folders (`roots`/`allowedRoots`, name varies by client) to the repositories you want the tools to touch (see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
+If launching from a macOS app launched from Finder/Spotlight/Dock, prefer `git-hex-env.sh` so PATH/version managers match your Terminal environment (see `docs/clients.md`). Always configure your client’s allowed folders (`roots`/`allowedRoots`, name varies by client) to the repositories you want the tools to touch (see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
 
 ### Environment flags
 

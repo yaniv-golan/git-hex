@@ -207,6 +207,7 @@ test_pass "my-new-tool works"
 ## Documentation style
 
 - When writing user-facing docs, prefer “allowed folders” and introduce the MCP term once: “allowed folders (MCP `roots`)”. See `docs/concepts.md`.
+- Avoid “login shell” jargon in user-facing docs. Prefer “macOS apps launched from Finder/Spotlight/Dock” and link to `docs/clients.md`.
 
 ## Submitting Changes
 

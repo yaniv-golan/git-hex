@@ -23,10 +23,10 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 
 - [Quick Start](#quick-start-2-minutes)
 - [Safety First](#safety-first)
-- [Choose your path](#choose-your-path)
 - [How it works](#how-it-works)
 - [Common workflows](#common-workflows)
 - [Tool reference](#tool-reference)
+- [CLI testing/debugging](#cli-testingdebugging)
 - [Support](#support)
 - [Security](#security)
 
@@ -49,18 +49,54 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 
 ## Quick Start (2 minutes)
 
+### 1) Clone
+
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-cd ~/git-hex
-./git-hex.sh doctor          # diagnostics (read-only; no persistent changes)
-./git-hex.sh doctor --fix    # install/repair prerequisites (including the framework) if needed
-# Fast smoke: list commits relative to main (adjust branch/path as needed)
-./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'
 ```
 
-What `doctor --fix` may write (and how to uninstall): [`docs/install.md`](docs/install.md)
+### 2) Connect your AI
 
-For real repositories, configure your client’s allowed folders (MCP `roots` — directories the server is allowed to access), or pass `--roots /path/to/repo` when using `run-tool`: [`docs/clients.md`](docs/clients.md) and [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
+**Claude Code (recommended):**
+```text
+/plugin marketplace add ~/git-hex
+/plugin install git-hex@git-hex-marketplace
+```
+
+**Cursor / Claude Desktop / Windsurf (MCP config):**
+```json
+{
+  "mcpServers": {
+    "git-hex": {
+      "command": "/path/to/git-hex/git-hex.sh"
+    }
+  }
+}
+```
+
+Windows (Git Bash): see [`docs/clients.md#windows-git-bash`](docs/clients.md#windows-git-bash)
+
+Prerequisites auto-install on first run; see [`docs/install.md`](docs/install.md).
+
+### 3) First success
+
+In your AI chat (in a repo), ask:
+
+> “Show me the last 5 commits I could rebase onto `main`.”
+
+When connected, your AI can use tools like `git-hex-getRebasePlan` to answer.
+
+<details>
+<summary>Having issues?</summary>
+
+- Diagnostics (no persistent changes): `./git-hex.sh doctor`
+- Install/repair prerequisites: `./git-hex.sh doctor --fix`
+- On first run you may see framework installation output; this is normal.
+- macOS apps launched from Finder/Spotlight/Dock: use `git-hex-env.sh` (see [`docs/clients.md`](docs/clients.md))
+- Install/uninstall details: [`docs/install.md`](docs/install.md)
+- Allowed folders (“roots”) explanation: [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
+
+</details>
 
 ## Safety First
 
@@ -74,19 +110,9 @@ Details: [`docs/safety.md`](docs/safety.md)
 
 ### Next: 30-second end-to-end example (mutates history)
 
-```bash
-# Prepare staged fix for a commit, then create a fixup and autosquash
-git add <files>
-./git-hex.sh run-tool git-hex-createFixup --args '{"commit":"<target-sha>"}'
-./git-hex.sh run-tool git-hex-rebaseWithPlan --args '{"onto":"main","autosquash":true}'
-```
-
-## Choose your path
-
-- **Claude Code plugin**: install + bundled Skills + command templates → [`docs/clients.md`](docs/clients.md)
-- **MCP clients (Cursor/Windsurf/Claude Desktop/CLI)**: config snippets + launcher guidance → [`docs/clients.md`](docs/clients.md)
-- **CLI/testing**: run tools locally → [`docs/reference/tools.md`](docs/reference/tools.md) and [`docs/install.md`](docs/install.md)
-- **Contributing/CI**: validation, lint, and tests → [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`test/README.md`](test/README.md)
+1. Stage a fix: `git add <files>`
+2. In your AI chat, ask it to create a fixup targeting a commit, then autosquash onto `main`
+   - Tools involved: `git-hex-createFixup` → `git-hex-rebaseWithPlan` (with `autosquash=true`)
 
 ## How It Works
 
@@ -325,15 +351,11 @@ Full per-tool parameters, examples, and outputs: [`docs/reference/tools.md`](doc
 
 Detailed safety model, read-only mode, and recovery procedures: [`docs/safety.md`](docs/safety.md)
 
-## Testing
+## CLI testing/debugging
 
 ```bash
-# Validate project structure (run from project root)
-cd /path/to/git-hex
-mcp-bash validate
-
-# Test a tool directly
-mcp-bash run-tool git-hex-getRebasePlan --roots /path/to/test/repo --args '{"count": 5}'
+# Run a tool directly (debug/CI)
+./git-hex.sh run-tool git-hex-getRebasePlan --roots /path/to/repo --args '{"count": 5}'
 
 # Run with MCP Inspector (must be run from project root or use ./git-hex.sh)
 cd /path/to/git-hex

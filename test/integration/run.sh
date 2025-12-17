@@ -8,6 +8,12 @@ VERBOSE="${VERBOSE:-0}"
 UNICODE="${UNICODE:-0}"
 KEEP_INTEGRATION_LOGS="${KEEP_INTEGRATION_LOGS:-0}"
 
+# Optional filtering
+GITHEX_TEST_PROFILE="${GITHEX_TEST_PROFILE:-}"
+GITHEX_TEST_INCLUDE="${GITHEX_TEST_INCLUDE:-}"
+GITHEX_TEST_EXCLUDE="${GITHEX_TEST_EXCLUDE:-}"
+GITHEX_TEST_STRICT="${GITHEX_TEST_STRICT:-0}"
+
 # Detect CI environment
 IS_CI="${CI:-${GITHUB_ACTIONS:-0}}"
 
@@ -55,6 +61,14 @@ if [ "${UNICODE}" = "1" ]; then
 	FAIL_ICON="❌"
 fi
 
+WINDOWS_SMOKE_TESTS=(
+	test_existing_tools.sh
+	test_get_rebase_plan.sh
+	test_doctor_wrapper.sh
+	test_read_only_mode.sh
+	test_rebase_with_plan.sh
+)
+
 TESTS=()
 while IFS= read -r path; do
 	[ -f "${path}" ] || continue
@@ -64,6 +78,115 @@ done < <(find "${SCRIPT_DIR}" -maxdepth 1 -type f -name 'test_*.sh' | sort)
 if [ "${#TESTS[@]}" -eq 0 ]; then
 	printf 'No integration tests discovered under %s\n' "${SCRIPT_DIR}" >&2
 	exit 1
+fi
+
+split_list() {
+	# Split on commas and whitespace.
+	# shellcheck disable=SC2206 # intended word splitting
+	local items=(${1//,/ })
+	printf '%s\n' "${items[@]}"
+}
+
+filter_tests() {
+	local -a resolved
+	resolved=("${TESTS[@]}")
+
+	if [ -n "${GITHEX_TEST_PROFILE}" ]; then
+		case "${GITHEX_TEST_PROFILE}" in
+		windows-smoke)
+			resolved=("${WINDOWS_SMOKE_TESTS[@]}")
+			;;
+		*)
+			printf 'Unknown GITHEX_TEST_PROFILE: %s\n' "${GITHEX_TEST_PROFILE}" >&2
+			exit 2
+			;;
+		esac
+	fi
+
+	if [ -n "${GITHEX_TEST_INCLUDE}" ]; then
+		local -a include
+		mapfile -t include < <(split_list "${GITHEX_TEST_INCLUDE}")
+		resolved=()
+		local t
+		for t in "${include[@]}"; do
+			[ -n "${t}" ] || continue
+			resolved+=("${t}")
+		done
+	fi
+
+	if [ -n "${GITHEX_TEST_EXCLUDE}" ]; then
+		local -a exclude filtered
+		mapfile -t exclude < <(split_list "${GITHEX_TEST_EXCLUDE}")
+		filtered=()
+		local t ex matched
+		for t in "${resolved[@]}"; do
+			matched=0
+			for ex in "${exclude[@]}"; do
+				[ -n "${ex}" ] || continue
+				if [ "${t}" = "${ex}" ]; then
+					matched=1
+					break
+				fi
+			done
+			if [ "${matched}" -eq 0 ]; then
+				filtered+=("${t}")
+			fi
+		done
+		resolved=("${filtered[@]}")
+	fi
+
+	# Validate selected tests exist in discovered list.
+	local -a missing
+	missing=()
+	local t found d
+	for t in "${resolved[@]}"; do
+		found=0
+		for d in "${TESTS[@]}"; do
+			if [ "${t}" = "${d}" ]; then
+				found=1
+				break
+			fi
+		done
+		if [ "${found}" -eq 0 ]; then
+			missing+=("${t}")
+		fi
+	done
+
+	if [ "${#missing[@]}" -gt 0 ]; then
+		printf 'Selected tests not found under %s:\n' "${SCRIPT_DIR}" >&2
+		printf '  - %s\n' "${missing[@]}" >&2
+		if [ "${GITHEX_TEST_STRICT}" = "1" ]; then
+			exit 2
+		fi
+		# Non-strict: drop missing tests.
+		local -a existing
+		existing=()
+		for t in "${resolved[@]}"; do
+			found=0
+			for d in "${TESTS[@]}"; do
+				if [ "${t}" = "${d}" ]; then
+					found=1
+					break
+				fi
+			done
+			if [ "${found}" -eq 1 ]; then
+				existing+=("${t}")
+			fi
+		done
+		resolved=("${existing[@]}")
+	fi
+
+	TESTS=("${resolved[@]}")
+}
+
+if [ -n "${GITHEX_TEST_PROFILE}" ] || [ -n "${GITHEX_TEST_INCLUDE}" ] || [ -n "${GITHEX_TEST_EXCLUDE}" ]; then
+	filter_tests
+fi
+
+printf 'Discovered %d integration tests; running %d\n' "$(printf '%s\n' "${TESTS[@]}" | wc -l | tr -d ' ')" "${#TESTS[@]}"
+if [ "${#TESTS[@]}" -gt 0 ]; then
+	printf 'Selected tests:\n'
+	printf '  - %s\n' "${TESTS[@]}"
 fi
 
 passed=0

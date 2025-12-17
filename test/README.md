@@ -32,6 +32,20 @@ Run only integration tests:
 ./test/integration/run.sh
 ```
 
+### Selecting subsets (CI profiles)
+
+The integration runner supports optional filtering:
+
+- Windows PR smoke profile:
+  ```bash
+  GITHEX_TEST_PROFILE=windows-smoke GITHEX_TEST_STRICT=1 ./test/integration/run.sh
+  ```
+- Include/exclude specific tests:
+  ```bash
+  GITHEX_TEST_INCLUDE="test_get_rebase_plan.sh,test_read_only_mode.sh" ./test/integration/run.sh
+  GITHEX_TEST_EXCLUDE="test_stash_integration.sh" ./test/integration/run.sh
+  ```
+
 Run only security tests:
 ```bash
 ./test/security/run.sh

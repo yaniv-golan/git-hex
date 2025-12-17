@@ -140,6 +140,10 @@ jobs:
         id: integration
         run: |
           start=$(date +%s)
+          if [[ "$RUNNER_OS" == "Windows" && "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            export GITHEX_TEST_PROFILE=windows-smoke
+            export GITHEX_TEST_STRICT=1
+          fi
           if ./test/integration/run.sh; then
             status=0
           else
@@ -156,8 +160,13 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           duration="${{ steps.integration.outputs.duration }}"
-          warn_budget=3045
-          fail_budget=4060
+          if [ "${GITHUB_EVENT_NAME}" != "schedule" ]; then
+            warn_budget=1500
+            fail_budget=2100
+          else
+            warn_budget=3045
+            fail_budget=4060
+          fi
           if [ -n "${duration}" ] && [ "${duration}" -gt "${warn_budget}" ]; then
             echo "::warning ::Integration duration ${duration}s exceeded warning budget ${warn_budget}s"
           fi

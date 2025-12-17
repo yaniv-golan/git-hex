@@ -9,6 +9,8 @@ cd ~/git-hex
 ./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
 ```
 
+On first run (or during `doctor --fix`), you may see framework installation output like “Installing mcp-bash framework …”; this is normal.
+
 ## What `doctor --fix` may write (managed default install)
 
 When `MCPBASH_HOME` is **not** set, `git-hex.sh` manages the MCP Bash Framework install at:

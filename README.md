@@ -53,8 +53,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
 ./git-hex.sh doctor          # diagnostics (read-only; no persistent changes)
-./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
-./git-hex.sh validate        # MCP project validation via the framework
+./git-hex.sh doctor --fix    # install/repair prerequisites (including the framework) if needed
 # Fast smoke: list commits relative to main (adjust branch/path as needed)
 ./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'
 ```
@@ -82,7 +81,8 @@ git add <files>
 
 - **Claude Code plugin**: install + bundled Skills + command templates → [`docs/clients.md`](docs/clients.md)
 - **MCP clients (Cursor/Windsurf/Claude Desktop/CLI)**: config snippets + launcher guidance → [`docs/clients.md`](docs/clients.md)
-- **CLI/testing**: run tools locally and validate the project → [`docs/reference/tools.md`](docs/reference/tools.md) and [`docs/install.md`](docs/install.md)
+- **CLI/testing**: run tools locally → [`docs/reference/tools.md`](docs/reference/tools.md) and [`docs/install.md`](docs/install.md)
+- **Contributing/CI**: validation, lint, and tests → [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`test/README.md`](test/README.md)
 
 ## How It Works
 
@@ -191,6 +191,7 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 - Lint shell scripts: `./test/lint.sh`
 - Run all tests: `./test/run.sh` (or `./test/integration/run.sh` / `./test/security/run.sh`)
 - Optional pre-commit hook to auto-run lint: `git config core.hooksPath .githooks`
+- Contributors: see [`CONTRIBUTING.md`](CONTRIBUTING.md) for `./git-hex.sh validate` and the full workflow
 
 ## Installation
 

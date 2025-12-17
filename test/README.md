@@ -160,7 +160,7 @@ mcp-bash run-tool git-hex-rebaseWithPlan \
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
 1. Installs the mcp-bash framework (pinned to v0.8.0; prefer passing the published checksum with `--verify`).
 2. Runs lint on Linux (shellcheck + shfmt).
-3. Runs `mcp-bash validate`, integration tests, and security tests on Linux and macOS (with failure logs artifacted).
+3. Runs `./git-hex.sh validate` (or `mcp-bash validate`), integration tests, and security tests on Linux and macOS (with failure logs artifacted).
 4. Runs integration tests on Windows with a time budget guard.
 5. Runs a scheduled weekly full suite on Ubuntu.
 

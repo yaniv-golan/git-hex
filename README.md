@@ -183,7 +183,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 git-hex ships completion providers (refs, commits, conflict paths) registered declaratively via `server.d/register.json`. Completions are available in full mode (jq/gojq required).
 
-> **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (GUI/login-shell) when launching from other directories or GUI clients.
+> **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (macOS apps launched from Finder/Spotlight/Dock; see `docs/clients.md`) when launching from other directories or GUI clients.
 
 ## Versioning & Releases
 

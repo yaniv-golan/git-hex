@@ -47,7 +47,6 @@ Recommended:
 }
 ```
 
-Roots guidance:
 Allowed folders guidance:
 - Configure your client’s allowed folders (MCP `roots` / `allowedRoots`) to limit filesystem access. See [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots).
 - With one allowed folder, `repoPath` may default to that folder; with multiple allowed folders, pass `repoPath` explicitly. See [`docs/concepts.md`](docs/concepts.md#repopath).
@@ -57,10 +56,23 @@ Allowed folders guidance:
 - `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
 - `git-hex-env.sh` — login-aware launcher (sources your login profile first). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
 
+### macOS apps launched from Finder/Spotlight/Dock and PATH
+
+On macOS, apps launched from Finder/Spotlight/Dock can start with a limited environment (PATH/version managers not loaded), because they are not launched from your Terminal session.
+
+Common symptoms:
+- `git: command not found` (or a different `git` than in Terminal)
+- `jq: command not found`
+- `node: command not found` / wrong version (asdf/nvm/pyenv not loaded)
+
+Recommended fix:
+- Use `git-hex-env.sh` for macOS GUI apps. It sources your login profile (e.g., `~/.zprofile`, `~/.bash_profile`) before starting the server so PATH/tooling matches your Terminal setup.
+- By default, it silences profile output to avoid corrupting stdio-based MCP sessions; set `GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT=0` to disable.
+
 ### Quick commands
 
 - MCP Inspector (from the repo root): `./git-hex.sh config --inspector`
-- Claude Code/CLI (stdio): `claude mcp add --transport stdio git-hex --env MCPBASH_PROJECT_ROOT="$PWD" -- "$PWD/git-hex.sh"` (use `git-hex-env.sh` for macOS GUI shells)
+- Claude Code/CLI (stdio): `claude mcp add --transport stdio git-hex --env MCPBASH_PROJECT_ROOT="$PWD" -- "$PWD/git-hex.sh"` (use `git-hex-env.sh` for macOS apps launched from Finder/Spotlight/Dock)
 - Cursor: add the JSON to `~/.cursor/mcp.json` or a project `.cursor/mcp.json`
 
 ### Windows (Git Bash)

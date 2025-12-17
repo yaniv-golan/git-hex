@@ -15,9 +15,9 @@ git-hex is an MCP (Model Context Protocol) server that provides AI assistants wi
 
 Name note: “git-hex” is simply a short label for this git-history refactoring toolkit (not related to hex encoding).
 
-See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION` and `.claude-plugin/plugin.json`.
+See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also lives in [`VERSION`](VERSION) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json).
 
-**Quick links:** `docs/install.md` • `docs/safety.md` • `docs/clients.md` • `docs/reference/tools.md` • `docs/reference/mcp.md` • `SECURITY.md` • `CONTRIBUTING.md`
+**Quick links:** [`docs/install.md`](docs/install.md) • [`docs/safety.md`](docs/safety.md) • [`docs/clients.md`](docs/clients.md) • [`docs/reference/tools.md`](docs/reference/tools.md) • [`docs/reference/mcp.md`](docs/reference/mcp.md) • [`SECURITY.md`](SECURITY.md) • [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## Table of contents
 
@@ -67,7 +67,7 @@ cd ~/git-hex
 - **Read-only mode**: set `GIT_HEX_READ_ONLY=1` to block all mutating tools.
 - **Scoped guarantees**: git-hex tools do not run `git push/fetch/pull`; dependency installation may use the network unless you preinstall/pin it.
 
-Details: `docs/safety.md`
+Details: [`docs/safety.md`](docs/safety.md)
 
 ### Next: 30-second end-to-end example (mutates history)
 
@@ -80,9 +80,9 @@ git add <files>
 
 ## Choose your path
 
-- **Claude Code plugin**: install + bundled Skills + command templates → `docs/clients.md`
-- **MCP clients (Cursor/Windsurf/Claude Desktop/CLI)**: config snippets + launcher guidance → `docs/clients.md`
-- **CLI/testing**: run tools locally and validate the project → `docs/reference/tools.md` and `docs/install.md`
+- **Claude Code plugin**: install + bundled Skills + command templates → [`docs/clients.md`](docs/clients.md)
+- **MCP clients (Cursor/Windsurf/Claude Desktop/CLI)**: config snippets + launcher guidance → [`docs/clients.md`](docs/clients.md)
+- **CLI/testing**: run tools locally and validate the project → [`docs/reference/tools.md`](docs/reference/tools.md) and [`docs/install.md`](docs/install.md)
 
 ## How It Works
 
@@ -169,7 +169,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see `docs/safety.md`) |
+| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see [`docs/safety.md`](docs/safety.md)) |
 | `GIT_HEX_AUTO_INSTALL_FRAMEWORK` | `true` | If `true`, `git-hex.sh` auto-installs the pinned MCP Bash Framework when missing. Set to `false` to require a preinstalled framework (or use `git-hex-env.sh`). |
 | `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
@@ -194,7 +194,7 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 
 ## Installation
 
-Start here: `docs/install.md` (includes `doctor --fix` behavior, verified framework installs, and uninstall/cleanup).
+Start here: [`docs/install.md`](docs/install.md) (includes `doctor --fix` behavior, verified framework installs, and uninstall/cleanup).
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
@@ -205,7 +205,7 @@ cd ~/git-hex
 
 ## Clients & plugin
 
-See `docs/clients.md` for Claude Code plugin setup, MCP client configuration (Cursor/Windsurf/Claude Desktop/CLI), and launcher guidance.
+See [`docs/clients.md`](docs/clients.md) for Claude Code plugin setup, MCP client configuration (Cursor/Windsurf/Claude Desktop/CLI), and launcher guidance.
 
 ## Common Workflows
 
@@ -314,11 +314,11 @@ git-hex handles the **local craft** of shaping commits, while remote collaborati
 
 ## Tool reference
 
-Full per-tool parameters, examples, and outputs: `docs/reference/tools.md`
+Full per-tool parameters, examples, and outputs: [`docs/reference/tools.md`](docs/reference/tools.md)
 
 ## Safety & recovery
 
-Detailed safety model, read-only mode, and recovery procedures: `docs/safety.md`
+Detailed safety model, read-only mode, and recovery procedures: [`docs/safety.md`](docs/safety.md)
 
 ## Testing
 
@@ -384,32 +384,32 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 ## Documentation Map
 
 User docs:
-- Install: `docs/install.md`
-- Safety & recovery: `docs/safety.md`
-- Client setup: `docs/clients.md`
-- Tool reference: `docs/reference/tools.md`
-- MCP/framework details: `docs/reference/mcp.md`
+- Install: [`docs/install.md`](docs/install.md)
+- Safety & recovery: [`docs/safety.md`](docs/safety.md)
+- Client setup: [`docs/clients.md`](docs/clients.md)
+- Tool reference: [`docs/reference/tools.md`](docs/reference/tools.md)
+- MCP/framework details: [`docs/reference/mcp.md`](docs/reference/mcp.md)
 
 Plugin/workflows:
-- Skills: `skills/git-hex-branch-cleanup/SKILL.md`, `skills/git-hex-conflict-resolution/SKILL.md`, `skills/git-hex-pr-workflow/SKILL.md`
-- Claude command templates: `claude-commands/`
+- Skills: [`skills/git-hex-branch-cleanup/SKILL.md`](skills/git-hex-branch-cleanup/SKILL.md), [`skills/git-hex-conflict-resolution/SKILL.md`](skills/git-hex-conflict-resolution/SKILL.md), [`skills/git-hex-pr-workflow/SKILL.md`](skills/git-hex-pr-workflow/SKILL.md)
+- Claude command templates: [`claude-commands/`](claude-commands)
 
 Project:
-- CHANGELOG: `CHANGELOG.md`
-- Plugin metadata: `.claude-plugin/`
-- Server metadata/policy: `server.d/`
+- CHANGELOG: [`CHANGELOG.md`](CHANGELOG.md)
+- Plugin metadata: [`.claude-plugin/`](.claude-plugin)
+- Server metadata/policy: [`server.d/`](server.d)
 
 ## Support
 
-See `SUPPORT.md`.
+See [`SUPPORT.md`](SUPPORT.md).
 
 ## Security
 
-See `SECURITY.md` for how to report vulnerabilities.
+See [`SECURITY.md`](SECURITY.md) for how to report vulnerabilities.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [`LICENSE`](LICENSE) for details.
 
 ## Contributing
 

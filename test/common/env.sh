@@ -94,27 +94,29 @@ run_tool() {
 		--args "${args_json}" \
 		--timeout "${timeout}" 2>"${stderr_file}")" || true
 
-	local parsed has_error error_obj structured
-	parsed="$(printf '%s' "${raw_output}" | jq -s -r '
-		def first_err: (map(select(._mcpToolError == true)) | .[0] // null);
-		def first_struct: (map(select(.structuredContent)) | .[0].structuredContent // null);
-		[
-			(if first_err != null then "1" else "0" end),
-			(if first_err != null then (first_err | tojson) else "" end),
-			(if first_struct != null then (first_struct | tojson) else "" end)
-		] | @tsv
-	' 2>/dev/null || true)"
+	local jq_status error_obj structured
+	# Single jq pass:
+	# - If an MCP tool error exists, emit that error object and exit non-zero.
+	# - Otherwise, emit the first structuredContent payload (or empty).
+	set +e
+	structured="$(printf '%s' "${raw_output}" | jq -s -c '
+		(map(select(._mcpToolError == true)) | .[0] // null) as $err
+		| if $err != null then
+			($err), halt_error(1)
+		else
+			(map(select(.structuredContent)) | .[0].structuredContent // empty)
+		end
+	' 2>/dev/null)"
+	jq_status=$?
+	set -e
 
-	if [ -n "${parsed}" ]; then
-		IFS=$'\t' read -r has_error error_obj structured <<<"${parsed}" || true
-	else
-		has_error="0"
-		error_obj=""
+	if [ "${jq_status}" -ne 0 ] && [ -n "${structured}" ]; then
+		error_obj="${structured}"
 		structured=""
 	fi
 
 	# If any line is an error response (framework may emit notifications first)
-	if [ "${has_error}" = "1" ]; then
+	if [ -n "${error_obj}" ]; then
 		# Print stderr for debugging
 		if [ -s "${stderr_file}" ]; then
 			printf '[run_tool %s] stderr:\n' "${tool_name}" >&2

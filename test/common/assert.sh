@@ -122,7 +122,8 @@ assert_json_fields_eq() {
 	for field in "${fields[@]}"; do
 		jq_filter+="(${field}),"
 	done
-	jq_filter="${jq_filter%,}] | map(if . == null then \"\" else tostring end) | @tsv"
+	# Use a delimiter that won't collide with JSON strings containing tabs/spaces.
+	jq_filter="${jq_filter%,}] | map(if . == null then \"\" else tostring end) | join(\"\\u001f\")"
 
 	values="$(printf '%s' "${json}" | "$(_test_json_bin)" -r "${jq_filter}" 2>/dev/null || true)"
 	if [ -z "${values}" ]; then
@@ -130,7 +131,7 @@ assert_json_fields_eq() {
 	fi
 
 	local -a actuals
-	IFS=$'\t' read -r -a actuals <<<"${values}"
+	IFS=$'\x1f' read -r -a actuals <<<"${values}"
 
 	local i
 	for i in "${!expecteds[@]}"; do

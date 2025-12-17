@@ -49,6 +49,10 @@ _fixture_clone_from_template() {
 	rm -rf "${dest_dir}" 2>/dev/null || true
 	mkdir -p "$(dirname "${dest_dir}")"
 	git clone --local "${template_dir}" "${dest_dir}" >/dev/null 2>&1
+	(
+		cd "${dest_dir}"
+		_configure_test_repo
+	)
 }
 
 _build_template_test_repo() {

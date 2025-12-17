@@ -2,7 +2,7 @@
 
 ## Claude Code plugin
 
-git-hex ships as a Claude Code plugin with bundled Skills:
+git-hex is an MCP server. Claude Code users can install it via the plugin, which bundles companion Skills:
 
 - `skills/git-hex-branch-cleanup/SKILL.md`
 - `skills/git-hex-conflict-resolution/SKILL.md`

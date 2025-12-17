@@ -418,6 +418,7 @@ docker run --rm -v /path/to/repo:/repo git-hex \
 - `undoLast` fails because of new commits: re-run with `"force": true` if you intend to discard the commits added after the git-hex operation. If a rebase/merge/cherry-pick is paused, resolve/abort it first.
 - Stuck rebase/cherry-pick: run `git-hex-getConflictStatus`, resolve files, then `git-hex-continueOperation`; if you want to abandon, use `git-hex-abortOperation`.
 - MCP connectivity or repo path errors: ensure `repoPath` is inside your configured allowed folders (MCP `roots`) and that the repo is clean when required (see tool prerequisites and [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
+- GPG signing/pinentry hangs: tools that create commits default to unsigned commits to avoid non-interactive hangs. If you want signed commits, set `"signCommits": true` on the relevant tool call.
 
 ## Documentation Map
 

@@ -35,8 +35,7 @@ printf ' -> CONF-02 rebase conflict detected\n'
 REPO_REBASE="${TEST_TMPDIR}/conflict-rebase"
 prepare_rebase_conflict "${REPO_REBASE}"
 status="$(run_tool git-hex-getConflictStatus "${REPO_REBASE}" '{}')"
-assert_json_field "${status}" '.inConflict' "true" "rebase should be paused with conflict"
-assert_json_field "${status}" '.conflictType' "rebase" "conflictType should be rebase"
+assert_json_fields_eq "${status}" '.inConflict' "true" '.conflictType' "rebase"
 test_pass "rebase conflict detected"
 
 # CONF-03: Cherry-pick conflict detected

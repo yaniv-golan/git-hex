@@ -10,6 +10,169 @@ _configure_test_repo() {
 	# Disable commit signing (avoids 1Password/GPG agent issues in CI/tests)
 	git config commit.gpgsign false
 	git config tag.gpgsign false
+	# Avoid background work that can slow down short-lived repos (esp. on Windows).
+	git config gc.auto 0
+	git config maintenance.auto false
+	git config core.fsmonitor false
+	git config core.untrackedCache false
+}
+
+# --------------------------------------------------------------------
+# Fixture templates (speed up by cloning from cached repos)
+# --------------------------------------------------------------------
+
+_fixture_template_root() {
+	printf '%s\n' "${TEST_TMPDIR}/fixture-templates"
+}
+
+_fixture_clone_from_template() {
+	local template_key="$1"
+	local dest_dir="$2"
+	local builder_fn="$3"
+	shift 3
+
+	if [ -z "${TEST_TMPDIR:-}" ]; then
+		echo "ERROR: TEST_TMPDIR not set. Call test_create_tmpdir first." >&2
+		return 1
+	fi
+
+	local template_root template_dir
+	template_root="$(_fixture_template_root)"
+	template_dir="${template_root}/${template_key}"
+
+	if [ ! -d "${template_dir}/.git" ]; then
+		rm -rf "${template_dir}" 2>/dev/null || true
+		mkdir -p "${template_dir}"
+		"${builder_fn}" "${template_dir}" "$@"
+	fi
+
+	rm -rf "${dest_dir}" 2>/dev/null || true
+	mkdir -p "$(dirname "${dest_dir}")"
+	git clone --local "${template_dir}" "${dest_dir}" >/dev/null 2>&1
+}
+
+_build_template_test_repo() {
+	local repo_dir="$1"
+	local num_commits="${2:-5}"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		for i in $(seq 1 "${num_commits}"); do
+			local day
+			printf -v day '%02d' "${i}"
+			echo "Content ${i}" >"file${i}.txt"
+			git add "file${i}.txt"
+			# Fixed dates for reproducibility
+			GIT_COMMITTER_DATE="2024-01-${day}T12:00:00" \
+				GIT_AUTHOR_DATE="2024-01-${day}T12:00:00" \
+				git commit -m "Commit ${i}"
+		done
+	)
+}
+
+_build_template_branch_scenario() {
+	local repo_dir="$1"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "base" >base.txt
+		git add base.txt && git commit -m "Base commit"
+
+		git checkout -b feature
+		echo "feature1" >feature1.txt
+		git add feature1.txt && git commit -m "Feature commit 1"
+
+		echo "feature2" >feature2.txt
+		git add feature2.txt && git commit -m "Feature commit 2"
+
+		git checkout main
+		echo "main update" >main.txt
+		git add main.txt && git commit -m "Main branch update"
+	)
+}
+
+_build_template_conflict_scenario() {
+	local repo_dir="$1"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "original content" >conflict.txt
+		git add conflict.txt && git commit -m "Initial"
+
+		git checkout -b feature
+		echo "feature branch change" >conflict.txt
+		git add conflict.txt && git commit -m "Feature change"
+
+		git checkout main
+		echo "main branch change" >conflict.txt
+		git add conflict.txt && git commit -m "Main change"
+	)
+}
+
+_build_template_staged_changes_base() {
+	local repo_dir="$1"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "initial" >file.txt
+		git add file.txt && git commit -m "Initial commit"
+	)
+}
+
+_build_template_staged_dirty_base() {
+	local repo_dir="$1"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "original" >file.txt
+		git add file.txt && git commit -m "Initial"
+
+		git checkout -b feature
+		echo "feature commit" >feature.txt
+		git add feature.txt && git commit -m "Feature commit"
+
+		git checkout main
+		echo "main commit" >main.txt
+		git add main.txt && git commit -m "Main commit"
+	)
+}
+
+_build_template_split_commit_scenario() {
+	local repo_dir="$1"
+	local num_files="${2:-3}"
+
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "base" >base.txt
+		git add base.txt && git commit -m "Initial commit"
+
+		for i in $(seq 1 "${num_files}"); do
+			echo "content for file ${i}" >"file${i}.txt"
+		done
+		git add .
+		git commit -m "Add ${num_files} files (to be split)"
+
+		echo "after split" >after.txt
+		git add after.txt && git commit -m "Commit after the one to split"
+	)
 }
 
 # Create a basic git repo with N commits
@@ -17,21 +180,7 @@ create_test_repo() {
 	local repo_dir="$1"
 	local num_commits="${2:-5}"
 
-	mkdir -p "${repo_dir}"
-	(
-		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		for i in $(seq 1 "${num_commits}"); do
-			echo "Content ${i}" >"file${i}.txt"
-			git add "file${i}.txt"
-			# Fixed dates for reproducibility
-			GIT_COMMITTER_DATE="2024-01-0${i}T12:00:00" \
-				GIT_AUTHOR_DATE="2024-01-0${i}T12:00:00" \
-				git commit -m "Commit ${i}"
-		done
-	)
+	_fixture_clone_from_template "test-repo-${num_commits}" "${repo_dir}" _build_template_test_repo "${num_commits}"
 }
 
 # Create a repo with fixup commits ready for autosquash
@@ -63,28 +212,10 @@ create_fixup_scenario() {
 create_conflict_scenario() {
 	local repo_dir="$1"
 
-	mkdir -p "${repo_dir}"
+	_fixture_clone_from_template "conflict-scenario" "${repo_dir}" _build_template_conflict_scenario
 	(
 		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		# Base commit
-		echo "original content" >conflict.txt
-		git add conflict.txt && git commit -m "Initial"
-
-		# Create a branch with one change
-		git checkout -b feature
-		echo "feature branch change" >conflict.txt
-		git add conflict.txt && git commit -m "Feature change"
-
-		# Go back to main and make a conflicting change
-		git checkout main
-		echo "main branch change" >conflict.txt
-		git add conflict.txt && git commit -m "Main change"
-
-		# Switch to feature - rebasing onto main will conflict
-		git checkout feature
+		git checkout feature >/dev/null 2>&1
 	)
 }
 
@@ -92,18 +223,13 @@ create_conflict_scenario() {
 create_staged_changes_repo() {
 	local repo_dir="$1"
 
-	mkdir -p "${repo_dir}"
+	# Index/worktree state is not preserved through cloning, so clone a base repo and
+	# apply the staged change after.
+	_fixture_clone_from_template "staged-changes-base" "${repo_dir}" _build_template_staged_changes_base
 	(
 		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		echo "initial" >file.txt
-		git add file.txt && git commit -m "Initial commit"
-
 		echo "modified" >file.txt
 		git add file.txt
-		# Leave changes staged but not committed
 	)
 }
 
@@ -111,27 +237,10 @@ create_staged_changes_repo() {
 create_branch_scenario() {
 	local repo_dir="$1"
 
-	mkdir -p "${repo_dir}"
+	_fixture_clone_from_template "branch-scenario" "${repo_dir}" _build_template_branch_scenario
 	(
 		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		echo "base" >base.txt
-		git add base.txt && git commit -m "Base commit"
-
-		git checkout -b feature
-		echo "feature1" >feature1.txt
-		git add feature1.txt && git commit -m "Feature commit 1"
-
-		echo "feature2" >feature2.txt
-		git add feature2.txt && git commit -m "Feature commit 2"
-
-		git checkout main
-		echo "main update" >main.txt
-		git add main.txt && git commit -m "Main branch update"
-
-		git checkout feature
+		git checkout feature >/dev/null 2>&1
 	)
 }
 
@@ -429,26 +538,10 @@ create_dirty_repo() {
 create_staged_dirty_repo() {
 	local repo_dir="$1"
 
-	mkdir -p "${repo_dir}"
+	_fixture_clone_from_template "staged-dirty-base" "${repo_dir}" _build_template_staged_dirty_base
 	(
 		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		echo "original" >file.txt
-		git add file.txt && git commit -m "Initial"
-
-		git checkout -b feature
-		echo "feature commit" >feature.txt
-		git add feature.txt && git commit -m "Feature commit"
-
-		git checkout main
-		echo "main commit" >main.txt
-		git add main.txt && git commit -m "Main commit"
-
-		git checkout feature
-
-		# Stage a change but don't commit
+		git checkout feature >/dev/null 2>&1
 		echo "staged change" >>file.txt
 		git add file.txt
 	)
@@ -543,27 +636,7 @@ create_split_commit_scenario() {
 	local repo_dir="$1"
 	local num_files="${2:-3}"
 
-	mkdir -p "${repo_dir}"
-	(
-		cd "${repo_dir}"
-		git init --initial-branch=main
-		_configure_test_repo
-
-		# Initial commit
-		echo "base" >base.txt
-		git add base.txt && git commit -m "Initial commit"
-
-		# Create a commit with multiple files (the one to split)
-		for i in $(seq 1 "${num_files}"); do
-			echo "content for file ${i}" >"file${i}.txt"
-		done
-		git add .
-		git commit -m "Add ${num_files} files (to be split)"
-
-		# Add another commit after (to test rebase works)
-		echo "after split" >after.txt
-		git add after.txt && git commit -m "Commit after the one to split"
-	)
+	_fixture_clone_from_template "split-commit-${num_files}" "${repo_dir}" _build_template_split_commit_scenario "${num_files}"
 }
 
 # Create repo with file rename in a commit

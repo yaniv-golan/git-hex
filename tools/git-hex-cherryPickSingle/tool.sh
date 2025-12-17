@@ -45,6 +45,7 @@ strategy="$(mcp_args_get '.strategy // empty' || true)"
 no_commit="$(mcp_args_bool '.noCommit' --default false)"
 abort_on_conflict="$(mcp_args_bool '.abortOnConflict' --default true)"
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 _git_hex_cleanup_abort="true"
 
 # Validate autoStash vs abortOnConflict
@@ -138,6 +139,9 @@ if [ -n "${strategy}" ]; then
 fi
 if [ "${no_commit}" = "true" ]; then
 	pick_args+=("--no-commit")
+fi
+if [ "${sign_commits}" != "true" ] && [ "${no_commit}" != "true" ]; then
+	pick_args+=("--no-gpg-sign")
 fi
 pick_args+=("${source_hash}")
 

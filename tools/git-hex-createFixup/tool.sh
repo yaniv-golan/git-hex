@@ -19,6 +19,7 @@ source "${SCRIPT_DIR}/../../lib/backup.sh"
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 commit="$(mcp_args_require '.commit')"
 extra_message="$(mcp_args_get '.message // empty' || true)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
@@ -86,12 +87,20 @@ if [ -n "${extra_message}" ]; then
 	full_message="fixup! ${original_subject}
 
 ${extra_message}"
-	if ! commit_error="$(git -C "${repo_path}" commit -m "${full_message}" 2>&1)"; then
+	commit_args=("-m" "${full_message}")
+	if [ "${sign_commits}" != "true" ]; then
+		commit_args+=("--no-gpg-sign")
+	fi
+	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
 		handle_commit_error "${commit_error}"
 	fi
 else
 	# Use git's built-in fixup
-	if ! commit_error="$(git -C "${repo_path}" commit --fixup="${target_hash}" 2>&1)"; then
+	commit_args=("--fixup=${target_hash}")
+	if [ "${sign_commits}" != "true" ]; then
+		commit_args+=("--no-gpg-sign")
+	fi
+	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
 		handle_commit_error "${commit_error}"
 	fi
 fi

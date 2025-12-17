@@ -37,6 +37,7 @@ else
 	splits_json="${splits_json:-}"
 fi
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
@@ -170,7 +171,11 @@ export GIT_HEX_REPO_PATH="${repo_path}"
 _git_hex_rebase_started="true"
 rebase_status=0
 # shellcheck disable=SC2034
-rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
+if [ "${sign_commits}" = "true" ]; then
+	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
+else
+	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -c commit.gpgsign=false -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
+fi
 
 unset GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT GIT_HEX_REPO_PATH
 
@@ -204,7 +209,11 @@ for i in $(seq 0 $((split_count - 1))); do
 		[ -z "${file}" ] && continue
 		git -C "${repo_path}" add -- "${file}"
 	done <<<"${split_files}"
-	git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
+	if [ "${sign_commits}" = "true" ]; then
+		git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
+	else
+		git -C "${repo_path}" commit --no-gpg-sign -F "${msg_file}" >/dev/null 2>&1
+	fi
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
 	files_json="$(printf '%s' "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
 	# shellcheck disable=SC2016

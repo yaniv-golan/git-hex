@@ -26,6 +26,7 @@ abort_on_conflict="$(mcp_args_bool '.abortOnConflict' --default true)"
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 autosquash="$(mcp_args_bool '.autosquash' --default true)"
 require_complete="$(mcp_args_bool '.requireComplete' --default false)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
 _git_hex_cleanup_files=()
 _git_hex_cleanup() {
@@ -163,7 +164,11 @@ create_reword_exec() {
 	local msg_file="${_git_hex_msg_dir}/msg_${_git_hex_msg_counter}"
 	_git_hex_msg_counter=$((_git_hex_msg_counter + 1))
 	printf '%s' "${msg}" >"${msg_file}"
-	printf 'exec git commit --amend -F %s\n' "${msg_file}"
+	if [ "${sign_commits}" = "true" ]; then
+		printf 'exec git commit --amend -F %s\n' "${msg_file}"
+	else
+		printf 'exec git commit --amend --no-gpg-sign -F %s\n' "${msg_file}"
+	fi
 }
 
 complete_todo=""
@@ -267,9 +272,17 @@ fi
 rebase_output=""
 rebase_status=0
 if [ "${use_custom_todo}" = "true" ]; then
-	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	if [ "${sign_commits}" = "true" ]; then
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	else
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	fi
 else
-	rebase_output="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	if [ "${sign_commits}" = "true" ]; then
+		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	else
+		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+	fi
 fi
 
 # Debug output (always on failure, or when explicitly enabled)

@@ -35,6 +35,11 @@
         "type": "boolean",
         "description": "Automatically stash uncommitted changes before cherry-pick (requires abortOnConflict=true)",
         "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
       }
     },
     "required": ["commit"]

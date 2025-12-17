@@ -379,14 +379,18 @@ npx @modelcontextprotocol/inspector --transport stdio -- /path/to/git-hex/git-he
 
 ```bash
 docker build -t git-hex .
-docker run -i --rm -v /path/to/repo:/repo git-hex --roots /repo
+docker run -i --rm -v /path/to/repo:/repo git-hex
 ```
 
-Pass allowed folders (MCP `roots`) and the target repo explicitly when running the container (examples):
+Use Docker in one of two modes:
+
+- Run the MCP server (stdio) in the container (for MCP clients), and configure your client’s allowed folders (MCP `roots` / `allowedRoots`) to include the mounted repo (see [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)).
+- Debug a single tool call in the container via `run-tool` (in this mode, `--roots` is valid because it applies to `run-tool`).
 
 - With MCP Inspector:
   ```bash
-  docker run -i --rm -v /path/to/repo:/repo git-hex --roots /repo
+  npx @modelcontextprotocol/inspector --transport stdio -- \
+    docker run -i --rm -v /path/to/repo:/repo git-hex
   ```
 - With a client config that starts the server:
   ```json
@@ -394,13 +398,20 @@ Pass allowed folders (MCP `roots`) and the target repo explicitly when running t
     "mcpServers": {
       "git-hex": {
         "command": "docker",
-        "args": ["run", "-i", "--rm", "-v", "/path/to/repo:/repo", "git-hex", "--roots", "/repo"]
+        "args": ["run", "-i", "--rm", "-v", "/path/to/repo:/repo", "git-hex"]
       }
     }
   }
   ```
 
 `repoPath` must be within an allowed folder (MCP `roots`); pass it explicitly when you mount multiple repositories.
+
+Debug a single tool call in the container:
+
+```bash
+docker run --rm -v /path/to/repo:/repo git-hex \
+  run-tool git-hex-getRebasePlan --roots /repo --args '{"count": 5}'
+```
 
 ## Troubleshooting
 

@@ -68,6 +68,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 | `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
 | `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
 | `requireComplete` | boolean | No | If true, plan must list all commits (enables reordering) |
+| `signCommits` | boolean | No | If true, allow commit signing during the rebase. Default false to avoid non-interactive pinentry hangs. |
 
 **Example:**
 ```json
@@ -155,6 +156,7 @@ Split a commit into multiple commits by file (file-level only; no hunk splitting
 | `commit` | string | **Yes** | Commit hash/ref to split (must be ancestor of HEAD, non-merge, non-root) |
 | `splits` | array | **Yes** | Array of `{ files: [...], message: "<single-line>" }` (min 2) |
 | `autoStash` | boolean | No | Automatically stash/restore uncommitted changes (default: false) |
+| `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |
 
 **Returns:**
 ```json
@@ -184,6 +186,7 @@ Create a fixup commit targeting a specific commit.
 | `repoPath` | string | No | Path to git repository |
 | `commit` | string | **Yes** | Commit hash/ref to create fixup for |
 | `message` | string | No | Additional message to append |
+| `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |
 
 **Example:**
 ```json
@@ -215,6 +218,8 @@ Amend the last commit with staged changes and/or a new message.
 | `repoPath` | string | No | Path to git repository |
 | `message` | string | No | New commit message |
 | `addAll` | boolean | No | Stage all tracked modified files (default: false) |
+| `autoStash` | boolean | No | Automatically stash unstaged changes before amending (default: false) |
+| `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |
 
 > **Note:** The `addAll` option stages only *tracked* files (`git add -u`), not new untracked files. This is a safety feature to prevent accidentally including unintended files. To include new files, stage them explicitly with `git add` before calling this tool.
 
@@ -252,6 +257,7 @@ Cherry-pick a single commit with configurable merge strategy.
 | `noCommit` | boolean | No | Apply without committing (default: false) |
 | `abortOnConflict` | boolean | No | If false, pause on conflicts instead of aborting (default: true) |
 | `autoStash` | boolean | No | Automatically stash/restore tracked changes (requires `abortOnConflict=true`, default: false) |
+| `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |
 
 **Example:**
 ```json

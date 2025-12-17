@@ -22,6 +22,7 @@ repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 new_message="$(mcp_args_get '.message // empty' || true)"
 add_all="$(mcp_args_bool '.addAll' --default false)"
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
 # Validate git repository
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
@@ -83,6 +84,9 @@ if [ -n "${new_message}" ]; then
 	amend_args+=("-m" "${new_message}")
 else
 	amend_args+=("--no-edit")
+fi
+if [ "${sign_commits}" != "true" ]; then
+	amend_args+=("--no-gpg-sign")
 fi
 
 # Perform the amend (capture stderr for better error messages)

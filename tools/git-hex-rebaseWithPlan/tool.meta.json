@@ -59,6 +59,11 @@
         "type": "boolean",
         "description": "If true, plan must include all commits in range. If false, unmentioned commits default to 'pick'.",
         "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing during rebase (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
       }
     },
     "required": ["onto"]

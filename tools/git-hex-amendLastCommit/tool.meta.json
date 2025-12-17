@@ -25,6 +25,11 @@
         "type": "boolean",
         "description": "Automatically stash unstaged changes before amending (uses --keep-index to preserve staged changes)",
         "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
       }
     }
   },

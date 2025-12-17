@@ -41,6 +41,11 @@
         "type": "boolean",
         "description": "Automatically stash and restore uncommitted changes",
         "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
       }
     },
     "required": ["commit", "splits"]

@@ -31,7 +31,7 @@
     "properties": {
       "success": { "type": "boolean" },
       "inConflict": { "type": "boolean" },
-      "conflictType": { "type": "string", "description": "rebase, merge, or cherry-pick" },
+      "conflictType": { "type": "string", "enum": ["rebase", "merge", "cherry-pick", "none"], "description": "rebase, merge, cherry-pick, or none" },
       "currentStep": { "type": "integer" },
       "totalSteps": { "type": "integer" },
       "conflictingCommit": { "type": "string" },

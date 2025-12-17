@@ -2,6 +2,12 @@
 
 ![git-hex banner](assets/git-hex-banner.png)
 [![CI Status](https://github.com/yaniv-golan/git-hex/actions/workflows/test.yml/badge.svg)](https://github.com/yaniv-golan/git-hex/actions/workflows/test.yml)
+[![Lint](https://github.com/yaniv-golan/git-hex/actions/workflows/lint.yml/badge.svg)](https://github.com/yaniv-golan/git-hex/actions/workflows/lint.yml)
+[![License](https://img.shields.io/github/license/yaniv-golan/git-hex)](LICENSE)
+[![Security Policy](https://img.shields.io/badge/security-policy-blue)](SECURITY.md)
+[![Last Commit](https://img.shields.io/github/last-commit/yaniv-golan/git-hex)](https://github.com/yaniv-golan/git-hex/commits/main)
+[![Pure Bash](https://img.shields.io/badge/pure-bash-4EAA25?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 
 **AI-assisted, non-interactive git refactoring via MCP** — a focused toolset for rebase & commit perfection, usable by agents or chat users directing the MCP tools.
 
@@ -11,6 +17,19 @@ Name note: “git-hex” is simply a short label for this git-history refactorin
 
 See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION` and `.claude-plugin/plugin.json`.
 
+**Quick links:** `docs/install.md` • `docs/safety.md` • `docs/clients.md` • `docs/reference/tools.md` • `docs/reference/mcp.md` • `SECURITY.md` • `CONTRIBUTING.md`
+
+## Table of contents
+
+- [Quick Start](#quick-start-2-minutes)
+- [Safety First](#safety-first)
+- [Choose your path](#choose-your-path)
+- [How it works](#how-it-works)
+- [Common workflows](#common-workflows)
+- [Tool reference](#tool-reference)
+- [Support](#support)
+- [Security](#security)
+
 ## Design Principles
 
 - **Safety first**: Conflict-prone operations abort cleanly by default and create backup refs so you can always undo.
@@ -18,28 +37,6 @@ See `CHANGELOG.md` for notable changes. Version metadata also lives in `VERSION`
 - **Minimal surface**: Tools only—no extra services. Everything runs through the MCP Bash Framework.
 - **Respect the sandbox**: Every path is validated against MCP roots; read-only mode blocks mutating tools.
 - **Agent friendly**: Outputs are structured, include summaries, and prefer explicit parameters over magic.
-
-## MCP Spec Coverage
-
-Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (version negotiation and client downgrades handled by the framework).
-
-| Category | Coverage | Notes |
-|----------|----------|-------|
-| Core | ✅ Full | Lifecycle, ping, capabilities via framework |
-| Tools | ✅ Full | git-hex tool suite (see “Tools”) |
-| Resources | ✅ Templates | `resources/templates/list` returns templates discovered from `resources/*.meta.json` (`uriTemplate`). Note: framework capabilities don’t currently advertise templates, so some clients may not discover them automatically. |
-| Prompts | ✅ Some | Workflow prompts under `prompts/` (listed via `prompts/list`) |
-| Completions | ✅ Providers | Completion providers registered via `server.d/register.json` (full mode requires jq/gojq) |
-
-## Client Compatibility
-
-| Client | Status | Notes |
-|--------|--------|-------|
-| Claude Desktop | Tested | Use wrapper/wrapper-env on macOS |
-| Claude Code/CLI | Tested | Ships as a Claude Code plugin |
-| Cursor | Documented | JSON snippet below |
-| Windsurf | Documented | Uses same JSON snippet |
-| Windows (Git Bash) | Tested | Use wrapper; ensure paths are POSIX |
 
 ## Features
 
@@ -55,14 +52,24 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
-./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
 ./git-hex.sh doctor          # diagnostics (read-only; no persistent changes)
+./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
 ./git-hex.sh validate        # MCP project validation via the framework
 # Fast smoke: list commits relative to main (adjust branch/path as needed)
 ./git-hex.sh run-tool git-hex-getRebasePlan --args '{"onto":"main","count":5}'
 ```
 
-### 30-second end-to-end example
+## Safety First
+
+- **Roots enforcement**: repo paths must be inside configured MCP `roots`.
+- **Backups for mutations**: every history-mutating tool creates `refs/git-hex/backup/...` so you can recover.
+- **Conflict safety**: rebases/cherry-picks abort and restore by default on conflicts.
+- **Read-only mode**: set `GIT_HEX_READ_ONLY=1` to block all mutating tools.
+- **Scoped guarantees**: git-hex tools do not run `git push/fetch/pull`; dependency installation may use the network unless you preinstall/pin it.
+
+Details: `docs/safety.md`
+
+### Next: 30-second end-to-end example (mutates history)
 
 ```bash
 # Prepare staged fix for a commit, then create a fixup and autosquash
@@ -70,6 +77,12 @@ git add <files>
 ./git-hex.sh run-tool git-hex-createFixup --args '{"commit":"<target-sha>"}'
 ./git-hex.sh run-tool git-hex-rebaseWithPlan --args '{"onto":"main","autosquash":true}'
 ```
+
+## Choose your path
+
+- **Claude Code plugin**: install + bundled Skills + command templates → `docs/clients.md`
+- **MCP clients (Cursor/Windsurf/Claude Desktop/CLI)**: config snippets + launcher guidance → `docs/clients.md`
+- **CLI/testing**: run tools locally and validate the project → `docs/reference/tools.md` and `docs/install.md`
 
 ## How It Works
 
@@ -156,7 +169,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see “Read-Only Mode”) |
+| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see `docs/safety.md`) |
 | `GIT_HEX_AUTO_INSTALL_FRAMEWORK` | `true` | If `true`, `git-hex.sh` auto-installs the pinned MCP Bash Framework when missing. Set to `false` to require a preinstalled framework (or use `git-hex-env.sh`). |
 | `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
@@ -171,7 +184,7 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 ## Versioning & Releases
 
 - Current development version: `0.1.0` (see `VERSION`).
-- Tags/GitHub releases may not be published yet; pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`). We plan to tag v0.1.0 for release.
+- We plan to publish GitHub Releases with signed tags, release notes, and checksums for verification. Until those are published, pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`).
 
 ## Lint & Tests
 
@@ -181,128 +194,18 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 
 ## Installation
 
-### Recommended: Wrapper Script (Auto-installs MCP Bash Framework)
-
-git-hex includes a `git-hex.sh` wrapper that auto-installs the MCP Bash Framework if needed:
+Start here: `docs/install.md` (includes `doctor --fix` behavior, verified framework installs, and uninstall/cleanup).
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
-./git-hex.sh  # Auto-installs framework on first run
-```
-In CI, set `GIT_HEX_MCPBASH_SHA256` (and optional `GIT_HEX_MCPBASH_ARCHIVE_URL`) to enforce a verified tarball install; otherwise the wrapper clones the tagged ref.
-
-### Advanced: Use an Existing MCP Bash Framework Install
-
-If your environment already manages the MCP Bash Framework and you want explicit control over the binary and env, configure your client directly (the v0.8.0 installer defaults to `~/.local/share/mcp-bash` with a symlink at `~/.local/bin/mcp-bash`). Prefer the release tarball + checksum for reproducible installs:
-
-```bash
-# Clone git-hex
-git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-
-# Verified install (recommended): let `git-hex.sh` download the pinned release tarball and verify it.
-# v0.8.0 tarball SHA256 (from the mcp-bash-framework release SHA256SUMS).
-export GIT_HEX_MCPBASH_SHA256="488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d33761e8edb9be45349"
-cd ~/git-hex && ./git-hex.sh
+./git-hex.sh doctor
+./git-hex.sh doctor --fix
 ```
 
-#### JSON tooling and Windows/MSYS
+## Clients & plugin
 
-The framework auto-detects JSON tooling (prefers `jq`, falls back to `gojq`) and includes MSYS/Git Bash guidance via `mcp-bash doctor`. No extra env is required in typical setups. If you hit Windows path/exec-limit issues, set `MCPBASH_JSON_TOOL=jq` and `MSYS2_ARG_CONV_EXCL="*"` manually.
-
-## Claude Code Plugin
-
-git-hex ships as a Claude Code plugin with bundled Skills.
-
-### Installation (Claude Code)
-
-Run these slash commands in Claude Code's chat interface:
-
-```text
-# From the parent directory of this repo:
-/plugin marketplace add ./git-hex
-/plugin install git-hex@git-hex-marketplace
-
-# Or from GitHub:
-/plugin marketplace add yaniv-golan/git-hex
-/plugin install git-hex@git-hex-marketplace
-```
-
-Bundled Skills:
-- `git-hex-branch-cleanup` — history rewrite, fixups, split/reorder/squash
-- `git-hex-conflict-resolution` — inspect/resolve paused rebase/cherry-pick conflicts
-- `git-hex-pr-workflow` — complete PR lifecycle (local craft + remote collaboration)
-
-### Updating
-
-git-hex (as a third-party plugin) does not auto-update by default. To update, use these slash commands in Claude Code:
-
-- **Manual update**: `/plugin marketplace update git-hex-marketplace`
-- **Enable auto-update**: `/plugin` → select Marketplaces → git-hex-marketplace → Enable auto-update
-
-See [Plugin Marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) for details.
-
-The MCP server auto-starts via `git-hex.sh`; no extra client config required. Skill definitions live in `skills/` and can be customized there. The Claude plugin bundle is described in `.claude-plugin/`.
-
-## MCP Client Configuration
-
-### Recommended (Claude Code/CLI, Cursor, Windsurf)
-
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "/path/to/git-hex/git-hex.sh"
-    }
-  }
-}
-```
-
-> **Roots:** Configure MCP `roots` to limit filesystem access. When only one root is configured, `repoPath` defaults to that root; passing a path outside configured roots is rejected by the framework.
-> With multiple roots configured, always supply `repoPath` explicitly so the server can pick the correct repository.
-
-**Launchers (which one to use):**
-- `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
-- `git-hex-env.sh` — login-aware launcher (sources your login profile first, e.g., `~/.zprofile` or `~/.bash_profile`). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop). It silences profile output by default to avoid corrupting stdio-based MCP sessions; set `GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT=0` to disable.
-- Both expose the same commands (`./git-hex.sh validate`, `./git-hex-env.sh config --inspector`, etc.). Point your client’s `command` at whichever fits the environment.
-
-Tips:
-- From the project root, run `./git-hex.sh config --inspector` to print a ready-to-run MCP Inspector command (stdio transport) with `MCPBASH_PROJECT_ROOT` set.
-- On macOS Claude Desktop, prefer `git-hex-env.sh` so PATH/version managers are loaded before starting the server.
-- Claude CLI/Code: `claude mcp add --transport stdio git-hex --env MCPBASH_PROJECT_ROOT="$PWD" -- "$PWD/git-hex.sh"` (use `git-hex-env.sh` on macOS GUI shells).
-- Cursor CLI: add the same JSON to `~/.cursor/mcp.json` or `.cursor/mcp.json` in a project; point `command` at the appropriate launcher.
-
-### Advanced: Use an Existing MCP Bash Framework Install
-
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "/path/to/.local/share/mcp-bash/bin/mcp-bash",
-      "env": {
-        "MCPBASH_PROJECT_ROOT": "/path/to/git-hex"
-      }
-    }
-  }
-}
-```
-
-### Windows (Git Bash, Wrapper Recommended)
-
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe",
-      "args": ["-c", "/c/Users/me/git-hex/git-hex.sh"],
-      "env": {
-        "MCPBASH_PROJECT_ROOT": "/c/Users/me/git-hex",
-        "MSYS2_ARG_CONV_EXCL": "*"
-      }
-    }
-  }
-}
-```
+See `docs/clients.md` for Claude Code plugin setup, MCP client configuration (Cursor/Windsurf/Claude Desktop/CLI), and launcher guidance.
 
 ## Common Workflows
 
@@ -409,398 +312,13 @@ git-hex handles the **local craft** of shaping commits, while remote collaborati
 
 4. **After review feedback**: return to step 1 for more local craft
 
-## Tools
+## Tool reference
 
-### git-hex-getRebasePlan
+Full per-tool parameters, examples, and outputs: `docs/reference/tools.md`
 
-Get a structured view of recent commits for rebase planning and inspection.
+## Safety & recovery
 
-> **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
-> For single-commit repositories, the default base is the empty tree so the lone commit is included. To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository (defaults to single root) |
-| `count` | integer | No | Number of commits (default: 10, max: 200) |
-| `onto` | string | No | Base ref for commit range (defaults to upstream or HEAD~count) |
-
-**Example:**
-```json
-{
-  "repoPath": "/path/to/repo",
-  "count": 5
-}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "plan_id": "plan_1234567890_12345",
-  "branch": "feature/my-branch",
-  "onto": "main",
-  "commits": [
-    {
-      "hash": "abc123...",
-      "shortHash": "abc123",
-      "subject": "Add feature X",
-      "author": "Developer",
-      "date": "2024-01-15T10:30:00Z"
-    }
-  ],
-  "summary": "Found 1 commits on feature/my-branch since main"
-}
-```
-
-### git-hex-rebaseWithPlan
-
-Structured interactive rebase with plan support (reorder, drop, squash, reword) plus conflict pause/resume.
-
-> **Prerequisites:** Working tree must be clean unless `autoStash=true`. All history-mutating operations create a backup ref for `undoLast`.
-
-> **Notes:**
-> - Rebases the range `onto..HEAD`
-> - `plan` controls actions per commit; partial plans default missing commits to `pick`
-> - `abortOnConflict=false` leaves the rebase paused so you can call `getConflictStatus` / `resolveConflict` / `continueOperation`
-> - Uses native `--autostash` when `autoStash=true`
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository |
-| `onto` | string | **Yes** | Base ref to rebase onto |
-| `plan` | array | No | Ordered list of `{action, commit, message?}` items |
-| `abortOnConflict` | boolean | No | Abort on conflicts (default: true). Set to false to pause and resolve instead of auto-aborting. |
-| `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
-| `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
-| `requireComplete` | boolean | No | If true, plan must list all commits (enables reordering) |
-
-**Example:**
-```json
-{
-  "onto": "main",
-  "autosquash": true,
-  "plan": [
-    { "action": "pick", "commit": "abc123" },
-    { "action": "drop", "commit": "def456" }
-  ]
-}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "headBefore": "abc123...",
-  "headAfter": "def456...",
-  "summary": "Rebased 5 commits onto main",
-  "commitsRebased": 5
-}
-```
-
-### git-hex-checkRebaseConflicts
-
-Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
-
-> **Git version:** Requires Git 2.38+ (uses `merge-tree --write-tree` internally, isolated in a temp object directory to avoid touching repo objects).
-
-Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
-
-**Example output:**
-```json
-{
-  "success": true,
-  "wouldConflict": true,
-  "confidence": "estimate",
-  "commits": [
-    { "hash": "8b3f1c2", "subject": "Clean change", "prediction": "clean" },
-    { "hash": "a1b2c3d", "subject": "Conflicting change", "prediction": "conflict" },
-    { "hash": "c4d5e6f", "subject": "After conflict", "prediction": "unknown" }
-  ],
-  "limitExceeded": false,
-  "totalCommits": 3,
-  "checkedCommits": 3,
-  "summary": "Rebase would conflict at commit 2/3 (a1b2c3d)",
-  "note": "Predictions may not match actual rebase behavior in all cases"
-}
-```
-
-### Conflict Workflow
-
-- **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
-- **git-hex-resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
-- **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
-- **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
-
-**getConflictStatus example output:**
-```json
-{
-  "success": true,
-  "conflictType": "rebase",
-  "currentStep": 1,
-  "totalSteps": 3,
-  "conflictingFiles": [
-    {
-      "path": "conflict.txt",
-      "conflictType": "both_modified"
-    }
-  ],
-  "paused": true,
-  "summary": "Rebase paused with conflicts"
-}
-```
-
-### git-hex-splitCommit
-
-Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository (defaults to single root) |
-| `commit` | string | **Yes** | Commit hash/ref to split (must be ancestor of HEAD, non-merge, non-root) |
-| `splits` | array | **Yes** | Array of `{ files: [...], message: "<single-line>" }` (min 2) |
-| `autoStash` | boolean | No | Automatically stash/restore uncommitted changes (default: false) |
-
-**Returns:**
-```json
-{
-  "success": true,
-  "originalCommit": "abc123...",
-  "newCommits": [
-    { "hash": "def456...", "message": "Split part 1", "files": ["file1.txt"] },
-    { "hash": "789abcd...", "message": "Split part 2", "files": ["file2.txt"] }
-  ],
-  "backupRef": "git-hex/backup/1700000000_splitCommit_xxx",
-  "rebasePaused": false,
-  "stashNotRestored": false,
-  "summary": "Split abc1234 into 2 commits"
-}
-```
-
-### git-hex-createFixup
-
-Create a fixup commit targeting a specific commit.
-
-> **Prerequisites:** Changes must be staged (`git add`) before running. This tool commits the currently staged changes as a fixup.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository |
-| `commit` | string | **Yes** | Commit hash/ref to create fixup for |
-| `message` | string | No | Additional message to append |
-
-**Example:**
-```json
-{
-  "commit": "abc123",
-  "message": "Fix typo in function name"
-}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "headBefore": "def456...",
-  "headAfter": "ghi789...",
-  "targetCommit": "abc123...",
-  "summary": "Created fixup commit ghi789 targeting abc123",
-  "commitMessage": "fixup! Original commit message"
-}
-```
-
-### git-hex-amendLastCommit
-
-Amend the last commit with staged changes and/or a new message.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository |
-| `message` | string | No | New commit message |
-| `addAll` | boolean | No | Stage all tracked modified files (default: false) |
-
-> **Note:** The `addAll` option stages only *tracked* files (`git add -u`), not new untracked files. This is a safety feature to prevent accidentally including unintended files. To include new files, stage them explicitly with `git add` before calling this tool.
-
-**Example:**
-```json
-{
-  "message": "Updated commit message",
-  "addAll": true
-}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "headBefore": "abc123...",
-  "headAfter": "jkl012...",
-  "summary": "Amended commit with new hash jkl012",
-  "commitMessage": "Updated commit message"
-}
-```
-
-### git-hex-cherryPickSingle
-
-Cherry-pick a single commit with configurable merge strategy.
-
-> **Prerequisites:** Working tree must be clean (no uncommitted changes) unless `autoStash=true`, which stashes/restore tracked changes automatically. Commit or stash changes before running otherwise.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository |
-| `commit` | string | **Yes** | Commit hash/ref to cherry-pick |
-| `strategy` | string | No | Merge strategy: recursive, ort, resolve |
-| `noCommit` | boolean | No | Apply without committing (default: false) |
-| `abortOnConflict` | boolean | No | If false, pause on conflicts instead of aborting (default: true) |
-| `autoStash` | boolean | No | Automatically stash/restore tracked changes (requires `abortOnConflict=true`, default: false) |
-
-**Example:**
-```json
-{
-  "commit": "abc123",
-  "strategy": "ort",
-  "abortOnConflict": true,
-  "autoStash": true
-}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "headBefore": "def456...",
-  "headAfter": "mno345...",
-  "sourceCommit": "abc123...",
-  "summary": "Cherry-picked abc123 as new commit mno345",
-  "commitMessage": "Original commit subject line"
-}
-```
-
-### git-hex-undoLast
-
-Undo the last git-hex operation by resetting to the backup ref.
-
-> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
-
-Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
-
-**Parameters:**
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `repoPath` | string | No | Path to git repository |
-
-**Example:**
-```json
-{}
-```
-
-**Returns:**
-```json
-{
-  "success": true,
-  "headBefore": "mno345...",
-  "headAfter": "def456...",
-  "undoneOperation": "cherryPickSingle",
-  "backupRef": "git-hex/backup/1234567890_cherryPickSingle",
-  "commitsUndone": 1,
-  "summary": "Undid cherryPickSingle from 2024-01-15 10:30:00. Reset 1 commit(s) from mno345 to def456"
-}
-```
-
-## Safety Features
-
-git-hex is designed with safety as a priority:
-
-1. **Conflict Handling**: All operations that can cause conflicts (rebase, cherry-pick) automatically abort and restore the repository to its original state if conflicts occur.
-
-2. **State Validation**: Tools check for uncommitted changes, existing rebase/cherry-pick states, and other conditions before proceeding.
-
-3. **Cleanup Traps**: Shell traps ensure cleanup happens even on unexpected errors.
-
-4. **Path Validation**: When MCP roots are configured, all paths are validated to stay within allowed boundaries.
-
-5. **Backup Refs**: Every history-mutating operation (amend, fixup, cherry-pick, rebase, split) creates `refs/git-hex/backup/<timestamp>_<operation>` plus a `refs/git-hex/last/<timestamp>_<operation>` pointer to the most recent one. Use `git-hex-undoLast` or `git reset --hard <backup-ref>` to restore. Conflict-resolution helpers do not create backups.
-
-6. **Read-Only Mode**: Available for inspection-only workflows (see below).
-
-## Read-Only Mode
-
-For environments where you want to inspect repositories without risk of modification, enable read-only mode:
-
-```bash
-export GIT_HEX_READ_ONLY=1
-```
-
-In this mode:
-- ✅ `git-hex-getRebasePlan` — allowed (inspection only)
-- ❌ `git-hex-rebaseWithPlan` — blocked
-- ❌ `git-hex-createFixup` — blocked
-- ❌ `git-hex-amendLastCommit` — blocked
-- ❌ `git-hex-cherryPickSingle` — blocked
-- ❌ `git-hex-undoLast` — blocked
-
-Blocked tools return error code `-32602` with a clear message explaining that read-only mode is active.
-
-To configure read-only mode in your MCP client:
-
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "/path/to/git-hex/git-hex.sh",
-      "env": {
-        "GIT_HEX_READ_ONLY": "1"
-      }
-    }
-  }
-}
-```
-
-## Recovery
-
-### Using git-hex-undoLast
-
-The easiest way to recover from an unwanted operation:
-
-```json
-// Undo the last git-hex operation
-{ "tool": "git-hex-undoLast", "arguments": {} }
-```
-
-> `undoLast` refuses to run if new commits were added after the backup ref; set `force` to `true` to discard those commits explicitly.
-
-### Using Git Reflog (Manual Recovery)
-
-If you need to recover beyond the last operation, or if `undoLast` isn't available:
-
-```bash
-# View recent HEAD positions
-git reflog
-
-# Find the commit before the unwanted operation
-# Look for entries like "rebase (start)" or your original commit
-
-# Reset to that state
-git reset --hard HEAD@{2}  # or use the commit hash
-```
-
-### Using git-hex Backup Refs
-
-git-hex stores backup refs that persist across sessions:
-
-```bash
-# List all git-hex backup refs
-git for-each-ref refs/git-hex/
-
-# Reset to a specific backup
-git reset --hard refs/git-hex/backup/1234567890_rebaseWithPlan
-```
+Detailed safety model, read-only mode, and recovery procedures: `docs/safety.md`
 
 ## Testing
 
@@ -865,44 +383,25 @@ Pass MCP roots and the target repo explicitly when running the container (exampl
 
 ## Documentation Map
 
-- Tool reference: this README (see “Tools”).
-- Skills: `skills/git-hex-branch-cleanup/SKILL.md`, `skills/git-hex-conflict-resolution/SKILL.md`.
-- CHANGELOG: `CHANGELOG.md`.
-- Plugin metadata: `.claude-plugin/`.
-- Server policy and metadata: `server.d/`.
+User docs:
+- Install: `docs/install.md`
+- Safety & recovery: `docs/safety.md`
+- Client setup: `docs/clients.md`
+- Tool reference: `docs/reference/tools.md`
+- MCP/framework details: `docs/reference/mcp.md`
 
-## MCP Details
+Plugin/workflows:
+- Skills: `skills/git-hex-branch-cleanup/SKILL.md`, `skills/git-hex-conflict-resolution/SKILL.md`, `skills/git-hex-pr-workflow/SKILL.md`
+- Claude command templates: `claude-commands/`
 
-- Capabilities: git-hex exposes MCP tools, completion providers, resource templates, and workflow prompts. Note: framework capabilities don’t currently advertise templates even though `resources/templates/list` is implemented.
-- Error codes: invalid arguments and read-only mode blocks use `-32602`; unexpected failures use `-32603`. Tool summaries include human-readable hints.
-- Read-only mode: controlled by `GIT_HEX_READ_ONLY=1` (see “Read-Only Mode”).
-- Initialization: uses the MCP Bash Framework defaults; capability negotiation simply advertises the tool list.
+Project:
+- CHANGELOG: `CHANGELOG.md`
+- Plugin metadata: `.claude-plugin/`
+- Server metadata/policy: `server.d/`
 
-### Using with MCP clients
+## Support
 
-Minimal stdio configuration (client JSON varies; start with the wrapper and add roots per your client):
-```json
-{
-  "mcpServers": {
-    "git-hex": {
-      "command": "/path/to/git-hex/git-hex.sh"
-    }
-  }
-}
-```
-
-If launching from a GUI login shell on macOS, prefer `git-hex-env.sh` so PATH/env matches your login shell. Always configure your client’s `roots`/`allowedRoots` (name varies by client) to the repositories you want the tools to touch.
-
-### Environment flags
-
-| Variable | Default | Effect |
-|----------|---------|--------|
-| `MCPBASH_PROJECT_ROOT` | (auto when running `git-hex.sh`) | Path to this repo; required if you invoke `mcp-bash` directly. |
-| `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (read-only mode). |
-| `GIT_HEX_DEBUG` | unset | `true` enables shell tracing in tools. |
-| `GIT_HEX_DEBUG_SPLIT` | unset | `true` dumps splitCommit debug JSON to `${TMPDIR:-/tmp}/git-hex-split-debug.json`. |
-| `MCPBASH_CI_MODE` | unset | `1` uses CI-safe defaults in tests (set automatically in CI). |
-| `MCPBASH_TRACE_TOOLS` | unset | Set to enable per-command tracing in tools (see `MCPBASH_TRACE_PS4`). |
+See `SUPPORT.md`.
 
 ## Security
 

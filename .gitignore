@@ -8,8 +8,10 @@
 .DS_Store
 Thumbs.db
 
-# Local-only docs and IDE config
+# Internal planning notes (local-only; never committed)
 docs/internal/
+
+# Local-only IDE config
 git-hex.code-workspace
 .cursor/rules/
 .claude/*.local.md

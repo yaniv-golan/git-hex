@@ -1,0 +1,307 @@
+# Tool reference
+
+This is the per-tool API reference.
+
+## Tools
+
+### git-hex-getRebasePlan
+
+Get a structured view of recent commits for rebase planning and inspection.
+
+> **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
+> For single-commit repositories, the default base is the empty tree so the lone commit is included. To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository (defaults to single root) |
+| `count` | integer | No | Number of commits (default: 10, max: 200) |
+| `onto` | string | No | Base ref for commit range (defaults to upstream or HEAD~count) |
+
+**Example:**
+```json
+{
+  "repoPath": "/path/to/repo",
+  "count": 5
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "plan_id": "plan_1234567890_12345",
+  "branch": "feature/my-branch",
+  "onto": "main",
+  "commits": [
+    {
+      "hash": "abc123...",
+      "shortHash": "abc123",
+      "subject": "Add feature X",
+      "author": "Developer",
+      "date": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "summary": "Found 1 commits on feature/my-branch since main"
+}
+```
+
+### git-hex-rebaseWithPlan
+
+Structured interactive rebase with plan support (reorder, drop, squash, reword) plus conflict pause/resume.
+
+> **Prerequisites:** Working tree must be clean unless `autoStash=true`. All history-mutating operations create a backup ref for `undoLast`.
+
+> **Notes:**
+> - Rebases the range `onto..HEAD`
+> - `plan` controls actions per commit; partial plans default missing commits to `pick`
+> - `abortOnConflict=false` leaves the rebase paused so you can call `getConflictStatus` / `resolveConflict` / `continueOperation`
+> - Uses native `--autostash` when `autoStash=true`
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `onto` | string | **Yes** | Base ref to rebase onto |
+| `plan` | array | No | Ordered list of `{action, commit, message?}` items |
+| `abortOnConflict` | boolean | No | Abort on conflicts (default: true). Set to false to pause and resolve instead of auto-aborting. |
+| `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
+| `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
+| `requireComplete` | boolean | No | If true, plan must list all commits (enables reordering) |
+
+**Example:**
+```json
+{
+  "onto": "main",
+  "autosquash": true,
+  "plan": [
+    { "action": "pick", "commit": "abc123" },
+    { "action": "drop", "commit": "def456" }
+  ]
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "abc123...",
+  "headAfter": "def456...",
+  "summary": "Rebased 5 commits onto main",
+  "commitsRebased": 5
+}
+```
+
+### git-hex-checkRebaseConflicts
+
+Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
+
+> **Git version:** Requires Git 2.38+ (uses `merge-tree --write-tree` internally, isolated in a temp object directory to avoid touching repo objects).
+
+Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
+
+**Example output:**
+```json
+{
+  "success": true,
+  "wouldConflict": true,
+  "confidence": "estimate",
+  "commits": [
+    { "hash": "8b3f1c2", "subject": "Clean change", "prediction": "clean" },
+    { "hash": "a1b2c3d", "subject": "Conflicting change", "prediction": "conflict" },
+    { "hash": "c4d5e6f", "subject": "After conflict", "prediction": "unknown" }
+  ],
+  "limitExceeded": false,
+  "totalCommits": 3,
+  "checkedCommits": 3,
+  "summary": "Rebase would conflict at commit 2/3 (a1b2c3d)",
+  "note": "Predictions may not match actual rebase behavior in all cases"
+}
+```
+
+### Conflict Workflow
+
+- **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
+- **git-hex-resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
+- **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
+- **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
+
+**getConflictStatus example output:**
+```json
+{
+  "success": true,
+  "conflictType": "rebase",
+  "currentStep": 1,
+  "totalSteps": 3,
+  "conflictingFiles": [
+    {
+      "path": "conflict.txt",
+      "conflictType": "both_modified"
+    }
+  ],
+  "paused": true,
+  "summary": "Rebase paused with conflicts"
+}
+```
+
+### git-hex-splitCommit
+
+Split a commit into multiple commits by file (file-level only; no hunk splitting). Validates coverage of all files, rejects merge/root commits, and supports `autoStash`. Returns new commit hashes, `backupRef`, `rebasePaused` (if a later commit conflicts), and `stashNotRestored` when a pop fails.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository (defaults to single root) |
+| `commit` | string | **Yes** | Commit hash/ref to split (must be ancestor of HEAD, non-merge, non-root) |
+| `splits` | array | **Yes** | Array of `{ files: [...], message: "<single-line>" }` (min 2) |
+| `autoStash` | boolean | No | Automatically stash/restore uncommitted changes (default: false) |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "originalCommit": "abc123...",
+  "newCommits": [
+    { "hash": "def456...", "message": "Split part 1", "files": ["file1.txt"] },
+    { "hash": "789abcd...", "message": "Split part 2", "files": ["file2.txt"] }
+  ],
+  "backupRef": "git-hex/backup/1700000000_splitCommit_xxx",
+  "rebasePaused": false,
+  "stashNotRestored": false,
+  "summary": "Split abc1234 into 2 commits"
+}
+```
+
+### git-hex-createFixup
+
+Create a fixup commit targeting a specific commit.
+
+> **Prerequisites:** Changes must be staged (`git add`) before running. This tool commits the currently staged changes as a fixup.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `commit` | string | **Yes** | Commit hash/ref to create fixup for |
+| `message` | string | No | Additional message to append |
+
+**Example:**
+```json
+{
+  "commit": "abc123",
+  "message": "Fix typo in function name"
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "def456...",
+  "headAfter": "ghi789...",
+  "targetCommit": "abc123...",
+  "summary": "Created fixup commit ghi789 targeting abc123",
+  "commitMessage": "fixup! Original commit message"
+}
+```
+
+### git-hex-amendLastCommit
+
+Amend the last commit with staged changes and/or a new message.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `message` | string | No | New commit message |
+| `addAll` | boolean | No | Stage all tracked modified files (default: false) |
+
+> **Note:** The `addAll` option stages only *tracked* files (`git add -u`), not new untracked files. This is a safety feature to prevent accidentally including unintended files. To include new files, stage them explicitly with `git add` before calling this tool.
+
+**Example:**
+```json
+{
+  "message": "Updated commit message",
+  "addAll": true
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "abc123...",
+  "headAfter": "jkl012...",
+  "summary": "Amended commit with new hash jkl012",
+  "commitMessage": "Updated commit message"
+}
+```
+
+### git-hex-cherryPickSingle
+
+Cherry-pick a single commit with configurable merge strategy.
+
+> **Prerequisites:** Working tree must be clean (no uncommitted changes) unless `autoStash=true`, which stashes/restore tracked changes automatically. Commit or stash changes before running otherwise.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `commit` | string | **Yes** | Commit hash/ref to cherry-pick |
+| `strategy` | string | No | Merge strategy: recursive, ort, resolve |
+| `noCommit` | boolean | No | Apply without committing (default: false) |
+| `abortOnConflict` | boolean | No | If false, pause on conflicts instead of aborting (default: true) |
+| `autoStash` | boolean | No | Automatically stash/restore tracked changes (requires `abortOnConflict=true`, default: false) |
+
+**Example:**
+```json
+{
+  "commit": "abc123",
+  "strategy": "ort",
+  "abortOnConflict": true,
+  "autoStash": true
+}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "def456...",
+  "headAfter": "mno345...",
+  "sourceCommit": "abc123...",
+  "summary": "Cherry-picked abc123 as new commit mno345",
+  "commitMessage": "Original commit subject line"
+}
+```
+
+### git-hex-undoLast
+
+Undo the last git-hex operation by resetting to the backup ref.
+
+> **Prerequisites:** Working tree must be clean (no uncommitted changes). Commit or stash changes before running.
+
+Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+
+**Example:**
+```json
+{}
+```
+
+**Returns:**
+```json
+{
+  "success": true,
+  "headBefore": "mno345...",
+  "headAfter": "def456...",
+  "undoneOperation": "cherryPickSingle",
+  "backupRef": "git-hex/backup/1234567890_cherryPickSingle",
+  "commitsUndone": 1,
+  "summary": "Undid cherryPickSingle from 2024-01-15 10:30:00. Reset 1 commit(s) from mno345 to def456"
+}
+```

@@ -51,6 +51,14 @@ _fixture_clone_from_template() {
 	git clone --local "${template_dir}" "${dest_dir}" >/dev/null 2>&1
 	(
 		cd "${dest_dir}"
+		# Clones set up an `origin` remote and configure upstream tracking, which
+		# changes behavior in tools that default to `@{upstream}` (e.g., getRebasePlan).
+		# Fixtures should behave like `git init` repos (no remotes, no upstream).
+		git remote remove origin >/dev/null 2>&1 || true
+		while IFS= read -r branch; do
+			[ -n "${branch}" ] || continue
+			git branch --unset-upstream "${branch}" >/dev/null 2>&1 || true
+		done < <(git for-each-ref --format='%(refname:short)' refs/heads 2>/dev/null || true)
 		_configure_test_repo
 	)
 }

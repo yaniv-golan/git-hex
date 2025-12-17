@@ -38,6 +38,31 @@ _git_hex_cleanup() {
 }
 trap '_git_hex_cleanup' EXIT
 
+_git_hex_cleanup_rebase_msg_dir() {
+	local marker_file="$1"
+	[ -f "${marker_file}" ] || return 0
+
+	local msg_dir=""
+	msg_dir="$(head -1 "${marker_file}" 2>/dev/null | tr -d '\r\n')"
+	rm -f -- "${marker_file}" 2>/dev/null || true
+
+	[ -n "${msg_dir}" ] || return 0
+	case "${msg_dir}" in
+	/*) ;;
+	*) return 0 ;;
+	esac
+
+	local msg_base="${msg_dir##*/}"
+	case "${msg_base}" in
+	githex.rebase.msg.*) ;;
+	*) return 0 ;;
+	esac
+
+	[ -d "${msg_dir}" ] || return 0
+	rm -rf -- "${msg_dir}" 2>/dev/null || true
+	return 0
+}
+
 # Validate repo
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
@@ -58,6 +83,7 @@ rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
 cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
 merge_head_path="${git_dir}/MERGE_HEAD"
+rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
 if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
 	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
 fi
@@ -152,10 +178,11 @@ fi
 
 # Create a directory for message files (avoids shell escaping issues entirely)
 # Each reword/fixup message is written to a file and read with git commit -F
-# NOTE: These files are NOT cleaned up by the tool - they must persist until
-# git rebase completes all exec commands. The OS will clean /tmp eventually.
+# NOTE: These files must persist until the rebase completes (they are referenced by exec commands).
+# The path is persisted under `.git/` so `continueOperation`/`abortOperation` can clean it up.
 _git_hex_msg_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.rebase.msg.XXXXXX")"
 _git_hex_msg_counter=0
+printf '%s\n' "${_git_hex_msg_dir}" >"${rebase_msg_dir_marker}" 2>/dev/null || true
 
 # Helper to create a message file and return exec command
 # Uses git commit -F to avoid shell escaping issues with special characters
@@ -298,6 +325,7 @@ if [ "${rebase_status}" -eq 0 ]; then
 	head_after="$(git -C "${repo_path}" rev-parse HEAD)"
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
+	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 	# shellcheck disable=SC2016
 	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson success true \
@@ -332,13 +360,16 @@ else
 			exit 0
 		else
 			git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
+			_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 			mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
 		fi
 	elif echo "${rebase_output}" | grep -qi "nothing to do"; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
+		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 		mcp_fail_invalid_args "Nothing to rebase"
 	else
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
+		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 		error_hint="$(echo "${rebase_output}" | head -1)"
 		mcp_fail -32603 "Rebase failed: ${error_hint}"
 	fi

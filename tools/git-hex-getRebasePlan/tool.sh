@@ -20,6 +20,9 @@ if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
 fi
 
+# Compute git's empty tree hash (used when treating a single-commit repo as having a root base).
+empty_tree_sha="$(git -C "${repo_path}" hash-object -t tree /dev/null 2>/dev/null || printf '4b825dc642cb6eb9a060e54bf8d69288fbee4904')"
+
 # Get current branch
 branch="$(git -C "${repo_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 if [ -z "${branch}" ] || [ "${branch}" = "HEAD" ]; then
@@ -47,7 +50,7 @@ if [ -z "${onto}" ]; then
 		if [ "${offset}" -eq 0 ]; then
 			# Only one commit - use empty tree as base to include it
 			# This allows single-commit repos to show their only commit
-			onto="4b825dc642cb6eb9a060e54bf8d69288fbee4904" # git's empty tree SHA
+			onto="${empty_tree_sha}"
 		else
 			onto="HEAD~${offset}"
 		fi
@@ -55,7 +58,7 @@ if [ -z "${onto}" ]; then
 fi
 
 # Verify onto ref exists (except for empty tree which always exists)
-if [ "${onto}" != "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+if [ "${onto}" != "${empty_tree_sha}" ]; then
 	if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
 		mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 	fi
@@ -93,7 +96,7 @@ fi
 
 # Resolve onto to display value (show original ref, not empty tree hash)
 onto_display="${onto}"
-if [ "${onto}" = "4b825dc642cb6eb9a060e54bf8d69288fbee4904" ]; then
+if [ "${onto}" = "${empty_tree_sha}" ]; then
 	onto_display="(root)"
 fi
 

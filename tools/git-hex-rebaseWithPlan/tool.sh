@@ -9,18 +9,25 @@ fi
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/backup.sh disable=SC1091
-source "${SCRIPT_DIR}/../../lib/backup.sh"
+source  "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/rebase-msg-dir.sh disable=SC1091
+source  "${SCRIPT_DIR}/../../lib/rebase-msg-dir.sh"
 
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 onto="$(mcp_args_require '.onto')"
-plan_json="$(mcp_args_get '.plan' || true)"
-trimmed_plan="$(echo "${plan_json:-}" | tr -d '[:space:]')"
-if [ -z "${trimmed_plan}" ] || [ "${trimmed_plan}" = "null" ]; then
+plan_json="$( mcp_args_get '.plan' || true)"
+trimmed_plan="$( echo "${plan_json:-}" | tr -d '[:space:]')"
+if  [ -z "${trimmed_plan}" ] || [ "${trimmed_plan}" = "null" ]; then
 	plan_json="[]"
 else
 	plan_json="${plan_json:-}"
+fi
+
+plan_type="$( printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'type' 2>/dev/null || true)"
+if  [ "${plan_type}" != "array" ]; then
+	mcp_fail_invalid_args "plan must be an array"
 fi
 abort_on_conflict="$(mcp_args_bool '.abortOnConflict' --default true)"
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
@@ -37,31 +44,6 @@ _git_hex_cleanup() {
 	return 0
 }
 trap '_git_hex_cleanup' EXIT
-
-_git_hex_cleanup_rebase_msg_dir() {
-	local marker_file="$1"
-	[ -f "${marker_file}" ] || return 0
-
-	local msg_dir=""
-	msg_dir="$(head -1 "${marker_file}" 2>/dev/null | tr -d '\r\n')"
-	rm -f -- "${marker_file}" 2>/dev/null || true
-
-	[ -n "${msg_dir}" ] || return 0
-	case "${msg_dir}" in
-	/*) ;;
-	*) return 0 ;;
-	esac
-
-	local msg_base="${msg_dir##*/}"
-	case "${msg_base}" in
-	githex.rebase.msg.*) ;;
-	*) return 0 ;;
-	esac
-
-	[ -d "${msg_dir}" ] || return 0
-	rm -rf -- "${msg_dir}" 2>/dev/null || true
-	return 0
-}
 
 # Validate repo
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
@@ -139,8 +121,8 @@ if [ "${plan_length}" -eq 0 ] && [ "${require_complete}" != "true" ]; then
 	use_custom_todo="false"
 fi
 
-if [ "${plan_length}" -gt 0 ]; then
-	for i in $(seq 0 $((plan_length - 1))); do
+if  [ "${plan_length}" -gt 0 ]; then
+	for ((i = 0; i < plan_length; i++)); do
 		action="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].action")"
 		commit_ref="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].commit")"
 		message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"")"
@@ -186,22 +168,22 @@ printf '%s\n' "${_git_hex_msg_dir}" >"${rebase_msg_dir_marker}" 2>/dev/null || t
 
 # Helper to create a message file and return exec command
 # Uses git commit -F to avoid shell escaping issues with special characters
-create_reword_exec() {
+create_reword_exec()  {
 	local msg="$1"
 	local msg_file="${_git_hex_msg_dir}/msg_${_git_hex_msg_counter}"
 	_git_hex_msg_counter=$((_git_hex_msg_counter + 1))
 	printf '%s' "${msg}" >"${msg_file}"
 	if [ "${sign_commits}" = "true" ]; then
-		printf 'exec git commit --amend -F %s\n' "${msg_file}"
+		printf 'exec git commit --amend -F %q\n' "${msg_file}"
 	else
-		printf 'exec git commit --amend --no-gpg-sign -F %s\n' "${msg_file}"
+		printf 'exec git commit --amend --no-gpg-sign -F %q\n' "${msg_file}"
 	fi
 }
 
 complete_todo=""
 
-if [ "${require_complete}" = "true" ]; then
-	for i in $(seq 0 $((plan_length - 1))); do
+if  [ "${require_complete}" = "true" ]; then
+	for ((i = 0; i < plan_length; i++)); do
 		action="${plan_actions[$i]}"
 		commit_hash="${plan_commits[$i]}"
 		message="${plan_messages[$i]}"
@@ -228,7 +210,7 @@ else
 	_git_hex_cleanup_files+=("${plan_actions_file}" "${plan_messages_file}")
 
 	if [ "${plan_length}" -gt 0 ]; then
-		for i in $(seq 0 $((plan_length - 1))); do
+		for ((i = 0; i < plan_length; i++)); do
 			printf '%s\t%s\n' "${plan_commits[$i]}" "${plan_actions[$i]}" >>"${plan_actions_file}"
 			if [ -n "${plan_messages[$i]}" ]; then
 				printf '%s\t%s\n' "${plan_commits[$i]}" "${plan_messages[$i]}" >>"${plan_messages_file}"

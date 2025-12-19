@@ -62,12 +62,15 @@ if [ -n "${strategy}" ]; then
 		;;
 	ort)
 		# ort strategy requires git 2.33+
-		git_version="$(git --version | sed 's/git version //' | cut -d. -f1-2)"
+		git_version_raw="$(git --version | sed 's/git version //')"
 		# Compare major.minor >= 2.33
-		major="${git_version%%.*}"
-		minor="${git_version#*.}"
+		major="$(echo "${git_version_raw}" | cut -d. -f1)"
+		minor="$(echo "${git_version_raw}" | cut -d. -f2)"
+		major="${major%%[^0-9]*}"
+		minor="${minor%%[^0-9]*}"
+		minor="${minor:-0}"
 		if [ "${major}" -lt 2 ] || { [ "${major}" -eq 2 ] && [ "${minor}" -lt 33 ]; }; then
-			mcp_fail_invalid_args "Merge strategy 'ort' requires git 2.33+. Current version: ${git_version}. Use 'recursive' instead."
+			mcp_fail_invalid_args "Merge strategy 'ort' requires git 2.33+. Current version: ${git_version_raw}. Use 'recursive' instead."
 		fi
 		;;
 	*)

@@ -21,7 +21,10 @@ if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 # Compute git's empty tree hash (used when treating a single-commit repo as having a root base).
-empty_tree_sha="$(git -C "${repo_path}" hash-object -t tree /dev/null 2>/dev/null || printf '4b825dc642cb6eb9a060e54bf8d69288fbee4904')"
+empty_tree_sha="$(git -C "${repo_path}" hash-object -t tree /dev/null 2>/dev/null || true)"
+if [ -z "${empty_tree_sha}" ]; then
+	mcp_fail -32603 "Failed to compute empty tree hash"
+fi
 
 # Get current branch
 branch="$(git -C "${repo_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"

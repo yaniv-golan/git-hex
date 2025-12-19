@@ -9,37 +9,16 @@ fi
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/rebase-msg-dir.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/rebase-msg-dir.sh"
+
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 
 # Validate repo
 if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
 fi
-
-_git_hex_cleanup_rebase_msg_dir() {
-	local marker_file="$1"
-	[ -f "${marker_file}" ] || return 0
-
-	local msg_dir=""
-	msg_dir="$(head -1 "${marker_file}" 2>/dev/null | tr -d '\r\n')"
-	rm -f -- "${marker_file}" 2>/dev/null || true
-
-	[ -n "${msg_dir}" ] || return 0
-	case "${msg_dir}" in
-	/*) ;;
-	*) return 0 ;;
-	esac
-
-	local msg_base="${msg_dir##*/}"
-	case "${msg_base}" in
-	githex.rebase.msg.*) ;;
-	*) return 0 ;;
-	esac
-
-	[ -d "${msg_dir}" ] || return 0
-	rm -rf -- "${msg_dir}" 2>/dev/null || true
-	return 0
-}
 
 operation=""
 git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"

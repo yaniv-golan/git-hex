@@ -314,11 +314,11 @@ Bring one specific commit to your current branch:
 Made a mistake? Undo it:
 
 ```
-→ git-hex-undoLast {}
+	→ git-hex-undoLast {}
 
-This restores HEAD to its state before the last git-hex operation.
-Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle
-```
+	This restores HEAD to its state before the last git-hex operation.
+	Works for: amendLastCommit, createFixup, rebaseWithPlan, cherryPickSingle, splitCommit
+	```
 
 ### When NOT to Use git-hex
 

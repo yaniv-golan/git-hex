@@ -22,6 +22,8 @@ fi
 git_version_raw="$(git --version | sed 's/git version //')"
 git_major="$(echo "${git_version_raw}" | cut -d. -f1)"
 git_minor="$(echo "${git_version_raw}" | cut -d. -f2)"
+git_major="${git_major%%[^0-9]*}"
+git_minor="${git_minor%%[^0-9]*}"
 git_minor="${git_minor:-0}"
 if [ "${git_major}" -lt 2 ] || { [ "${git_major}" -eq 2 ] && [ "${git_minor}" -lt 38 ]; }; then
 	mcp_fail_invalid_args "checkRebaseConflicts requires Git 2.38+ for merge-tree support. Current version: ${git_version_raw}"

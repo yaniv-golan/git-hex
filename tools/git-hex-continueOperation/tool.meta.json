@@ -17,6 +17,7 @@
   },
   "outputSchema": {
     "type": "object",
+    "required": ["success", "operationType", "completed", "paused", "conflictingFiles", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "operationType": { "type": "string" },

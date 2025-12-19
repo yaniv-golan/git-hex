@@ -36,6 +36,11 @@ if [ -z "${trimmed_splits}" ] || [ "${trimmed_splits}" = "null" ]; then
 else
 	splits_json="${splits_json:-}"
 fi
+
+splits_type="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'type' 2>/dev/null || true)"
+if [ "${splits_type}" != "array" ]; then
+	mcp_fail_invalid_args "splits must be an array"
+fi
 auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
@@ -88,7 +93,7 @@ fi
 
 # Validate coverage
 covered_files=""
-for i in $(seq 0 $((split_count - 1))); do
+for ((i = 0; i < split_count; i++)); do
 	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
 	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	if [ -z "${split_files}" ]; then
@@ -99,10 +104,10 @@ for i in $(seq 0 $((split_count - 1))); do
 	fi
 	while IFS= read -r file; do
 		[ -z "${file}" ] && continue
-		if ! echo "${original_files}" | grep -qx "${file}"; then
+		if ! printf '%s\n' "${original_files}" | grep -Fqx -- "${file}"; then
 			mcp_fail_invalid_args "File '${file}' not in original commit"
 		fi
-		if echo "${covered_files}" | grep -qx "${file}"; then
+		if printf '%s\n' "${covered_files}" | grep -Fqx -- "${file}"; then
 			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
 		fi
 		covered_files="${covered_files}${file}"$'\n'
@@ -111,7 +116,7 @@ done
 
 while IFS= read -r file; do
 	[ -z "${file}" ] && continue
-	if ! echo "${covered_files}" | grep -qx "${file}"; then
+	if ! printf '%s\n' "${covered_files}" | grep -Fqx -- "${file}"; then
 		mcp_fail_invalid_args "File '${file}' from original commit not assigned to any split"
 	fi
 done <<<"${original_files}"
@@ -200,7 +205,7 @@ git -C "${repo_path}" reset HEAD^ --soft >/dev/null 2>&1
 git -C "${repo_path}" reset HEAD >/dev/null 2>&1
 
 new_commits_json="[]"
-for i in $(seq 0 $((split_count - 1))); do
+for ((i = 0; i < split_count; i++)); do
 	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
 	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	msg_file="${msg_dir}/msg_${i}.txt"

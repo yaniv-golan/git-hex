@@ -127,14 +127,17 @@ while IFS= read -r file; do
 		fi
 
 		is_binary="false"
-		if [ -f "${repo_path}/${file}" ] && [ -s "${repo_path}/${file}" ]; then
-			if grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
-				is_binary="false"
-			else
+		if [ -f "${repo_path}/${file}" ]; then
+			# Treat empty files as text (grep -I can misclassify empties).
+			if [ -s "${repo_path}/${file}" ] && ! grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
 				is_binary="true"
 			fi
-		elif ! git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
-			is_binary="true"
+		else
+			# Prefer checking the stage-2 blob (ours). Treat empty blob as text.
+			ours_size_for_binary="$(git -C "${repo_path}" cat-file -s ":2:${file}" 2>/dev/null || echo "0")"
+			if [ "${ours_size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
+				is_binary="true"
+			fi
 		fi
 
 		if [ "${is_binary}" = "true" ]; then
@@ -143,8 +146,17 @@ while IFS= read -r file; do
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
 				--argjson isBinary true \
-				'. + [{path: $path, conflictType: $type, isBinary: $isBinary, note: "Binary file - content not included"}]')"
+				'. + [{path: $path, conflictType: $type, isBinary: $isBinary, truncated: false, note: "Binary file - content not included"}]')"
 		else
+			base_size="$(git -C "${repo_path}" cat-file -s ":1:${file}" 2>/dev/null || echo "0")"
+			ours_size="$(git -C "${repo_path}" cat-file -s ":2:${file}" 2>/dev/null || echo "0")"
+			theirs_size="$(git -C "${repo_path}" cat-file -s ":3:${file}" 2>/dev/null || echo "0")"
+			working_size="$(LC_ALL=C wc -c <"${repo_path}/${file}" 2>/dev/null | tr -d ' ' || echo "0")"
+			truncated="false"
+			if [ "${base_size}" -gt "${max_content}" ] || [ "${ours_size}" -gt "${max_content}" ] || [ "${theirs_size}" -gt "${max_content}" ] || [ "${working_size}" -gt "${max_content}" ]; then
+				truncated="true"
+			fi
+
 			base_content="$(git -C "${repo_path}" show ":1:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
 			ours_content="$(git -C "${repo_path}" show ":2:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
 			theirs_content="$(git -C "${repo_path}" show ":3:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
@@ -155,11 +167,12 @@ while IFS= read -r file; do
 				--arg path "${file}" \
 				--arg type "${file_conflict_type}" \
 				--argjson isBinary false \
+				--argjson truncated "${truncated}" \
 				--arg base "${base_content}" \
 				--arg ours "${ours_content}" \
 				--arg theirs "${theirs_content}" \
 				--arg working "${working_content}" \
-				'. + [{path: $path, conflictType: $type, isBinary: $isBinary, base: $base, ours: $ours, theirs: $theirs, workingCopy: $working}]')"
+				'. + [{path: $path, conflictType: $type, isBinary: $isBinary, truncated: $truncated, base: $base, ours: $ours, theirs: $theirs, workingCopy: $working}]')"
 		fi
 	else
 		# shellcheck disable=SC2016

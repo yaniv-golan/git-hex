@@ -86,10 +86,24 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 ```json
 {
   "success": true,
+  "paused": false,
   "headBefore": "abc123...",
   "headAfter": "def456...",
   "summary": "Rebased 5 commits onto main",
   "commitsRebased": 5
+}
+```
+
+**When paused on conflict (`abortOnConflict=false`):**
+```json
+{
+  "success": false,
+  "paused": true,
+  "reason": "conflict",
+  "headBefore": "abc123...",
+  "headAfter": "def456...",
+  "conflictingFiles": ["src/file.ts"],
+  "summary": "Rebase paused due to conflicts. Use getConflictStatus for details."
 }
 ```
 
@@ -131,6 +145,7 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 ```json
 {
   "success": true,
+  "inConflict": true,
   "conflictType": "rebase",
   "currentStep": 1,
   "totalSteps": 3,
@@ -140,7 +155,6 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
       "conflictType": "both_modified"
     }
   ],
-  "paused": true,
   "summary": "Rebase paused with conflicts"
 }
 ```
@@ -184,6 +198,7 @@ Create a fixup commit targeting a specific commit.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
+| `force` | boolean | No | Allow undo even if new commits exist after the backup (those commits will be lost) |
 | `commit` | string | **Yes** | Commit hash/ref to create fixup for |
 | `message` | string | No | Additional message to append |
 | `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |
@@ -238,7 +253,8 @@ Amend the last commit with staged changes and/or a new message.
   "headBefore": "abc123...",
   "headAfter": "jkl012...",
   "summary": "Amended commit with new hash jkl012",
-  "commitMessage": "Updated commit message"
+  "commitMessage": "Updated commit message",
+  "stashNotRestored": false
 }
 ```
 
@@ -277,7 +293,8 @@ Cherry-pick a single commit with configurable merge strategy.
   "headAfter": "mno345...",
   "sourceCommit": "abc123...",
   "summary": "Cherry-picked abc123 as new commit mno345",
-  "commitMessage": "Original commit subject line"
+  "commitMessage": "Original commit subject line",
+  "stashNotRestored": false
 }
 ```
 
@@ -293,6 +310,7 @@ Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pi
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
+| `force` | boolean | No | Allow undo even if new commits exist after the backup (those commits will be lost) |
 
 **Example:**
 ```json

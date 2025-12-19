@@ -51,8 +51,9 @@ git_hex_require_repo  "${repo_path}"
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
-operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-if [ "${operation}" = "rebase" ]; then
+operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+if  [ "${operation}" = "rebase" ]; then
+	# splitCommit itself runs an interactive rebase; only block when a rebase is already in progress.
 	mcp_fail_invalid_args "Cannot split commit while rebase is in progress"
 fi
 

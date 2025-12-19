@@ -15,6 +15,10 @@ test_create_tmpdir
 
 echo "=== Security Tests: Path Traversal Prevention ==="
 
+# Source helpers for direct path-validation regression checks
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+. "${SCRIPT_DIR}/../../lib/git-helpers.sh"
+
 # ============================================================
 # SECURITY: Path traversal attempts should be blocked
 # ============================================================
@@ -79,14 +83,22 @@ traversal_patterns=(
 	"dir/subdir/file/.." # Another path ending with /..
 )
 
-for pattern in "${traversal_patterns[@]}"; do
+for pattern in  "${traversal_patterns[@]}"; do
 	if run_tool_expect_fail git-hex-resolveConflict "${REPO_FILE_TRAVERSAL}" "{\"file\": \"${pattern}\"}"; then
 		printf '   [PASS] blocked: %s\n' "${pattern}"
 	else
 		test_fail "should block path traversal pattern: ${pattern}"
 	fi
 done
-test_pass "blocks file path traversal patterns"
+test_pass  "blocks file path traversal patterns"
+
+# Regression: filenames that start with ".." are allowed as long as they aren't traversal segments.
+# This should be allowed: it's not "../" and does not contain a "/../" segment or end with "/..".
+if  git_hex_is_safe_repo_relative_path "dir/..backup"; then
+	test_pass "allows non-traversal '..' filename segment"
+else
+	test_fail "should allow filenames like dir/..backup"
+fi
 
 # ============================================================
 # SECURITY: File path traversal in getConflictStatus

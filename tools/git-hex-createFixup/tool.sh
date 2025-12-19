@@ -57,11 +57,11 @@ git_hex_create_backup "${repo_path}" "createFixup" >/dev/null
 original_subject="$(git -C "${repo_path}" log -1 --format='%s' "${target_hash}" 2>/dev/null || true)"
 
 # Helper to handle commit errors with better messages
-handle_commit_error() {
+handle_commit_error()  {
 	local commit_error="$1"
-	if echo "${commit_error}" | grep -qi "gpg\|signing\|sign"; then
+	if grep -qi "gpg\\|signing\\|sign" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to create fixup commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif echo "${commit_error}" | grep -qi "hook"; then
+	elif grep -qi "hook" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to create fixup commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
 	else
 		error_hint="$(echo "${commit_error}" | head -1)"

@@ -40,7 +40,15 @@ git_hex_create_backup() {
 	# First, delete any existing "last" refs
 	while IFS= read -r ref; do
 		[ -n "${ref}" ] || continue
-		git -C "${repo_path}" update-ref -d "${ref}" 2>/dev/null || true
+		delete_err=""
+		if ! delete_err="$(git -C "${repo_path}" update-ref -d "${ref}" 2>&1)"; then
+			# Non-fatal, but important to surface (e.g., locked ref / permissions).
+			if command -v mcp_log >/dev/null 2>&1; then
+				mcp_log "warn" "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${delete_err}")"
+			elif command -v mcp_log_warn >/dev/null 2>&1; then
+				mcp_log_warn "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${delete_err}")"
+			fi
+		fi
 	done < <(git -C "${repo_path}" for-each-ref --format='%(refname)' "${GIT_HEX_REF_PREFIX}/last/" 2>/dev/null || true)
 
 	# Create the new "last" ref with operation in the name

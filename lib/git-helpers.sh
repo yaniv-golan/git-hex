@@ -66,7 +66,8 @@ git_hex_is_safe_repo_relative_path() {
 	if [[ "${path}" == /* ]]; then
 		return 1
 	fi
-	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/.."* || "${path}" == *"/../"* ]]; then
+	# Reject traversal segments, but allow filenames that merely start with ".." (e.g., "dir/..backup").
+	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/../"* || "${path}" == */.. ]]; then
 		return 1
 	fi
 	case "${path}" in
@@ -89,7 +90,8 @@ git_hex_require_safe_repo_relative_path() {
 	if [[ "${path}" == /* ]]; then
 		mcp_fail_invalid_args "Absolute paths are not allowed"
 	fi
-	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/.."* || "${path}" == *"/../"* ]]; then
+	# Reject traversal segments, but allow filenames that merely start with ".." (e.g., "dir/..backup").
+	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/../"* || "${path}" == */.. ]]; then
 		mcp_fail_invalid_args "Path traversal is not allowed"
 	fi
 	# Reject Windows-style drive letter paths to avoid ambiguity

@@ -76,13 +76,15 @@ while IFS=$'\x1f' read -r commit parents subject; do
 
 	parent="${parents%% *}"
 	if [ -z "${parent}" ]; then
+		# Root commit: use the empty tree as the merge-base.
+		# `git merge-tree --merge-base` explicitly accepts a tree-ish (not a commit).
 		parent="$(git -C "${repo_path}" hash-object -t tree /dev/null)"
 	fi
 
 	result="$(git -C "${repo_path}" merge-tree --write-tree --merge-base="${parent}" "${current_tree}" "${commit}" 2>&1 || true)"
 	tree_sha="$(echo "${result}" | head -1)"
 	has_conflict=""
-	if echo "${result}" | grep -qi "CONFLICT"; then
+	if grep -qi "CONFLICT" <<<"${result}"; then
 		has_conflict="true"
 	fi
 	if [ -z "${has_conflict}" ] && [ -n "${tree_sha}" ]; then

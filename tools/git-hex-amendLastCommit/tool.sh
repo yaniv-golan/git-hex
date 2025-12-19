@@ -86,9 +86,9 @@ if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; the
 		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 	fi
 	# Provide specific error context
-	if echo "${commit_error}" | grep -qi "gpg\|signing\|sign"; then
+	if grep -qi "gpg\\|signing\\|sign" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to amend commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif echo "${commit_error}" | grep -qi "hook"; then
+	elif grep -qi "hook" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to amend commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
 	else
 		# Include first line of error for context

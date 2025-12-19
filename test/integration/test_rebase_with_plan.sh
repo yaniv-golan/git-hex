@@ -114,21 +114,37 @@ else
 fi
 
 # PLAN-05: Duplicate commit rejected
-printf ' -> PLAN-05 duplicate commit rejected\n'
+printf  ' -> PLAN-05 duplicate commit rejected\n'
 REPO_DUP="${TEST_TMPDIR}/rebase-duplicate"
-create_test_repo "${REPO_DUP}" 3
-dup_commit="$(cd "${REPO_DUP}" && git rev-list --reverse HEAD~2..HEAD | head -n1)"
+create_test_repo  "${REPO_DUP}" 3
+dup_commit="$( cd "${REPO_DUP}" && git rev-list --reverse HEAD~2..HEAD | head -n1)"
 plan_dup="[ {\"action\":\"pick\",\"commit\":\"${dup_commit}\"}, {\"action\":\"pick\",\"commit\":\"${dup_commit}\"} ]"
-if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_DUP}" "{\"onto\": \"HEAD~2\", \"plan\": ${plan_dup}, \"requireComplete\": true}"; then
+if  run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_DUP}" "{\"onto\": \"HEAD~2\", \"plan\": ${plan_dup}, \"requireComplete\": true}"; then
 	test_pass "duplicate commit rejected"
 else
 	test_fail "duplicate commit should fail validation"
 fi
 
+# ONTO-01: onto must resolve to a commit (not a file path)
+printf  ' -> ONTO-01 onto validation rejects filesystem paths\n'
+REPO_ONTO_PATH="${TEST_TMPDIR}/rebase-onto-path"
+create_test_repo  "${REPO_ONTO_PATH}" 2
+(
+	cd "${REPO_ONTO_PATH}"
+	echo "not a ref" >onto-path.txt
+	git add onto-path.txt
+	git commit -m "Add onto-path file" >/dev/null 2>&1
+)
+if  run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_ONTO_PATH}" '{"onto": "onto-path.txt", "plan": []}'; then
+	test_pass "onto path rejected"
+else
+	test_fail "onto should be rejected when it is a path"
+fi
+
 # RBC-02: abortOnConflict=false pauses rebase
-printf ' -> RBC-02 abortOnConflict=false pauses on conflict\n'
+printf  ' -> RBC-02 abortOnConflict=false pauses on conflict\n'
 REPO_CONFLICT="${TEST_TMPDIR}/rebase-conflict-pause"
-create_conflict_scenario "${REPO_CONFLICT}"
+create_conflict_scenario  "${REPO_CONFLICT}"
 head_before_conflict="$(cd "${REPO_CONFLICT}" && git rev-parse HEAD)"
 pause_result="$(run_tool git-hex-rebaseWithPlan "${REPO_CONFLICT}" '{"onto": "main", "abortOnConflict": false}')"
 assert_json_field "${pause_result}" '.paused' "true" "rebase should pause on conflict"

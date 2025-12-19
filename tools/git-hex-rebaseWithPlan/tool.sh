@@ -72,8 +72,8 @@ if [ "${auto_stash}" = "false" ]; then
 	fi
 fi
 
-# Validate onto
-if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
+# Validate onto: require a commit-ish, not an arbitrary token that could be interpreted as a path.
+if  ! git -C "${repo_path}" rev-parse --verify "${onto}^{commit}" >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 
@@ -120,7 +120,7 @@ if  [ "${plan_length}" -gt 0 ]; then
 		if [ -z "${full_hash}" ]; then
 			mcp_fail_invalid_args "Invalid commit reference: ${commit_ref}"
 		fi
-		if ! echo "${actual_commits}" | grep -qx "${full_hash}"; then
+		if ! grep -Fxq -- "${full_hash}" <<<"${actual_commits}"; then
 			mcp_fail_invalid_args "Commit ${commit_ref} (${full_hash:0:7}) not in rebase range ${onto}..HEAD"
 		fi
 		# Check for duplicates (use ${array[@]+"${array[@]}"} pattern for set -u safety)
@@ -310,10 +310,15 @@ if [ "${rebase_status}" -eq 0 ]; then
 		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, commitsRebased: $commitsRebased, summary: $summary}')"
 	exit 0
 else
-	if echo "${rebase_output}" | grep -qi "conflict"; then
+	if grep -qi "conflict" <<<"${rebase_output}"; then
 		if [ "${abort_on_conflict}" = "false" ]; then
-			conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-			conflicting_json="$(printf '%s\n' "${conflicting_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
+			conflicting_json="[]"
+			# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+			while IFS= read -r -d '' conflict_file; do
+				[ -z "${conflict_file}" ] && continue
+				# shellcheck disable=SC2016
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
+			done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -331,7 +336,7 @@ else
 			_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 			mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
 		fi
-	elif echo "${rebase_output}" | grep -qi "nothing to do"; then
+	elif grep -qi "nothing to do" <<<"${rebase_output}"; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 		mcp_fail_invalid_args "Nothing to rebase"

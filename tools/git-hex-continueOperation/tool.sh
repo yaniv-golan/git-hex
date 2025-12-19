@@ -35,16 +35,23 @@ conflicting_json="[]"
 summary=""
 error_msg=""
 
-if [ "${operation}" = "rebase" ]; then
+if  [ "${operation}" = "rebase" ]; then
 	if rebase_err="$(GIT_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase --continue 2>&1)"; then
 		completed="true"
 		summary="Rebase completed successfully"
 		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 	else
-		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-		if [ -n "${conflicts}" ]; then
+		conflicting_json="[]"
+		have_conflicts="false"
+		# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+		while IFS= read -r -d '' conflict_file; do
+			[ -z "${conflict_file}" ] && continue
+			have_conflicts="true"
+			# shellcheck disable=SC2016
+			conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
+		done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+		if [ "${have_conflicts}" = "true" ]; then
 			paused="true"
-			conflicting_json="$(printf '%s\n' "${conflicts}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"
 		else
@@ -53,15 +60,22 @@ if [ "${operation}" = "rebase" ]; then
 			summary="Failed to continue rebase (no conflicts detected). ${error_msg}"
 		fi
 	fi
-elif [ "${operation}" = "cherry-pick" ]; then
+elif  [ "${operation}" = "cherry-pick" ]; then
 	if cherry_err="$(GIT_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" cherry-pick --continue 2>&1)"; then
 		completed="true"
 		summary="Cherry-pick completed successfully"
 	else
-		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-		if [ -n "${conflicts}" ]; then
+		conflicting_json="[]"
+		have_conflicts="false"
+		# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+		while IFS= read -r -d '' conflict_file; do
+			[ -z "${conflict_file}" ] && continue
+			have_conflicts="true"
+			# shellcheck disable=SC2016
+			conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
+		done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+		if [ "${have_conflicts}" = "true" ]; then
 			paused="true"
-			conflicting_json="$(printf '%s\n' "${conflicts}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"
 		else
@@ -75,10 +89,17 @@ else
 		completed="true"
 		summary="Merge completed successfully"
 	else
-		conflicts="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-		if [ -n "${conflicts}" ]; then
+		conflicting_json="[]"
+		have_conflicts="false"
+		# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+		while IFS= read -r -d '' conflict_file; do
+			[ -z "${conflict_file}" ] && continue
+			have_conflicts="true"
+			# shellcheck disable=SC2016
+			conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
+		done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+		if [ "${have_conflicts}" = "true" ]; then
 			paused="true"
-			conflicting_json="$(printf '%s\n' "${conflicts}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
 			summary="Cannot continue - conflicts still present. Resolve remaining conflicts first."
 			status="false"
 		else

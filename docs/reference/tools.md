@@ -161,7 +161,7 @@ Detect whether a rebase/merge/cherry-pick is paused, which files conflict, and (
 
 **File `conflictType` values:** `both_modified`, `deleted_by_us`, `deleted_by_them`, `added_by_both`, `deleted_by_both`, `unknown`.
 
-When `includeContent=true`, each file may include `isBinary` (binary detection), optional `note`, and `truncated` when any returned content was clipped to `maxContentSize`.
+When `includeContent=true`, each file may include `base`, `ours`, `theirs`, and `workingCopy` (text files), plus `isBinary`, optional `note`, and `truncated` when any returned content was clipped to `maxContentSize`.
 
 **Returns:**
 ```json
@@ -184,6 +184,31 @@ When `includeContent=true`, each file may include `isBinary` (binary detection),
 
 When `inConflict=false`, `conflictType` is `"none"`.
 
+**Example (`includeContent=true`):**
+```json
+{
+  "success": true,
+  "inConflict": true,
+  "conflictType": "rebase",
+  "currentStep": 1,
+  "totalSteps": 3,
+  "conflictingCommit": "abc123...",
+  "conflictingFiles": [
+    {
+      "path": "conflict.txt",
+      "conflictType": "both_modified",
+      "isBinary": false,
+      "truncated": false,
+      "base": "base content...",
+      "ours": "ours content...",
+      "theirs": "theirs content...",
+      "workingCopy": "working tree content..."
+    }
+  ],
+  "summary": "Rebase paused with conflicts"
+}
+```
+
 ### git-hex-resolveConflict
 
 Mark a conflicted file as resolved by either keeping the file (after you resolved conflict markers) or deleting it.
@@ -192,7 +217,7 @@ Mark a conflicted file as resolved by either keeping the file (after you resolve
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
-| `file` | string | **Yes** | Repo-relative path to the conflicted file |
+| `file` | string | **Yes** | Repo-relative path to the conflicted file (no absolute paths, traversal segments, drive letters, or null bytes) |
 | `resolution` | string | No | `keep` (default) or `delete` |
 
 **Returns:**
@@ -247,6 +272,18 @@ Abort a paused rebase/merge/cherry-pick and restore the original state.
 ```
 
 If nothing is in progress, `operationType` is `"none"` and `success` is false.
+
+On failure, `success` is false and an `error` string may be included.
+
+**Example (failure with error):**
+```json
+{
+  "success": false,
+  "operationType": "rebase",
+  "error": "Failed to abort rebase: <details>",
+  "summary": "Failed to abort rebase"
+}
+```
 
 ### git-hex-splitCommit
 
@@ -383,6 +420,20 @@ Cherry-pick a single commit with configurable merge strategy.
   "summary": "Cherry-picked abc123 as new commit mno345",
   "commitMessage": "Original commit subject line",
   "stashNotRestored": false
+}
+```
+
+**Example (paused on conflict, `abortOnConflict=false`):**
+```json
+{
+  "success": false,
+  "paused": true,
+  "reason": "conflict",
+  "headBefore": "def456...",
+  "headAfter": "def456...",
+  "sourceCommit": "abc123...",
+  "conflictingFiles": ["conflict.txt"],
+  "summary": "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue."
 }
 ```
 

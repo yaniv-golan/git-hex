@@ -76,22 +76,40 @@ else
 fi
 
 # STASH-10: cherryPickSingle autoStash works
-printf ' -> STASH-10 cherryPickSingle autoStash works\n'
+printf  ' -> STASH-10 cherryPickSingle autoStash works\n'
 REPO5="${TEST_TMPDIR}/stash-cherry-pick"
-create_branch_scenario "${REPO5}"
-source_commit="$(cd "${REPO5}" && git rev-parse main)"
-echo "dirty change" >>"${REPO5}/feature1.txt"
-before="$(stash_count "${REPO5}")"
-result="$(run_tool git-hex-cherryPickSingle "${REPO5}" "{\"commit\": \"${source_commit}\", \"autoStash\": true}")"
-after="$(stash_count "${REPO5}")"
-assert_json_field "${result}" '.success' "true" "cherryPickSingle should succeed with autoStash"
-assert_eq "${before}" "${after}" "stash should be restored after cherry-pick"
-test_pass "cherryPickSingle autoStash creates and restores stash"
+create_branch_scenario  "${REPO5}"
+source_commit="$( cd "${REPO5}" && git rev-parse main)"
+echo  "dirty change" >>"${REPO5}/feature1.txt"
+before="$( stash_count "${REPO5}")"
+result="$( run_tool git-hex-cherryPickSingle "${REPO5}" "{\"commit\": \"${source_commit}\", \"autoStash\": true}")"
+after="$( stash_count "${REPO5}")"
+assert_json_field  "${result}" '.success' "true" "cherryPickSingle should succeed with autoStash"
+assert_eq  "${before}" "${after}" "stash should be restored after cherry-pick"
+test_pass  "cherryPickSingle autoStash creates and restores stash"
+
+# STASH-10b: cherryPickSingle autoStash does not leak stash on invalid commit
+printf  ' -> STASH-10b cherryPickSingle autoStash does not leak on invalid commit\n'
+REPO5B="${TEST_TMPDIR}/stash-cherry-pick-invalid"
+create_branch_scenario  "${REPO5B}"
+echo  "dirty change" >>"${REPO5B}/feature1.txt"
+before_invalid="$( stash_count "${REPO5B}")"
+if  run_tool_expect_fail git-hex-cherryPickSingle "${REPO5B}" '{"commit": "nonexistent123", "autoStash": true}'; then
+	after_invalid="$(stash_count "${REPO5B}")"
+	assert_eq "${before_invalid}" "${after_invalid}" "stash should not be created/left behind on invalid commit"
+	if ! (cd "${REPO5B}" && git diff --quiet); then
+		test_pass "autoStash did not alter dirty working tree on invalid commit"
+	else
+		test_fail "dirty change should remain after invalid commit failure"
+	fi
+else
+	test_fail "expected cherryPickSingle to fail on invalid commit"
+fi
 
 # STASH-11: cherryPickSingle autoStash blocked with abortOnConflict=false
-printf ' -> STASH-11 autoStash rejected when abortOnConflict=false\n'
+printf  ' -> STASH-11 autoStash rejected when abortOnConflict=false\n'
 REPO6="${TEST_TMPDIR}/stash-cherry-pick-block"
-create_branch_scenario "${REPO6}"
+create_branch_scenario  "${REPO6}"
 echo "dirty change" >>"${REPO6}/feature1.txt"
 if run_tool_expect_fail git-hex-cherryPickSingle "${REPO6}" "{\"commit\": \"main\", \"autoStash\": true, \"abortOnConflict\": false}"; then
 	test_pass "autoStash rejected when abortOnConflict=false"

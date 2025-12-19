@@ -30,6 +30,11 @@ cleanup() {
 		if [ "${_git_hex_cleanup_abort:-true}" = "true" ] && [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 			git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true
 		fi
+		# If we created an auto-stash, attempt to restore it on any unexpected early exit.
+		if [ "${auto_stash:-false}" = "true" ] && [ "${stash_created:-false}" != "false" ] && [ "${stash_restore_attempted:-false}" != "true" ]; then
+			stash_restore_attempted="true"
+			stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+		fi
 	fi
 	return 0
 }
@@ -87,15 +92,20 @@ cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Pleas
 merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
 esac
 
-# Save HEAD before operation for headBefore/headAfter consistency
-head_before="$(git -C "${repo_path}" rev-parse HEAD)"
+# Verify commit exists and resolve to full hash.
+# Use --verify and ^{commit} so inputs that look like paths don't pass validation.
+source_hash="$(git -C "${repo_path}" rev-parse --verify "${commit}^{commit}" 2>/dev/null || true)"
+if [ -z "${source_hash}" ]; then
+	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
+fi
 
-# Create backup ref for undo support (before any mutations)
-git_hex_create_backup "${repo_path}" "cherryPickSingle" >/dev/null
+# Get source commit's subject for commitMessage
+source_subject="$(git -C "${repo_path}" log -1 --format='%s' "${source_hash}" 2>/dev/null || true)"
 
-# Handle manual auto-stash
+# Handle manual auto-stash (after validating inputs to avoid leaving stashes on early failures)
 stash_created="false"
 stash_not_restored="false"
+stash_restore_attempted="false"
 if [ "${auto_stash}" = "true" ]; then
 	stash_created="$(git_hex_auto_stash "${repo_path}")"
 else
@@ -104,14 +114,11 @@ else
 	fi
 fi
 
-# Verify commit exists and resolve to full hash
-source_hash="$(git -C "${repo_path}" rev-parse "${commit}" 2>/dev/null || true)"
-if [ -z "${source_hash}" ]; then
-	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
-fi
+# Save HEAD before operation for headBefore/headAfter consistency
+head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
-# Get source commit's subject for commitMessage
-source_subject="$(git -C "${repo_path}" log -1 --format='%s' "${source_hash}" 2>/dev/null || true)"
+# Create backup ref for undo support (after validation, before mutations)
+git_hex_create_backup "${repo_path}" "cherryPickSingle" >/dev/null
 
 # Build cherry-pick command
 pick_args=()
@@ -138,6 +145,7 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 
 	# Restore stash if created
 	if [ "${auto_stash}" = "true" ]; then
+		stash_restore_attempted="true"
 		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 	fi
 
@@ -170,13 +178,18 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 else
 	# Cherry-pick failed - cleanup will abort
 	# Provide more specific error context
-	if echo "${pick_error}" | grep -qi "conflict"; then
+	if grep -qi "conflict" <<<"${pick_error}"; then
 		if [ "${abort_on_conflict}" = "false" ]; then
 			_git_hex_cleanup_abort="false"
 			trap - EXIT
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
-			conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-			conflicting_json="$(printf '%s\n' "${conflicting_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
+			conflicting_json="[]"
+			# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+			while IFS= read -r -d '' conflict_file; do
+				[ -z "${conflict_file}" ] && continue
+				# shellcheck disable=SC2016
+				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
+			done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson success false \
@@ -195,18 +208,19 @@ else
 				git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true
 			fi
 			if [ "${auto_stash}" = "true" ]; then
+				stash_restore_attempted="true"
 				stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 			fi
 			mcp_fail -32603 "Cherry-pick failed due to conflicts. Repository has been restored to original state."
 		fi
-	elif echo "${pick_error}" | grep -qi "gpg\|signing\|sign"; then
-		[ "${auto_stash}" = "true" ] && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+	elif grep -qi "gpg\\|signing\\|sign" <<<"${pick_error}"; then
+		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 		mcp_fail -32603 "Cherry-pick failed: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif echo "${pick_error}" | grep -qi "empty"; then
-		[ "${auto_stash}" = "true" ] && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+	elif grep -qi "empty" <<<"${pick_error}"; then
+		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 		mcp_fail -32603 "Cherry-pick failed: The commit would be empty (changes already exist in HEAD)."
 	else
-		[ "${auto_stash}" = "true" ] && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
+		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 		error_hint="$(echo "${pick_error}" | head -1)"
 		mcp_fail -32603 "Cherry-pick failed: ${error_hint}. Repository has been restored to original state."
 	fi

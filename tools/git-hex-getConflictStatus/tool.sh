@@ -32,60 +32,51 @@ cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
 merge_head_path="${git_dir}/MERGE_HEAD"
 rebase_head_path="${git_dir}/REBASE_HEAD"
 
-if [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
+if  [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
 	conflict_type="rebase"
 	if [ -f "${rebase_merge_dir}/msgnum" ]; then
-		current_step="$(cat "${rebase_merge_dir}/msgnum")"
+		current_step="$(<"${rebase_merge_dir}/msgnum")"
 	fi
 	if [ -f "${rebase_merge_dir}/end" ]; then
-		total_steps="$(cat "${rebase_merge_dir}/end")"
+		total_steps="$(<"${rebase_merge_dir}/end")"
 	fi
 	if [ -f "${rebase_merge_dir}/stopped-sha" ]; then
-		conflicting_commit="$(cat "${rebase_merge_dir}/stopped-sha")"
+		conflicting_commit="$(<"${rebase_merge_dir}/stopped-sha")"
 	fi
-elif [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
+elif  [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
 	conflict_type="rebase"
 	if [ -f "${rebase_apply_dir}/next" ]; then
-		current_step="$(cat "${rebase_apply_dir}/next")"
+		current_step="$(<"${rebase_apply_dir}/next")"
 	fi
 	if [ -f "${rebase_apply_dir}/last" ]; then
-		total_steps="$(cat "${rebase_apply_dir}/last")"
+		total_steps="$(<"${rebase_apply_dir}/last")"
 	fi
-elif [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
+	# Prefer original-commit for rebase-apply when available.
+	if [ -f "${rebase_apply_dir}/original-commit" ]; then
+		conflicting_commit="$(<"${rebase_apply_dir}/original-commit")"
+	fi
+elif  [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	conflict_type="cherry-pick"
-	conflicting_commit="$(cat "${cherry_pick_head_path}")"
-elif [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
+	conflicting_commit="$(<"${cherry_pick_head_path}")"
+elif  [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
-	conflicting_commit="$(cat "${merge_head_path}")"
+	conflicting_commit="$(<"${merge_head_path}")"
 else
 	mcp_emit_json '{"success": true, "inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
 	exit 0
 fi
 
-if [ -z "${conflicting_commit}" ] && [ -f "${rebase_head_path}" ]; then
+if  [ -z "${conflicting_commit}" ] && [ -f "${rebase_head_path}" ]; then
 	conflicting_commit="$(cat "${rebase_head_path}" 2>/dev/null || true)"
 fi
 
-conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-
-if [ -z "${conflicting_files}" ]; then
-	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success true \
-		--argjson inConflict true \
-		--arg conflictType "${conflict_type}" \
-		--argjson currentStep "${current_step}" \
-		--argjson totalSteps "${total_steps}" \
-		--arg conflictingCommit "${conflicting_commit}" \
-		--argjson conflictingFiles "[]" \
-		--arg summary "${conflict_type} paused - all conflicts resolved, ready to continue" \
-		'{success: $success, inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
-	exit 0
-fi
-
 files_json="[]"
-while  IFS= read -r file; do
+have_conflicts="false"
+# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
+while  IFS= read -r -d '' file; do
 	[ -z "${file}" ] && continue
+	have_conflicts="true"
+
 	stages="$(git -C "${repo_path}" ls-files -u -- "${file}" 2>/dev/null | awk '{print $3}' | sort -u | tr '\n' ',')"
 	case "${stages}" in
 	"1,2,3,") file_conflict_type="both_modified" ;;
@@ -161,7 +152,22 @@ while  IFS= read -r file; do
 			--arg type "${file_conflict_type}" \
 			'. + [{path: $path, conflictType: $type}]')"
 	fi
-done <<<"${conflicting_files}"
+done  < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+
+if  [ "${have_conflicts}" != "true" ]; then
+	# shellcheck disable=SC2016
+	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
+		--argjson success true \
+		--argjson inConflict true \
+		--arg conflictType "${conflict_type}" \
+		--argjson currentStep "${current_step}" \
+		--argjson totalSteps "${total_steps}" \
+		--arg conflictingCommit "${conflicting_commit}" \
+		--argjson conflictingFiles "[]" \
+		--arg summary "${conflict_type} paused - all conflicts resolved, ready to continue" \
+		'{success: $success, inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+	exit 0
+fi
 
 file_count="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
 

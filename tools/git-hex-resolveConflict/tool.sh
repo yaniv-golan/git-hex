@@ -49,7 +49,7 @@ if [ -f "${repo_path}/${file}" ]; then
 		git -C "${repo_path}" add -- "${file}"
 	fi
 elif [ -n "${unmerged}" ]; then
-	stages="$(echo "${unmerged}" | awk '{print $3}' | sort -u | tr '\n' ',')"
+	stages="$(printf '%s\n' "${unmerged}" | awk '{print $3}' | sort -u | tr '\n' ',')"
 	if [ "${resolution}" = "delete" ]; then
 		git -C "${repo_path}" rm -f --cached -- "${file}" >/dev/null 2>&1
 	else
@@ -73,7 +73,10 @@ else
 	mcp_fail_invalid_args "File not found and not in conflict state: ${file}"
 fi
 
-remaining="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null | wc -l | tr -d ' ')"
+remaining="0"
+while  IFS= read -r -d '' _conflict_file; do
+	remaining="$((remaining + 1))"
+done  < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \

@@ -63,7 +63,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
 | `onto` | string | **Yes** | Base ref to rebase onto |
-| `plan` | array | No | Ordered list of `{action, commit, message?}` items |
+| `plan` | array | No | Ordered list of `{action, commit, message?}` items (action: pick, reword, squash, fixup, drop) |
 | `abortOnConflict` | boolean | No | Abort on conflicts (default: true). Set to false to pause and resolve instead of auto-aborting. |
 | `autoStash` | boolean | No | Use native `--autostash` to stash/restore tracked changes (default: false) |
 | `autosquash` | boolean | No | Auto-squash fixup! commits (default: true) |
@@ -115,6 +115,13 @@ Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktre
 
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `onto` | string | **Yes** | Base ref to rebase onto |
+| `maxCommits` | integer | No | Maximum commits to check (default: 100) |
+
 **Example output:**
 ```json
 {
@@ -141,7 +148,22 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 - **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
 - **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
 
-**getConflictStatus example output:**
+### git-hex-getConflictStatus
+
+Detect whether a rebase/merge/cherry-pick is paused, which files conflict, and (optionally) return per-file content.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `includeContent` | boolean | No | Include base/ours/theirs/workingCopy content for each conflict (default: false) |
+| `maxContentSize` | integer | No | Maximum bytes of content to return per file (default: 10000) |
+
+**File `conflictType` values:** `both_modified`, `deleted_by_us`, `deleted_by_them`, `added_by_both`, `deleted_by_both`, `unknown`.
+
+When `includeContent=true`, each file may include `isBinary` (binary detection), optional `note`, and `truncated` when any returned content was clipped to `maxContentSize`.
+
+**Returns:**
 ```json
 {
   "success": true,
@@ -149,6 +171,7 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
   "conflictType": "rebase",
   "currentStep": 1,
   "totalSteps": 3,
+  "conflictingCommit": "abc123...",
   "conflictingFiles": [
     {
       "path": "conflict.txt",
@@ -158,6 +181,72 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
   "summary": "Rebase paused with conflicts"
 }
 ```
+
+When `inConflict=false`, `conflictType` is `"none"`.
+
+### git-hex-resolveConflict
+
+Mark a conflicted file as resolved by either keeping the file (after you resolved conflict markers) or deleting it.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+| `file` | string | **Yes** | Repo-relative path to the conflicted file |
+| `resolution` | string | No | `keep` (default) or `delete` |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "file": "conflict.txt",
+  "remainingConflicts": 0,
+  "summary": "Marked conflict.txt as resolved. 0 conflict(s) remaining."
+}
+```
+
+### git-hex-continueOperation
+
+Continue a paused rebase/merge/cherry-pick after resolving conflicts.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "operationType": "rebase",
+  "completed": true,
+  "paused": false,
+  "conflictingFiles": [],
+  "summary": "Rebase completed successfully"
+}
+```
+
+On failure, `success` is false and an `error` string may be included.
+
+### git-hex-abortOperation
+
+Abort a paused rebase/merge/cherry-pick and restore the original state.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `repoPath` | string | No | Path to git repository |
+
+**Returns:**
+```json
+{
+  "success": true,
+  "operationType": "rebase",
+  "summary": "rebase aborted, restored to original state"
+}
+```
+
+If nothing is in progress, `operationType` is `"none"` and `success` is false.
 
 ### git-hex-splitCommit
 
@@ -198,7 +287,6 @@ Create a fixup commit targeting a specific commit.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
-| `force` | boolean | No | Allow undo even if new commits exist after the backup (those commits will be lost) |
 | `commit` | string | **Yes** | Commit hash/ref to create fixup for |
 | `message` | string | No | Additional message to append |
 | `signCommits` | boolean | No | If true, allow commit signing. Default false to avoid non-interactive pinentry hangs. |

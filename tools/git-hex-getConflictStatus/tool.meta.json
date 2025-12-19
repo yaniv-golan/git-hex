@@ -43,7 +43,7 @@
               "path": { "type": "string" },
             "conflictType": {
               "type": "string",
-              "enum": ["both_modified", "deleted_by_us", "deleted_by_them", "added_by_both", "unknown"],
+              "enum": ["both_modified", "deleted_by_us", "deleted_by_them", "added_by_both", "deleted_by_both", "unknown"],
               "description": "Type of conflict for this file"
             },
               "isBinary": { "type": "boolean" },

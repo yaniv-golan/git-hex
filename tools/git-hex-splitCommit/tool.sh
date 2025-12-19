@@ -12,6 +12,8 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/backup.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 # shellcheck source=../../lib/stash.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/stash.sh"
 
@@ -41,21 +43,16 @@ splits_type="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'typ
 if [ "${splits_type}" != "array" ]; then
 	mcp_fail_invalid_args "splits must be an array"
 fi
-auto_stash="$(mcp_args_bool '.autoStash' --default false)"
-sign_commits="$(mcp_args_bool '.signCommits' --default false)"
+auto_stash="$( mcp_args_bool '.autoStash' --default false)"
+sign_commits="$( mcp_args_bool '.signCommits' --default false)"
 
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo  "${repo_path}"
 
-git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-case "${git_dir}" in
-/*) ;;
-*) git_dir="${repo_path}/${git_dir}" ;;
-esac
+git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
-if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
+operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+if [ "${operation}" = "rebase" ]; then
 	mcp_fail_invalid_args "Cannot split commit while rebase is in progress"
 fi
 
@@ -66,7 +63,7 @@ if [ -z "${full_commit}" ]; then
 fi
 
 # Commit must not be merge commit
-if [ "$(git -C "${repo_path}" rev-list --count "${full_commit}^@" 2>/dev/null)" -gt 1 ]; then
+if git -C "${repo_path}" rev-parse --verify "${full_commit}^2" >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Cannot split merge commits"
 fi
 
@@ -99,9 +96,11 @@ for ((i = 0; i < split_count; i++)); do
 	if [ -z "${split_files}" ]; then
 		mcp_fail_invalid_args "Split $((i + 1)) has no files"
 	fi
-	if printf '%s' "${message}" | grep -q $'[\t\n]'; then
+	case "${message}" in
+	*$'\n'* | *$'\t'*)
 		mcp_fail_invalid_args "Split message cannot contain TAB or newline"
-	fi
+		;;
+	esac
 	while IFS= read -r file; do
 		[ -z "${file}" ] && continue
 		if ! printf '%s\n' "${original_files}" | grep -Fqx -- "${file}"; then

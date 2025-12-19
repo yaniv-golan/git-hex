@@ -890,3 +890,111 @@ create_large_history_scenario() {
 		# Already on feature branch; no need for git checkout
 	)
 }
+
+# Create repo with a merge commit (for testing merge commit rejection in splitCommit)
+create_merge_commit_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "base" >base.txt
+		git add base.txt && git commit -m "Base commit"
+
+		git checkout -b feature
+		echo "feature" >feature.txt
+		git add feature.txt && git commit -m "Feature commit"
+
+		git checkout main
+		echo "main" >main.txt
+		git add main.txt && git commit -m "Main commit"
+
+		# Create merge commit
+		git merge feature -m "Merge feature into main"
+		# Now HEAD is a merge commit with 2 parents
+	)
+}
+
+# Create repo with orphan branch (for testing root commit in range)
+create_orphan_branch_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "main content" >main.txt
+		git add main.txt && git commit -m "Main commit"
+
+		# Create orphan branch (has no parent - root commit)
+		git checkout --orphan orphan
+		git rm -rf . 2>/dev/null || true
+		echo "orphan content" >orphan.txt
+		git add orphan.txt && git commit -m "Orphan root commit"
+
+		echo "orphan second" >orphan2.txt
+		git add orphan2.txt && git commit -m "Orphan second commit"
+	)
+}
+
+# Create repo with autosquash config enabled globally
+create_autosquash_config_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		# Enable autosquash in repo config (simulates user having it globally)
+		git config rebase.autoSquash true
+
+		echo "base" >base.txt
+		git add base.txt && git commit -m "Initial commit"
+
+		echo "feature" >feature.txt
+		git add feature.txt && git commit -m "Add feature"
+
+		# Create a fixup commit that WOULD be squashed if autosquash runs
+		echo "feature fixed" >feature.txt
+		git add feature.txt && git commit -m "fixup! Add feature"
+
+		echo "another" >another.txt
+		git add another.txt && git commit -m "Add another file"
+	)
+}
+
+# Create repo with deleted-by-both conflict scenario (DD)
+create_deleted_by_both_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "original" >shared.txt
+		echo "base" >base.txt
+		git add . && git commit -m "Initial"
+
+		git checkout -b feature
+		git rm shared.txt && git commit -m "Delete shared on feature"
+
+		git checkout main
+		git rm shared.txt && git commit -m "Delete shared on main"
+
+		# Add different content to cause merge conflict context
+		echo "main extra" >extra.txt
+		git add extra.txt && git commit -m "Main extra"
+
+		git checkout feature
+		# Rebasing feature onto main: both deleted shared.txt
+	)
+}

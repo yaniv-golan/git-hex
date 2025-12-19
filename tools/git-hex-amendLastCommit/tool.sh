@@ -14,6 +14,8 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/backup.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 # shellcheck source=../../lib/stash.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/stash.sh"
 
@@ -25,9 +27,7 @@ auto_stash="$(mcp_args_bool '.autoStash' --default false)"
 sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
 # Validate git repository
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo "${repo_path}"
 
 # Check if there are any commits
 if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
@@ -35,24 +35,13 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 # Check for any in-progress git operations
-git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-case "${git_dir}" in
-/*) ;;
-*) git_dir="${repo_path}/${git_dir}" ;;
+git_dir="$(git_hex_get_git_dir "${repo_path}")"
+operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+case "${operation}" in
+rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
 esac
-rebase_merge_dir="${git_dir}/rebase-merge"
-rebase_apply_dir="${git_dir}/rebase-apply"
-cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
-merge_head_path="${git_dir}/MERGE_HEAD"
-if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
-	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
-fi
-if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
-fi
-if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
-fi
 
 # Handle auto-stash (unstaged changes only; keep index)
 stash_created="false"

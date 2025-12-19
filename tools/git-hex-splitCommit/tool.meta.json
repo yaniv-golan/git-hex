@@ -52,6 +52,7 @@
   },
   "outputSchema": {
     "type": "object",
+    "required": ["success", "originalCommit", "newCommits", "backupRef", "rebasePaused", "stashNotRestored", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "originalCommit": { "type": "string" },

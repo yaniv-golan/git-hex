@@ -14,21 +14,18 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/backup.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/backup.sh"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 # shellcheck source=../../lib/stash.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/stash.sh"
 
 # Cleanup function to abort cherry-pick on failure
 cleanup() {
 	if [ -n "${repo_path:-}" ]; then
-		git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+		git_dir="$(git_hex_get_git_dir "${repo_path}" 2>/dev/null || true)"
+		cherry_pick_head_path=""
 		if [ -n "${git_dir}" ]; then
-			case "${git_dir}" in
-			/*) ;;
-			*) git_dir="${repo_path}/${git_dir}" ;;
-			esac
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
-		else
-			cherry_pick_head_path=""
 		fi
 		if [ "${_git_hex_cleanup_abort:-true}" = "true" ] && [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 			git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true
@@ -62,13 +59,7 @@ if [ -n "${strategy}" ]; then
 		;;
 	ort)
 		# ort strategy requires git 2.33+
-		git_version_raw="$(git --version | sed 's/git version //')"
-		# Compare major.minor >= 2.33
-		major="$(echo "${git_version_raw}" | cut -d. -f1)"
-		minor="$(echo "${git_version_raw}" | cut -d. -f2)"
-		major="${major%%[^0-9]*}"
-		minor="${minor%%[^0-9]*}"
-		minor="${minor:-0}"
+		read -r major minor git_version_raw <<<"$(git_hex_parse_git_version | tr '\t' ' ')"
 		if [ "${major}" -lt 2 ] || { [ "${major}" -eq 2 ] && [ "${minor}" -lt 33 ]; }; then
 			mcp_fail_invalid_args "Merge strategy 'ort' requires git 2.33+. Current version: ${git_version_raw}. Use 'recursive' instead."
 		fi
@@ -80,9 +71,7 @@ if [ -n "${strategy}" ]; then
 fi
 
 # Validate git repository
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo  "${repo_path}"
 
 # Check if repository has any commits
 if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
@@ -90,24 +79,13 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 # Check for any in-progress git operations
-git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-case "${git_dir}" in
-/*) ;;
-*) git_dir="${repo_path}/${git_dir}" ;;
+git_dir="$( git_hex_get_git_dir "${repo_path}")"
+operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+case "${operation}" in
+rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
 esac
-rebase_merge_dir="${git_dir}/rebase-merge"
-rebase_apply_dir="${git_dir}/rebase-apply"
-cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
-merge_head_path="${git_dir}/MERGE_HEAD"
-if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
-	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
-fi
-if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
-fi
-if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
-fi
 
 # Save HEAD before operation for headBefore/headAfter consistency
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
@@ -198,12 +176,7 @@ else
 			trap - EXIT
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
 			conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-			conflicting_json="[]"
-			while IFS= read -r cf; do
-				[ -z "${cf}" ] && continue
-				# shellcheck disable=SC2016
-				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
-			done <<<"${conflicting_files}"
+			conflicting_json="$(printf '%s\n' "${conflicting_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson success false \
@@ -216,11 +189,7 @@ else
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
 				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
 		else
-			git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-			case "${git_dir}" in
-			/*) ;;
-			*) git_dir="${repo_path}/${git_dir}" ;;
-			esac
+			git_dir="$(git_hex_get_git_dir "${repo_path}")"
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
 			if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 				git -C "${repo_path}" cherry-pick --abort >/dev/null 2>&1 || true

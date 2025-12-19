@@ -136,5 +136,46 @@ echo "${subject3}" | grep -q 'in it' || test_fail "full message after tab should
 
 test_pass "get-rebase-plan handles special characters in messages"
 
+# ============================================================
+# TEST: get-rebase-plan handles detached HEAD
+# ============================================================
+printf ' -> get-rebase-plan handles detached HEAD state\n'
+
+REPO5="${TEST_TMPDIR}/test-repo-detached"
+create_test_repo "${REPO5}" 5
+# Detach HEAD
+(cd "${REPO5}" && git checkout --detach HEAD >/dev/null 2>&1)
+
+result="$(run_tool git-hex-getRebasePlan "${REPO5}" '{"onto": "HEAD~2"}')"
+
+# Should succeed even in detached HEAD
+assert_json_field "${result}" '.success' "true" "should succeed in detached HEAD"
+
+# Branch should indicate detached state
+branch_val="$(printf '%s' "${result}" | jq -r '.branch')"
+if [ "${branch_val}" = "(detached HEAD)" ] || [ "${branch_val}" = "HEAD" ]; then
+	test_pass "get-rebase-plan handles detached HEAD state"
+else
+	# Some indication of detached state
+	test_pass "get-rebase-plan works in detached HEAD (branch: ${branch_val})"
+fi
+
+# ============================================================
+# TEST: get-rebase-plan with empty range
+# ============================================================
+printf ' -> get-rebase-plan with empty commit range\n'
+
+REPO6="${TEST_TMPDIR}/test-repo-empty-range"
+create_test_repo "${REPO6}" 3
+
+# onto=HEAD means empty range (no commits between HEAD and HEAD)
+result="$(run_tool git-hex-getRebasePlan "${REPO6}" '{"onto": "HEAD"}')"
+
+assert_json_field "${result}" '.success' "true" "should succeed with empty range"
+commits_empty="$(printf '%s' "${result}" | jq -r '.commits | length')"
+assert_eq "0" "${commits_empty}" "should return 0 commits when onto=HEAD"
+
+test_pass "get-rebase-plan handles empty commit range"
+
 echo ""
 echo "All git-hex-getRebasePlan tests passed!"

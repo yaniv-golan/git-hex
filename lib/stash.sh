@@ -49,7 +49,10 @@ git_hex_auto_stash() {
 		stash_oid="$(git -C "${repo_path}" rev-parse 'stash@{0}' 2>/dev/null || true)"
 		stash_name="$(git -C "${repo_path}" stash list --pretty='%gd' -n 1 2>/dev/null || true)"
 		if [ -n "${stash_oid}" ] && [ "${stash_oid}" != "${before_top}" ]; then
-			echo "stash:${mode}:${stash_oid}|${stash_name:-stash@{0}}"
+			if [ -z "${stash_name}" ]; then
+				stash_name="stash@{0}"
+			fi
+			echo "stash:${mode}:${stash_oid}|${stash_name}"
 		else
 			echo "false"
 		fi
@@ -91,19 +94,34 @@ git_hex_restore_stash() {
 			if [ "${mode_hint}" = "keep-index" ]; then
 				local patch_file
 				patch_file="$(mktemp "${TMPDIR:-/tmp}/git-hex.stash.patch.XXXXXX")"
+				local tmp_index index_path
+				tmp_index="$(mktemp "${TMPDIR:-/tmp}/git-hex.stash.index.XXXXXX")"
+				index_path="$(git -C "${repo_path}" rev-parse --git-path index 2>/dev/null || true)"
+				if [ -n "${index_path}" ]; then
+					case "${index_path}" in
+					/*) ;;
+					*) index_path="${repo_path}/${index_path}" ;;
+					esac
+				fi
+				if [ -n "${index_path}" ] && [ -f "${index_path}" ]; then
+					cp -f "${index_path}" "${tmp_index}" 2>/dev/null || true
+				fi
 				# Apply only the unstaged portion (worktree minus index) to avoid reapplying staged changes.
-				# Stash commits have three parents: base (^1), index (^2), worktree (^3). For older formats or
-				# keep-index with fewer parents, fall back to ^2.
-				local worktree_parent=""
-				if git -C "${repo_path}" rev-parse "${stash_ref}^3^{tree}" >/dev/null 2>&1; then
-					worktree_parent="${stash_ref}^3"
-				elif git -C "${repo_path}" rev-parse "${stash_ref}^2^{tree}" >/dev/null 2>&1; then
-					worktree_parent="${stash_ref}^2"
+				# Stash commit structure:
+				# - stash@{0} tree: worktree state at time of stashing
+				# - ^1: base commit (HEAD at time of stashing)
+				# - ^2: index state commit (staged changes)
+				# - ^3: untracked state commit (only when using --include-untracked / -u)
+				local index_parent=""
+				if git -C "${repo_path}" rev-parse "${stash_ref}^2^{tree}" >/dev/null 2>&1; then
+					index_parent="${stash_ref}^2"
+				elif git -C "${repo_path}" rev-parse "${stash_ref}^1^{tree}" >/dev/null 2>&1; then
+					index_parent="${stash_ref}^1"
 				fi
 
-				if [ -n "${worktree_parent}" ] && git -C "${repo_path}" diff "${worktree_parent}" "${stash_ref}" --binary >"${patch_file}" 2>/dev/null; then
+				if [ -n "${index_parent}" ] && git -C "${repo_path}" diff "${index_parent}" "${stash_ref}" --binary >"${patch_file}" 2>/dev/null; then
 					if [ -s "${patch_file}" ]; then
-						if git -C "${repo_path}" apply --3way "${patch_file}" >/dev/null 2>&1; then
+						if GIT_INDEX_FILE="${tmp_index}" git -C "${repo_path}" apply --3way "${patch_file}" >/dev/null 2>&1; then
 							git -C "${repo_path}" stash drop "${stash_name:-${stash_ref}}" >/dev/null 2>&1 || true
 							stash_not_restored="false"
 						else
@@ -116,6 +134,7 @@ git_hex_restore_stash() {
 					stash_not_restored="true"
 				fi
 				rm -f "${patch_file}" 2>/dev/null || true
+				rm -f "${tmp_index}" 2>/dev/null || true
 
 				if [ "${stash_not_restored}" = "true" ] && command -v mcp_log_warn >/dev/null 2>&1; then
 					local log_payload

@@ -14,6 +14,8 @@ SCRIPT_DIR="$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source  "${SCRIPT_DIR}/../../lib/backup.sh"
 # shellcheck source=../../lib/rebase-msg-dir.sh disable=SC1091
 source  "${SCRIPT_DIR}/../../lib/rebase-msg-dir.sh"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source  "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 onto="$(mcp_args_require '.onto')"
@@ -46,9 +48,7 @@ _git_hex_cleanup() {
 trap '_git_hex_cleanup' EXIT
 
 # Validate repo
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo "${repo_path}"
 
 # Check HEAD exists
 if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
@@ -56,25 +56,14 @@ if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 fi
 
 # Check for in-progress operations
-git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-case "${git_dir}" in
-/*) ;;
-*) git_dir="${repo_path}/${git_dir}" ;;
-esac
-rebase_merge_dir="${git_dir}/rebase-merge"
-rebase_apply_dir="${git_dir}/rebase-apply"
-cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
-merge_head_path="${git_dir}/MERGE_HEAD"
+git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
-if { [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; } || { [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; }; then
-	mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first."
-fi
-if [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first."
-fi
-if [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
-	mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first."
-fi
+operation_in_progress="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+case "${operation_in_progress}" in
+rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+esac
 
 # Dirty working tree check (unless using native autostash)
 if [ "${auto_stash}" = "false" ]; then
@@ -90,7 +79,7 @@ fi
 
 # Get commits in range
 actual_commits="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD" 2>/dev/null || echo "")"
-actual_count="$(echo "${actual_commits}" | wc -l | tr -d ' ')"
+actual_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 
 if [ -z "${actual_commits}" ]; then
 	# shellcheck disable=SC2016
@@ -273,6 +262,8 @@ git_hex_create_backup "${repo_path}" "rebaseWithPlan" >/dev/null
 rebase_args=("-i")
 if [ "${autosquash}" = "true" ]; then
 	rebase_args+=("--autosquash")
+else
+	rebase_args+=("--no-autosquash")
 fi
 if [ "${auto_stash}" = "true" ]; then
 	rebase_args+=("--autostash")
@@ -322,12 +313,7 @@ else
 	if echo "${rebase_output}" | grep -qi "conflict"; then
 		if [ "${abort_on_conflict}" = "false" ]; then
 			conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
-			conflicting_json="[]"
-			while IFS= read -r cf; do
-				[ -z "${cf}" ] && continue
-				# shellcheck disable=SC2016
-				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${cf}" '. + [$f]')"
-			done <<<"${conflicting_files}"
+			conflicting_json="$(printf '%s\n' "${conflicting_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length > 0))')"
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \

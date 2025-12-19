@@ -9,22 +9,19 @@ fi
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
+
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 onto="$(mcp_args_require '.onto')"
 max_commits="$(mcp_args_int '.maxCommits' --default 100 --min 1)"
 
 # Validate repo
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo "${repo_path}"
 
 # Check git version (require 2.38+)
-git_version_raw="$(git --version | sed 's/git version //')"
-git_major="$(echo "${git_version_raw}" | cut -d. -f1)"
-git_minor="$(echo "${git_version_raw}" | cut -d. -f2)"
-git_major="${git_major%%[^0-9]*}"
-git_minor="${git_minor%%[^0-9]*}"
-git_minor="${git_minor:-0}"
+read -r git_major git_minor git_version_raw <<<"$(git_hex_parse_git_version | tr '\t' ' ')"
 if [ "${git_major}" -lt 2 ] || { [ "${git_major}" -eq 2 ] && [ "${git_minor}" -lt 38 ]; }; then
 	mcp_fail_invalid_args "checkRebaseConflicts requires Git 2.38+ for merge-tree support. Current version: ${git_version_raw}"
 fi

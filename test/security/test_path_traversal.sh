@@ -61,5 +61,54 @@ else
 	test_pass "symlink test skipped"
 fi
 
+# ============================================================
+# SECURITY: File path traversal in resolveConflict
+# ============================================================
+printf ' -> blocks file path traversal patterns in resolveConflict\n'
+
+REPO_FILE_TRAVERSAL="${TEST_TMPDIR}/file-traversal"
+create_paused_rebase_scenario "${REPO_FILE_TRAVERSAL}"
+
+# Test various path traversal patterns
+traversal_patterns=(
+	"../etc/passwd"
+	".."
+	"foo/../../../etc/passwd"
+	"foo/bar/../../../etc/passwd"
+	"some/path/.." # Path ending with /.. (the missing pattern from audit)
+	"dir/subdir/file/.." # Another path ending with /..
+)
+
+for pattern in "${traversal_patterns[@]}"; do
+	if run_tool_expect_fail git-hex-resolveConflict "${REPO_FILE_TRAVERSAL}" "{\"file\": \"${pattern}\"}"; then
+		printf '   [PASS] blocked: %s\n' "${pattern}"
+	else
+		test_fail "should block path traversal pattern: ${pattern}"
+	fi
+done
+test_pass "blocks file path traversal patterns"
+
+# ============================================================
+# SECURITY: File path traversal in getConflictStatus
+# ============================================================
+printf ' -> blocks file path traversal patterns in getConflictStatus filter\n'
+
+# getConflictStatus doesn't take a file parameter directly, but let's ensure
+# the path validation function works correctly for internal use
+
+# Test absolute path rejection
+if run_tool_expect_fail git-hex-resolveConflict "${REPO_FILE_TRAVERSAL}" '{"file": "/etc/passwd"}'; then
+	test_pass "blocks absolute path in file parameter"
+else
+	test_fail "should block absolute path"
+fi
+
+# Test Windows drive letter path rejection
+if run_tool_expect_fail git-hex-resolveConflict "${REPO_FILE_TRAVERSAL}" '{"file": "C:\\Windows\\System32"}'; then
+	test_pass "blocks Windows drive letter path"
+else
+	test_fail "should block Windows drive letter path"
+fi
+
 echo ""
 echo "All security tests passed!"

@@ -189,9 +189,8 @@ git_hex_cleanup_backups() {
 		--format='%(refname)' \
 		"${GIT_HEX_REF_PREFIX}/backup/" 2>/dev/null | tail -n +$((keep_count + 1)))"
 
-	if [ -n "${refs_to_delete}" ]; then
-		echo "${refs_to_delete}" | while read -r ref; do
-			git -C "${repo_path}" update-ref -d "${ref}" 2>/dev/null || true
-		done
-	fi
+	while IFS= read -r ref; do
+		[ -n "${ref}" ] || continue
+		git -C "${repo_path}" update-ref -d "${ref}" 2>/dev/null || true
+	done <<<"${refs_to_delete}"
 }

@@ -9,53 +9,28 @@ fi
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
+
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 include_content="$(mcp_args_bool '.includeContent' --default false)"
 max_content="$(mcp_args_int '.maxContentSize' --default 10000 --min 0)"
 
-# Defensive path validation for repo-relative file paths (defense-in-depth).
-is_safe_repo_relative_path() {
-	local path="$1"
-
-	local orig_len clean_len
-	orig_len="$(printf '%s' "${path}" | LC_ALL=C wc -c | tr -d ' ')"
-	clean_len="$(printf '%s' "${path}" | LC_ALL=C tr -d '\0' | wc -c | tr -d ' ')"
-	if [ "${orig_len}" -ne "${clean_len}" ]; then
-		return 1
-	fi
-	if [[ "${path}" == /* ]]; then
-		return 1
-	fi
-	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/.."* || "${path}" == *"/../"* ]]; then
-		return 1
-	fi
-	case "${path}" in
-	[A-Za-z]:/* | [A-Za-z]:\\*)
-		return 1
-		;;
-	esac
-	return 0
-}
-
 # Validate git repository
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo "${repo_path}"
 
 conflict_type=""
 current_step=0
 total_steps=0
 conflicting_commit=""
 
-git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
-case "${git_dir}" in
-/*) ;;
-*) git_dir="${repo_path}/${git_dir}" ;;
-esac
+git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
 cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
 merge_head_path="${git_dir}/MERGE_HEAD"
+rebase_head_path="${git_dir}/REBASE_HEAD"
 
 if [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
 	conflict_type="rebase"
@@ -83,8 +58,12 @@ elif [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
 	conflicting_commit="$(cat "${merge_head_path}")"
 else
-	mcp_emit_json '{"success": true, "inConflict": false, "summary": "No conflicts detected"}'
+	mcp_emit_json '{"success": true, "inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
 	exit 0
+fi
+
+if [ -z "${conflicting_commit}" ] && [ -f "${rebase_head_path}" ]; then
+	conflicting_commit="$(cat "${rebase_head_path}" 2>/dev/null || true)"
 fi
 
 conflicting_files="$(git -C "${repo_path}" diff --name-only --diff-filter=U 2>/dev/null || true)"
@@ -105,7 +84,7 @@ if [ -z "${conflicting_files}" ]; then
 fi
 
 files_json="[]"
-while IFS= read -r file; do
+while  IFS= read -r file; do
 	[ -z "${file}" ] && continue
 	stages="$(git -C "${repo_path}" ls-files -u -- "${file}" 2>/dev/null | awk '{print $3}' | sort -u | tr '\n' ',')"
 	case "${stages}" in
@@ -113,11 +92,12 @@ while IFS= read -r file; do
 	"1,3,") file_conflict_type="deleted_by_us" ;;
 	"1,2,") file_conflict_type="deleted_by_them" ;;
 	"2,3,") file_conflict_type="added_by_both" ;;
+	"1,") file_conflict_type="deleted_by_both" ;;
 	*) file_conflict_type="unknown" ;;
 	esac
 
 	if [ "${include_content}" = "true" ]; then
-		if ! is_safe_repo_relative_path "${file}"; then
+		if ! git_hex_is_safe_repo_relative_path "${file}"; then
 			# shellcheck disable=SC2016
 			files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \
 				--arg path "${file}" \

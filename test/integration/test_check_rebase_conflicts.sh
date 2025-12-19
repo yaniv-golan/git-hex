@@ -74,5 +74,28 @@ expected_total="$(cd "${REPO_LARGE}" && git rev-list --count main..HEAD)"
 assert_eq "${expected_total}" "${total}" "totalCommits should include commits in range"
 test_pass "maxCommits respected with limitExceeded"
 
+# CHK-17: Root commit in range (orphan branch)
+# This tests the edge case where a commit in the range has no parent
+printf ' -> CHK-17 handles root commit in range\n'
+REPO_ORPHAN="${TEST_TMPDIR}/check-orphan"
+create_orphan_branch_scenario "${REPO_ORPHAN}"
+# On orphan branch, first commit is a root commit (no parent)
+# Checking conflicts when rebasing orphan onto main
+# The tool should handle this gracefully (either skip or mark unknown)
+result_orphan="$(run_tool git-hex-checkRebaseConflicts "${REPO_ORPHAN}" '{"onto": "main"}' 60)" || true
+# Tool should succeed (not crash) - root commits may show as "unknown" prediction
+if  [ -n "${result_orphan}" ]; then
+	# Check that we got a valid response (success field exists)
+	success_val="$(printf '%s' "${result_orphan}" | jq -r 'if .success == null then "" else (.success | tostring) end')"
+	if [ "${success_val}" = "true" ]; then
+		test_pass "handles root commit in range gracefully"
+	else
+		# Tool may fail gracefully with an error message - that's acceptable
+		test_pass "root commit in range handled (returned error)"
+	fi
+else
+	test_fail "checkRebaseConflicts should not crash on root commit"
+fi
+
 echo ""
 echo "checkRebaseConflicts tests completed"

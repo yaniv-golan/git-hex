@@ -142,6 +142,33 @@ else
 	test_fail "root commit should not be split"
 fi
 
+# SPLIT-17: Merge commit cannot be split
+printf ' -> SPLIT-17 cannot split merge commit\n'
+REPO_MERGE="${TEST_TMPDIR}/split-merge"
+create_merge_commit_scenario "${REPO_MERGE}"
+merge_commit="$(cd "${REPO_MERGE}" && git rev-parse HEAD)"
+# Verify it's actually a merge commit (has 2 parents)
+parent_count="$(cd "${REPO_MERGE}" && git cat-file -p "${merge_commit}" | grep -c '^parent ' || echo "0")"
+if [ "${parent_count}" -lt 2 ]; then
+	test_fail "fixture should create a merge commit with 2+ parents"
+fi
+args_merge="$(
+	cat <<JSON
+{
+  "commit": "${merge_commit}",
+  "splits": [
+    { "files": ["feature.txt"], "message": "Feature part" },
+    { "files": ["main.txt"], "message": "Main part" }
+  ]
+}
+JSON
+)"
+if run_tool_expect_fail git-hex-splitCommit "${REPO_MERGE}" "${args_merge}"; then
+	test_pass "merge commit split rejected"
+else
+	test_fail "merge commit should not be split"
+fi
+
 # SPLIT-35: Commit not ancestor of HEAD
 printf ' -> SPLIT-35 commit not ancestor rejected\n'
 REPO_NON_ANCESTOR="${TEST_TMPDIR}/split-non-ancestor"

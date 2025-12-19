@@ -47,7 +47,7 @@
           "properties": {
             "hash": { "type": "string" },
             "subject": { "type": "string" },
-            "prediction": { "type": "string" }
+            "prediction": { "type": "string", "enum": ["clean", "conflict", "unknown"] }
           }
         }
       },

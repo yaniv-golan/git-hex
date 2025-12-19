@@ -245,5 +245,99 @@ else
 	test_fail "should fail on invalid strategy"
 fi
 
+# ============================================================
+# TEST: cherry-pick-single handles empty commit (already applied)
+# ============================================================
+printf ' -> cherry-pick-single handles empty commit (changes already exist)\n'
+
+REPO8="${TEST_TMPDIR}/pick-empty-commit"
+mkdir -p "${REPO8}"
+tmp_cherry_hash8="$(mktemp "${TEST_TMPDIR}/cherry_hash8.XXXXXX")"
+(
+	cd "${REPO8}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test"
+	git config commit.gpgsign false
+
+	echo "base" >base.txt
+	git add base.txt && git commit -m "Base commit" >/dev/null
+
+	# Create a branch with a change
+	git checkout -b source >/dev/null 2>&1
+	echo "change" >change.txt
+	git add change.txt && git commit -m "Add change" >/dev/null
+	cherry_hash="$(git rev-parse HEAD)"
+
+	# Go back to main and make the SAME change (so cherry-pick would be empty)
+	git checkout main >/dev/null 2>&1
+	echo "change" >change.txt
+	git add change.txt && git commit -m "Same change on main" >/dev/null
+
+	echo "${cherry_hash}" >"${tmp_cherry_hash8}"
+)
+
+cherry_hash8="$(cat "${tmp_cherry_hash8}")"
+rm -f "${tmp_cherry_hash8}"
+
+# This cherry-pick would result in an empty commit (changes already exist)
+if run_tool_expect_fail git-hex-cherryPickSingle "${REPO8}" "{\"commit\": \"${cherry_hash8}\"}"; then
+	# Should fail gracefully with a meaningful error
+	test_pass "cherry-pick-single fails gracefully on empty commit"
+else
+	# If it succeeds, check that repo is clean (didn't leave in bad state)
+	if [ ! -f "${REPO8}/.git/CHERRY_PICK_HEAD" ]; then
+		test_pass "cherry-pick-single handled empty commit (possibly created empty commit)"
+	else
+		test_fail "should not leave repo in cherry-pick state"
+	fi
+fi
+
+# ============================================================
+# TEST: cherry-pick-single with abortOnConflict=false pauses on conflict
+# ============================================================
+printf ' -> cherry-pick-single with abortOnConflict=false pauses\n'
+
+REPO9="${TEST_TMPDIR}/pick-pause"
+mkdir -p "${REPO9}"
+tmp_cherry_hash9="$(mktemp "${TEST_TMPDIR}/cherry_hash9.XXXXXX")"
+(
+	cd "${REPO9}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test"
+	git config commit.gpgsign false
+
+	echo "original" >conflict.txt
+	git add conflict.txt && git commit -m "Base" >/dev/null
+
+	git checkout -b source >/dev/null 2>&1
+	echo "source change" >conflict.txt
+	git add conflict.txt && git commit -m "Source" >/dev/null
+	cherry_hash="$(git rev-parse HEAD)"
+
+	git checkout main >/dev/null 2>&1
+	echo "main change" >conflict.txt
+	git add conflict.txt && git commit -m "Main" >/dev/null
+
+	echo "${cherry_hash}" >"${tmp_cherry_hash9}"
+)
+
+cherry_hash9="$(cat "${tmp_cherry_hash9}")"
+rm -f "${tmp_cherry_hash9}"
+
+result9="$(run_tool git-hex-cherryPickSingle "${REPO9}" "{\"commit\": \"${cherry_hash9}\", \"abortOnConflict\": false}")" || true
+paused_val="$(printf '%s' "${result9}" | jq -r '.paused // empty')"
+if [ "${paused_val}" = "true" ]; then
+	# Verify repo is in cherry-pick state
+	if [ -f "${REPO9}/.git/CHERRY_PICK_HEAD" ]; then
+		test_pass "cherry-pick-single pauses on conflict with abortOnConflict=false"
+	else
+		test_fail "should be in cherry-pick state when paused"
+	fi
+else
+	test_fail "should return paused=true when abortOnConflict=false and conflict occurs"
+fi
+
 echo ""
 echo "All git-hex-cherryPickSingle tests passed!"

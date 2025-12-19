@@ -34,6 +34,25 @@ assert_json_field "${result}" '.success' "true" "rebaseWithPlan should succeed"
 assert_eq "3" "${after_count}" "fixup commit should be squashed (4 -> 3 commits)"
 test_pass "autosquash works with empty plan"
 
+# RBP-02: autosquash=false overrides user config
+printf ' -> RBP-02 autosquash=false overrides user config\n'
+REPO_NO_AUTO="${TEST_TMPDIR}/rebase-no-autosquash"
+create_autosquash_config_scenario "${REPO_NO_AUTO}"
+before_count_noauto="$(cd "${REPO_NO_AUTO}" && git rev-list --count HEAD)"
+# User has rebase.autoSquash=true, but we pass autosquash=false
+result_noauto="$(run_tool git-hex-rebaseWithPlan "${REPO_NO_AUTO}" '{"onto": "HEAD~3", "autoStash": false, "autosquash": false, "plan": []}' 60)"
+after_count_noauto="$(cd "${REPO_NO_AUTO}" && git rev-list --count HEAD)"
+assert_json_field "${result_noauto}" '.success' "true" "rebaseWithPlan should succeed"
+# With autosquash=false, fixup commit should NOT be squashed (4 commits remain)
+assert_eq "${before_count_noauto}" "${after_count_noauto}" "fixup commit should NOT be squashed when autosquash=false"
+# Verify the fixup commit message is still present (wasn't squashed)
+fixup_present="$(cd "${REPO_NO_AUTO}" && git log --oneline | grep -c 'fixup!' || echo "0")"
+if [ "${fixup_present}" -ge 1 ]; then
+	test_pass "autosquash=false prevents squashing despite user config"
+else
+	test_fail "fixup commit should remain when autosquash=false"
+fi
+
 # RBP-03: Drop a commit using complete plan
 printf ' -> RBP-03 drop commit using plan\n'
 REPO_DROP="${TEST_TMPDIR}/rebase-drop"

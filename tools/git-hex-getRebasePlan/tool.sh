@@ -10,15 +10,17 @@ fi
 # shellcheck source=../../sdk/tool-sdk.sh disable=SC1091
 source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../lib/git-helpers.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
+
 # Parse arguments
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 count="$(mcp_args_int '.count' --default 10 --min 1 --max 200)"
 onto="$(mcp_args_get '.onto // empty' || true)"
 
 # Validate git repository
-if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
-	mcp_fail_invalid_args "Not a git repository at ${repo_path}"
-fi
+git_hex_require_repo "${repo_path}"
 
 # Compute git's empty tree hash (used when treating a single-commit repo as having a root base).
 empty_tree_sha="$(git -C "${repo_path}" hash-object -t tree /dev/null 2>/dev/null || true)"
@@ -103,6 +105,11 @@ fi
 # Count commits for summary
 commit_count="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'length')"
 
+summary="Found ${commit_count} commits on ${branch} since ${onto_display}"
+if [ "${branch}" = "(detached HEAD)" ]; then
+	summary="${summary}. Warning: detached HEAD; rebasing may rewrite commits without an easy branch reference."
+fi
+
 # Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -111,6 +118,6 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg branch "${branch}" \
 	--arg onto "${onto_display}" \
 	--argjson commits "${commits_json}" \
-	--arg summary "Found ${commit_count} commits on ${branch} since ${onto_display}" \
+	--arg summary "${summary}" \
 	'{success: $success, plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits, summary: $summary}')"
 mcp_emit_json "${result}"

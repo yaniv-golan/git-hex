@@ -14,6 +14,7 @@ docs/internal/
 # Local-only IDE config
 git-hex.code-workspace
 .cursor/rules/
+.claude/*
 .claude/*.local.md
 .claude/*.local.json
 

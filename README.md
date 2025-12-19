@@ -76,7 +76,7 @@ git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 
 Windows (Git Bash): see [`docs/clients.md#windows-git-bash`](docs/clients.md#windows-git-bash)
 
-Prerequisites auto-install on first run; see [`docs/install.md`](docs/install.md).
+The pinned MCP Bash Framework auto-installs on first run (unless disabled); you still need `git` and `jq`/`gojq`. See [`docs/install.md`](docs/install.md).
 
 ### 3) First success
 
@@ -184,7 +184,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 |------------|---------------|
 | MCP Bash Framework (`mcp-bash`) | v0.8.0+ |
 | bash | 3.2+ |
-| jq or gojq | Required for full mode |
+| jq or gojq | Required |
 | git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
 
 ## Configuration
@@ -207,7 +207,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 ### Completions
 
-git-hex ships completion providers (refs, commits, conflict paths) registered declaratively via `server.d/register.json`. Completions are available in full mode (jq/gojq required).
+git-hex ships completion providers (refs, commits, conflict paths) registered declaratively via `server.d/register.json`. Completions require jq/gojq.
 
 > **Tip:** Running `mcp-bash` outside this repo without `MCPBASH_PROJECT_ROOT` starts the framework’s getting-started helper, not git-hex. Use `./git-hex.sh` (CLI) or `./git-hex-env.sh` (macOS apps launched from Finder/Spotlight/Dock; see `docs/clients.md`) when launching from other directories or GUI clients.
 

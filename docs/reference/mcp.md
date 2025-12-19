@@ -12,7 +12,7 @@ Targets the MCP protocol as implemented/negotiated by the MCP Bash Framework (ve
 | Tools | ✅ Full | git-hex tool suite (see [`tools.md`](tools.md)) |
 | Resources | ✅ Templates | `resources/templates/list` returns templates discovered from `resources/*.meta.json` (`uriTemplate`). Note: framework capabilities don’t currently advertise templates, so some clients may not discover them automatically. |
 | Prompts | ✅ Some | Workflow prompts under `prompts/` (listed via `prompts/list`) |
-| Completions | ✅ Providers | Completion providers registered via `server.d/register.json` (full mode requires jq/gojq) |
+| Completions | ✅ Providers | Completion providers registered via `server.d/register.json` (requires jq/gojq) |
 
 ## MCP Details
 

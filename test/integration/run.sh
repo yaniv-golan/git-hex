@@ -105,7 +105,10 @@ filter_tests() {
 
 	if [ -n "${GITHEX_TEST_INCLUDE}" ]; then
 		local -a include
-		mapfile -t include < <(split_list "${GITHEX_TEST_INCLUDE}")
+		include=()
+		while IFS= read -r t; do
+			include+=("${t}")
+		done < <(split_list "${GITHEX_TEST_INCLUDE}")
 		resolved=()
 		local t
 		for t in "${include[@]}"; do
@@ -116,7 +119,10 @@ filter_tests() {
 
 	if [ -n "${GITHEX_TEST_EXCLUDE}" ]; then
 		local -a exclude filtered
-		mapfile -t exclude < <(split_list "${GITHEX_TEST_EXCLUDE}")
+		exclude=()
+		while IFS= read -r t; do
+			exclude+=("${t}")
+		done < <(split_list "${GITHEX_TEST_EXCLUDE}")
 		filtered=()
 		local t ex matched
 		for t in "${resolved[@]}"; do

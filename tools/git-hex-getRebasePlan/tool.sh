@@ -67,20 +67,17 @@ fi
 # Generate unique plan ID
 plan_id="plan_$(date +%s)_$$"
 
-# Get commits using null-byte delimiters for safety (handles all special chars)
-# Using -z flag to use NUL as record terminator, and %x00 between fields
-# Pipe directly to jq to avoid bash null-byte warning in command substitution
-# This is O(1) git and jq invocations regardless of commit count
+# Get commits using ASCII unit/record separators to avoid delimiter ambiguities
+# (NUL-delimited output from `git log -z` yields empty fields between records).
+# This is O(1) git and jq invocations regardless of commit count.
 # shellcheck disable=SC2016
-commits_json="$(git -C "${repo_path}" log --reverse -n "${count}" -z \
-	--format='%H%x00%h%x00%s%x00%an%x00%aI' \
+commits_json="$(git -C "${repo_path}" log --reverse -n "${count}" \
+	--format='%H%x1f%h%x1f%s%x1f%an%x1f%aI%x1e' \
 	"${onto}..HEAD" 2>/dev/null | "${MCPBASH_JSON_TOOL_BIN}" -Rs '
-	split("\u0000") |
-	# Group into chunks of 5 fields per commit
-	[range(0; length; 5) as $i | .[$i:$i+5]] |
-	# Filter complete records (must have exactly 5 fields)
-	map(select(length == 5)) |
-	map({
+	split("\u001e")
+	| map(select(length > 0))
+	| map(split("\u001f") | select(length == 5))
+	| map({
 		hash: .[0],
 		shortHash: .[1],
 		subject: .[2],

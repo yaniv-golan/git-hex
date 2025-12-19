@@ -1,12 +1,12 @@
 # Installation
 
-## Recommended: `git-hex.sh` wrapper (auto-installs prerequisites)
+## Recommended: `git-hex.sh` wrapper (auto-installs the framework)
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
 cd ~/git-hex
 ./git-hex.sh doctor          # diagnostics (read-only; no persistent changes)
-./git-hex.sh doctor --fix    # installs/repairs prerequisites (including the framework)
+./git-hex.sh doctor --fix    # installs/repairs the framework (and reports other missing deps)
 ```
 
 On first run (or during `doctor --fix`), you may see framework installation output like “Installing mcp-bash framework …”; this is normal.

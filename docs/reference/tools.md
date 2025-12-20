@@ -470,7 +470,9 @@ Cherry-pick a single commit with configurable merge strategy.
   "headAfter": "def456...",
   "backupRef": "git-hex/backup/1700000000_cherryPickSingle_xxx",
   "sourceCommit": "abc123...",
+  "commitMessage": "Original commit subject line",
   "conflictingFiles": ["conflict.txt"],
+  "stashNotRestored": false,
   "summary": "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue."
 }
 ```
@@ -489,7 +491,7 @@ Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pi
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `repoPath` | string | No | Path to git repository |
-| `force` | boolean | No | Allow undo even if new commits exist after the backup (those commits will be lost) |
+| `force` | boolean | No | Allow undo even if new commits exist after the backup (those commits will be lost), and allow overwriting untracked files that collide with tracked paths in the backup state |
 
 **Example:**
 ```json
@@ -510,3 +512,5 @@ Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pi
 ```
 
 `undoneOperation` may be `"unknown"` when git-hex cannot determine the originating operation for an older backup.
+
+> **Note:** On the success no-op path (“already at backup state”), `backupRef` and `commitsUndone` are not returned.

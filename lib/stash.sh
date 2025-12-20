@@ -47,9 +47,19 @@ git_hex_auto_stash() {
 		message="git-hex auto-stash $(_git_hex_stash_unique_token)"
 		if [ "${mode}" = "keep-index" ]; then
 			# Preserve staged changes while capturing an immutable stash object ID
-			git -C "${repo_path}" stash push --keep-index -m "${message}" >/dev/null 2>&1 || true
+			stash_push_err=""
+			if ! stash_push_err="$(git -C "${repo_path}" stash push --keep-index -m "${message}" 2>&1)"; then
+				if [ -n "${stash_push_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
+					mcp_log_warn "git-hex" "$(printf '{"message":"Auto-stash failed (keep-index): %s"}' "${stash_push_err%%$'\n'*}")"
+				fi
+			fi
 		else
-			git -C "${repo_path}" stash push -m "${message}" >/dev/null 2>&1 || true
+			stash_push_err=""
+			if ! stash_push_err="$(git -C "${repo_path}" stash push -m "${message}" 2>&1)"; then
+				if [ -n "${stash_push_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
+					mcp_log_warn "git-hex" "$(printf '{"message":"Auto-stash failed: %s"}' "${stash_push_err%%$'\n'*}")"
+				fi
+			fi
 		fi
 
 		# Record the specific stash ref so we restore exactly what we created, even under concurrency.

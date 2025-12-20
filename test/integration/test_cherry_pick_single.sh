@@ -379,6 +379,8 @@ if [ "${paused_val}" = "true" ]; then
 	if [ -z "${commit_msg}" ]; then
 		test_fail "paused cherry-pick should include commitMessage"
 	fi
+	stash_not_restored="$(printf '%s' "${result9}" | jq -r 'if has("stashNotRestored") then (.stashNotRestored | tostring) else "" end')"
+	assert_eq "false" "${stash_not_restored}" "paused cherry-pick should include stashNotRestored=false"
 	# Verify repo is in cherry-pick state
 	if [ -f "${REPO9}/.git/CHERRY_PICK_HEAD" ]; then
 		test_pass "cherry-pick-single pauses on conflict with abortOnConflict=false"

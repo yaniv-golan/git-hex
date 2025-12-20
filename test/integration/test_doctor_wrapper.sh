@@ -140,7 +140,7 @@ test_too_old_framework_read_only_does_not_delete() {
 
 		capture_run_in_home "${home_dir}" doctor
 		assert_eq "1" "${CAPTURE_STATUS}" "doctor should exit 1 when framework too old"
-		assert_contains "${CAPTURE_OUTPUT}" "requires v0.8.0+" "doctor should report minimum version requirement"
+		assert_contains "${CAPTURE_OUTPUT}" "requires v0.8.1+" "doctor should report minimum version requirement"
 
 		assert_file_exists "${home_dir}/.local/share/mcp-bash/MARKER.txt" "read-only doctor should not delete existing framework"
 		test_pass "doctor does not delete too-old framework without --fix"

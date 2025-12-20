@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "framework": {
     "name": "mcp-bash",
-    "minVersion": "0.8.0"
+    "minVersion": "0.8.1"
   },
   "dependencies": [
     { "name": "bash", "minVersion": "3.2.0" },
@@ -13,4 +13,3 @@
     "doctorFix": "./git-hex.sh doctor --fix"
   }
 }
-

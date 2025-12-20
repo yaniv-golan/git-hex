@@ -2,9 +2,9 @@ FROM debian:bookworm-slim
 
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
-ARG FRAMEWORK_VERSION=v0.8.0
+ARG FRAMEWORK_VERSION=v0.8.1
 # SHA256 for the GitHub tag archive (https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/<version>.tar.gz)
-ARG FRAMEWORK_SHA256=a18118323a45d358c4b93feadfb0a29d5ed6f312e4c04a50f2da996ad48de558
+ARG FRAMEWORK_SHA256=6d8dee4b9be90a267fdff6e8cd0d11bc3109e7578475c754e9f9f5a81424c9a6
 ENV XDG_DATA_HOME=/root/.local/share
 ENV PATH="/root/.local/bin:${PATH}"
 

@@ -89,6 +89,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
   "paused": false,
   "headBefore": "abc123...",
   "headAfter": "def456...",
+  "backupRef": "git-hex/backup/1700000000_rebaseWithPlan_xxx",
   "summary": "Rebased 5 commits onto main",
   "commitsRebased": 5
 }
@@ -102,6 +103,7 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
   "reason": "conflict",
   "headBefore": "abc123...",
   "headAfter": "def456...",
+  "backupRef": "git-hex/backup/1700000000_rebaseWithPlan_xxx",
   "conflictingFiles": ["src/file.ts"],
   "summary": "Rebase paused due to conflicts. Use getConflictStatus for details."
 }
@@ -342,6 +344,7 @@ Create a fixup commit targeting a specific commit.
   "success": true,
   "headBefore": "def456...",
   "headAfter": "ghi789...",
+  "backupRef": "git-hex/backup/1700000000_createFixup_xxx",
   "targetCommit": "abc123...",
   "summary": "Created fixup commit ghi789 targeting abc123",
   "commitMessage": "fixup! Original commit message"
@@ -377,6 +380,7 @@ Amend the last commit with staged changes and/or a new message.
   "success": true,
   "headBefore": "abc123...",
   "headAfter": "jkl012...",
+  "backupRef": "git-hex/backup/1700000000_amendLastCommit_xxx",
   "summary": "Amended commit with new hash jkl012",
   "commitMessage": "Updated commit message",
   "stashNotRestored": false
@@ -416,6 +420,7 @@ Cherry-pick a single commit with configurable merge strategy.
   "success": true,
   "headBefore": "def456...",
   "headAfter": "mno345...",
+  "backupRef": "git-hex/backup/1700000000_cherryPickSingle_xxx",
   "sourceCommit": "abc123...",
   "summary": "Cherry-picked abc123 as new commit mno345",
   "commitMessage": "Original commit subject line",
@@ -431,6 +436,7 @@ Cherry-pick a single commit with configurable merge strategy.
   "reason": "conflict",
   "headBefore": "def456...",
   "headAfter": "def456...",
+  "backupRef": "git-hex/backup/1700000000_cherryPickSingle_xxx",
   "sourceCommit": "abc123...",
   "conflictingFiles": ["conflict.txt"],
   "summary": "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue."

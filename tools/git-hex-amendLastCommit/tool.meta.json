@@ -49,6 +49,10 @@
         "type": "string",
         "description": "HEAD commit hash after the operation"
       },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
       "summary": {
         "type": "string",
         "description": "Human-readable explanation of what was done"

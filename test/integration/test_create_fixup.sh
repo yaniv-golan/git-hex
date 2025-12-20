@@ -29,6 +29,8 @@ result="$(run_tool git-hex-createFixup "${REPO}" "{\"commit\": \"${target_hash}\
 
 assert_json_field "${result}" '.success' "true" "fixup should succeed"
 assert_json_field "${result}" '.targetCommit' "${target_hash}" "target commit should match"
+backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
+assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 
 # Verify commit message starts with fixup!
 fixup_message="$(echo "${result}" | jq -r '.commitMessage')"
@@ -84,6 +86,24 @@ if run_tool_expect_fail git-hex-createFixup "${REPO4}" '{"commit": "nonexistent1
 	test_pass "create-fixup fails on invalid commit ref"
 else
 	test_fail "should fail on invalid commit ref"
+fi
+
+printf ' -> create-fixup rejects path-like commit refs\n'
+REPO5="${TEST_TMPDIR}/fixup-path-like"
+create_staged_changes_repo "${REPO5}"
+(
+	cd "${REPO5}"
+	echo "readme" >README.md
+	git add README.md
+	git commit -m "Add README file" >/dev/null 2>&1
+	# Stage a tracked change so createFixup is eligible to run.
+	echo "modified" >file.txt
+	git add file.txt
+)
+if run_tool_expect_fail git-hex-createFixup "${REPO5}" '{"commit": "README.md"}'; then
+	test_pass "create-fixup rejects path-like commit refs"
+else
+	test_fail "path-like commit refs should be rejected"
 fi
 
 echo ""

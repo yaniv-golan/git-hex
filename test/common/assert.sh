@@ -68,6 +68,30 @@ assert_contains() {
 	fi
 }
 
+run_tool_expect_fail_message_contains() {
+	local tool_name="$1"
+	local roots="$2"
+	local args_json="$3"
+	local needle="$4"
+	local message="${5:-Tool should fail with expected message}"
+
+	local out status tool_msg
+	set +e
+	out="$(run_tool "${tool_name}" "${roots}" "${args_json}" 2>/dev/null)"
+	status=$?
+	set -e
+
+	if [ "${status}" -eq 0 ]; then
+		test_fail "${message} (tool succeeded unexpectedly)"
+	fi
+
+	tool_msg="$(printf '%s' "${out}" | "$(_test_json_bin)" -r '.message // empty' 2>/dev/null || echo "")"
+	if [ -z "${tool_msg}" ]; then
+		test_fail "${message} (no error message found)"
+	fi
+	assert_contains "${tool_msg}" "${needle}" "${message}"
+}
+
 assert_file_exists() {
 	local path="$1"
 	local message="${2:-File should exist}"

@@ -28,6 +28,8 @@ previous_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 result="$(run_tool git-hex-amendLastCommit "${REPO}" '{}')"
 
 assert_json_fields_eq "${result}" '.success' "true" '.headBefore' "${previous_hash}"
+backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
+assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 
 new_hash="$(echo "${result}" | jq -r '.headAfter')"
 assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"

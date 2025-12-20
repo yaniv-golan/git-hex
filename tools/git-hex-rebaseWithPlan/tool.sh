@@ -58,11 +58,13 @@ fi
 # Check for in-progress operations
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
-operation_in_progress="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation_in_progress="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation_in_progress}" in
-rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 esac
 
 # Dirty working tree check (unless using native autostash)
@@ -74,6 +76,9 @@ fi
 
 # Validate onto: require a commit-ish, not an arbitrary token that could be interpreted as a path.
 if  ! git -C "${repo_path}" rev-parse --verify "${onto}^{commit}" >/dev/null 2>&1; then
+	if git_hex_is_shallow_repo "${repo_path}"; then
+		mcp_fail_invalid_args "Invalid onto ref: ${onto} (repository is shallow; try git fetch --unshallow)"
+	fi
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 
@@ -98,7 +103,19 @@ plan_actions=()
 plan_commits=()
 plan_messages=()
 
-if [ "${plan_length}" -gt 0 ]; then
+validate_rebase_action()  {
+	local action="$1"
+	case "${action}" in
+	pick | reword | squash | fixup | drop)
+		return 0
+		;;
+	*)
+		mcp_fail_invalid_args "Invalid action '${action}'. Must be one of: pick, reword, squash, fixup, drop"
+		;;
+	esac
+}
+
+if  [ "${plan_length}" -gt 0 ]; then
 	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
 	if [ "${has_null_message}" = "true" ]; then
 		mcp_fail_invalid_args "Commit message cannot contain null bytes"
@@ -115,6 +132,8 @@ if  [ "${plan_length}" -gt 0 ]; then
 		action="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].action")"
 		commit_ref="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].commit")"
 		message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"")"
+
+		validate_rebase_action "${action}"
 
 		full_hash="$(git -C "${repo_path}" rev-parse --verify "${commit_ref}^{commit}" 2>/dev/null || true)"
 		if [ -z "${full_hash}" ]; then
@@ -180,15 +199,20 @@ if  [ "${require_complete}" = "true" ]; then
 
 		if [ -n "${message}" ] && [ "${action}" = "reword" ]; then
 			complete_todo="${complete_todo}pick ${commit_hash} ${subject}
-$(create_reword_exec "${message}")
-"
-		elif [ -n "${message}" ] && { [ "${action}" = "squash" ] || [ "${action}" = "fixup" ]; }; then
+	$(create_reword_exec "${message}")
+	"
+		elif [ -n "${message}" ] && [ "${action}" = "fixup" ]; then
 			complete_todo="${complete_todo}fixup ${commit_hash} ${subject}
-$(create_reword_exec "${message}")
-"
+	$(create_reword_exec "${message}")
+	"
+		elif [ -n "${message}" ] && [ "${action}" = "squash" ]; then
+			complete_todo="${complete_todo}squash ${commit_hash} ${subject}
+	$(create_reword_exec "${message}")
+	"
 		else
+			validate_rebase_action "${action}"
 			complete_todo="${complete_todo}${action} ${commit_hash} ${subject}
-"
+	"
 		fi
 	done
 else
@@ -219,6 +243,8 @@ else
 			message=""
 		fi
 
+		validate_rebase_action "${action}"
+
 		if [ "${action}" = "reword" ] && [ -z "${message}" ]; then
 			mcp_fail_invalid_args "Action 'reword' requires a 'message' field. Use 'pick' to keep original message."
 		fi
@@ -227,15 +253,19 @@ else
 
 		if [ -n "${message}" ] && [ "${action}" = "reword" ]; then
 			complete_todo="${complete_todo}pick ${commit_hash} ${subject}
-$(create_reword_exec "${message}")
-"
-		elif [ -n "${message}" ] && { [ "${action}" = "squash" ] || [ "${action}" = "fixup" ]; }; then
+	$(create_reword_exec "${message}")
+	"
+		elif [ -n "${message}" ] && [ "${action}" = "fixup" ]; then
 			complete_todo="${complete_todo}fixup ${commit_hash} ${subject}
-$(create_reword_exec "${message}")
-"
+	$(create_reword_exec "${message}")
+	"
+		elif [ -n "${message}" ] && [ "${action}" = "squash" ]; then
+			complete_todo="${complete_todo}squash ${commit_hash} ${subject}
+	$(create_reword_exec "${message}")
+	"
 		else
 			complete_todo="${complete_todo}${action} ${commit_hash} ${subject}
-"
+	"
 		fi
 	done <<<"${actual_commits}"
 fi
@@ -256,8 +286,8 @@ else
 fi
 
 # Backup before mutating
-head_before="$(git -C "${repo_path}" rev-parse HEAD)"
-git_hex_create_backup "${repo_path}" "rebaseWithPlan" >/dev/null
+head_before="$( git -C "${repo_path}" rev-parse HEAD)"
+backup_ref="$( git_hex_create_backup "${repo_path}" "rebaseWithPlan")"
 
 rebase_args=("-i")
 if [ "${autosquash}" = "true" ]; then
@@ -271,11 +301,11 @@ fi
 
 rebase_output=""
 rebase_status=0
-if [ "${use_custom_todo}" = "true" ]; then
+if  [ "${use_custom_todo}" = "true" ]; then
 	if [ "${sign_commits}" = "true" ]; then
-		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
 	else
-		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
 	fi
 else
 	if [ "${sign_commits}" = "true" ]; then
@@ -305,9 +335,10 @@ if [ "${rebase_status}" -eq 0 ]; then
 		--argjson paused false \
 		--arg headBefore "${head_before}" \
 		--arg headAfter "${head_after}" \
+		--arg backupRef "${backup_ref}" \
 		--argjson commitsRebased "${actual_count}" \
 		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}" \
-		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, commitsRebased: $commitsRebased, summary: $summary}')"
+		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
 	exit 0
 else
 	if grep -qi "conflict" <<<"${rebase_output}"; then
@@ -327,9 +358,10 @@ else
 				--arg reason "conflict" \
 				--arg headBefore "${head_before}" \
 				--arg headAfter "${head_after_pause}" \
+				--arg backupRef "${backup_ref}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details." \
-				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
 			exit 0
 		else
 			git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true

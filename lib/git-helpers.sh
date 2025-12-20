@@ -8,6 +8,9 @@ git_hex_require_repo() {
 	if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 		mcp_fail_invalid_args "Not a git repository at ${repo_path}"
 	fi
+	if [ "$(git -C "${repo_path}" rev-parse --is-bare-repository 2>/dev/null || echo "false")" = "true" ]; then
+		mcp_fail_invalid_args "Bare repositories are not supported"
+	fi
 }
 
 git_hex_get_git_dir() {
@@ -32,8 +35,16 @@ git_hex_get_in_progress_operation_from_git_dir() {
 		printf 'cherry-pick\n'
 		return 0
 	fi
+	if [ -f "${git_dir}/REVERT_HEAD" ]; then
+		printf 'revert\n'
+		return 0
+	fi
 	if [ -f "${git_dir}/MERGE_HEAD" ]; then
 		printf 'merge\n'
+		return 0
+	fi
+	if [ -f "${git_dir}/BISECT_LOG" ] || [ -f "${git_dir}/BISECT_START" ] || [ -f "${git_dir}/BISECT_NAMES" ]; then
+		printf 'bisect\n'
 		return 0
 	fi
 	printf '\n'
@@ -52,6 +63,11 @@ git_hex_parse_git_version() {
 	git_minor="${git_minor:-0}"
 
 	printf '%s\t%s\t%s\n' "${git_major}" "${git_minor}" "${git_version_raw}"
+}
+
+git_hex_is_shallow_repo() {
+	local repo_path="$1"
+	[ "$(git -C "${repo_path}" rev-parse --is-shallow-repository 2>/dev/null || echo "false")" = "true" ]
 }
 
 git_hex_is_safe_repo_relative_path() {

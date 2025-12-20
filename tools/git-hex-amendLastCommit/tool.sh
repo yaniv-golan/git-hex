@@ -36,11 +36,13 @@ fi
 
 # Check for any in-progress git operations
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
-operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation}" in
-rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 esac
 
 # Handle auto-stash (unstaged changes only; keep index)
@@ -65,7 +67,7 @@ if [ -z "${staged_files}" ] && [ -z "${new_message}" ]; then
 fi
 
 # Create backup ref for undo support (after validation, before mutations)
-git_hex_create_backup "${repo_path}" "amendLastCommit" >/dev/null
+backup_ref="$( git_hex_create_backup "${repo_path}" "amendLastCommit")"
 
 # Build amend command
 amend_args=("--amend")
@@ -88,7 +90,7 @@ if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; the
 	# Provide specific error context
 	if grep -qi "gpg\\|signing\\|sign" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to amend commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif grep -qi "hook" <<<"${commit_error}"; then
+	elif grep -qi "hook\\|pre-commit\\|commit-msg" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to amend commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
 	else
 		# Include first line of error for context
@@ -112,11 +114,12 @@ commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 git_hex_record_last_head "${repo_path}" "${head_after}"
 
 # shellcheck disable=SC2016
-mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
+mcp_emit_json  "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg headBefore "${head_before}" \
 	--arg headAfter "${head_after}" \
+	--arg backupRef "${backup_ref}" \
 	--arg summary "Amended commit with new hash ${head_after:0:7}" \
 	--arg commitMessage "${commit_message}" \
 	--argjson stashNotRestored "${stash_not_restored}" \
-	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"

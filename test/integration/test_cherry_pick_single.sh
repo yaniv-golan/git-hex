@@ -53,6 +53,8 @@ before_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 result="$(run_tool git-hex-cherryPickSingle "${REPO}" "{\"commit\": \"${cherry_hash}\"}")"
 
 assert_json_fields_eq "${result}" '.success' "true" '.sourceCommit' "${cherry_hash}"
+backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
+assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 
 after_count="$(cd "${REPO}" && git rev-list --count HEAD)"
 assert_eq "$((before_count + 1))" "${after_count}" "should have one more commit"
@@ -98,6 +100,8 @@ before_count="$(cd "${REPO2}" && git rev-list --count HEAD)"
 result="$(run_tool git-hex-cherryPickSingle "${REPO2}" "{\"commit\": \"${cherry_hash}\", \"noCommit\": true}")"
 
 assert_json_field "${result}" '.success' "true" "cherry-pick should succeed"
+backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
+assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 
 after_count="$(cd "${REPO2}" && git rev-list --count HEAD)"
 assert_eq "${before_count}" "${after_count}" "commit count should be unchanged with noCommit"

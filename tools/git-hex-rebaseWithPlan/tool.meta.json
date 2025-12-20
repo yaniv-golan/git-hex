@@ -75,6 +75,10 @@
       "success": { "type": "boolean" },
       "headBefore": { "type": "string" },
       "headAfter": { "type": "string" },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
       "commitsRebased": {
         "type": "integer",
         "description": "Number of commits rebased when successful"

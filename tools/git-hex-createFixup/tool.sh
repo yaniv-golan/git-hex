@@ -28,16 +28,18 @@ git_hex_require_repo "${repo_path}"
 
 # Check for any in-progress git operations
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
-operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation}" in
-rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 esac
 
 # Verify target commit exists and resolve to full hash
-target_hash="$(git -C "${repo_path}" rev-parse "${commit}" 2>/dev/null || true)"
-if [ -z "${target_hash}" ]; then
+target_hash="$( git -C "${repo_path}" rev-parse --verify "${commit}^{commit}" 2>/dev/null || true)"
+if  [ -z "${target_hash}" ]; then
 	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
 fi
 
@@ -51,17 +53,17 @@ if [ -z "${staged_files}" ]; then
 fi
 
 # Create backup ref for undo support (after validation, before mutations)
-git_hex_create_backup "${repo_path}" "createFixup" >/dev/null
+backup_ref="$( git_hex_create_backup "${repo_path}" "createFixup")"
 
 # Get the original commit's subject for the fixup message
 original_subject="$(git -C "${repo_path}" log -1 --format='%s' "${target_hash}" 2>/dev/null || true)"
 
 # Helper to handle commit errors with better messages
-handle_commit_error()  {
+handle_commit_error()   {
 	local commit_error="$1"
 	if grep -qi "gpg\\|signing\\|sign" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to create fixup commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif grep -qi "hook" <<<"${commit_error}"; then
+	elif grep -qi "hook\\|pre-commit\\|commit-msg" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to create fixup commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
 	else
 		error_hint="$(echo "${commit_error}" | head -1)"
@@ -104,11 +106,12 @@ commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 git_hex_record_last_head "${repo_path}" "${head_after}"
 
 # shellcheck disable=SC2016
-mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
+mcp_emit_json  "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
 	--arg headBefore "${head_before}" \
 	--arg headAfter "${head_after}" \
 	--arg targetCommit "${target_hash}" \
+	--arg backupRef "${backup_ref}" \
 	--arg summary "Created fixup commit ${head_after:0:7} targeting ${target_hash:0:7}" \
 	--arg commitMessage "${commit_message}" \
-	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, targetCommit: $targetCommit, summary: $summary, commitMessage: $commitMessage}')"
+	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, targetCommit: $targetCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage}')"

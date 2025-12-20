@@ -26,11 +26,13 @@ git_hex_require_repo "${repo_path}"
 
 # Check for any in-progress git operations
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
-operation_in_progress="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation_in_progress="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation_in_progress}" in
-rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 esac
 
 # Check for uncommitted changes

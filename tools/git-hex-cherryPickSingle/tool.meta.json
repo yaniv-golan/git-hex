@@ -60,6 +60,10 @@
         "type": "string",
         "description": "HEAD commit hash after the operation (same as headBefore if noCommit=true)"
       },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
       "sourceCommit": {
         "type": "string",
         "description": "Full hash of the commit that was cherry-picked"

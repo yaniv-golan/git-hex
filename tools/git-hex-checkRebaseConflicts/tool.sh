@@ -26,8 +26,11 @@ if [ "${git_major}" -lt 2 ] || { [ "${git_major}" -eq 2 ] && [ "${git_minor}" -l
 	mcp_fail_invalid_args "checkRebaseConflicts requires Git 2.38+ for merge-tree support. Current version: ${git_version_raw}"
 fi
 
-# Validate onto
-if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
+# Validate onto: require a commit-ish, not an arbitrary token that could be interpreted as a path.
+if ! git -C "${repo_path}" rev-parse --verify "${onto}^{commit}" >/dev/null 2>&1; then
+	if git_hex_is_shallow_repo "${repo_path}"; then
+		mcp_fail_invalid_args "Invalid onto ref: ${onto} (repository is shallow; try git fetch --unshallow)"
+	fi
 	mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 fi
 

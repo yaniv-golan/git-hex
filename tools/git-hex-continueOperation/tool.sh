@@ -23,9 +23,23 @@ git_hex_require_repo "${repo_path}"
 operation=""
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
-operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-if [ -z "${operation}" ]; then
+operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+if  [ -z "${operation}" ]; then
 	mcp_fail_invalid_args "No rebase/merge/cherry-pick in progress"
+fi
+if  [ "${operation}" != "rebase" ] && [ "${operation}" != "cherry-pick" ] && [ "${operation}" != "merge" ]; then
+	# Keep this tool narrowly scoped; other sequencer states (e.g., revert) are detected to prevent incorrect behavior.
+	# shellcheck disable=SC2016
+	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
+		--argjson success false \
+		--arg operationType "${operation}" \
+		--argjson completed false \
+		--argjson paused false \
+		--argjson conflictingFiles "[]" \
+		--arg error "Continue is only supported for rebase, cherry-pick, or merge" \
+		--arg summary "Cannot continue ${operation}" \
+		'{success: $success, operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary, error: $error}')"
+	exit 0
 fi
 
 status="true"

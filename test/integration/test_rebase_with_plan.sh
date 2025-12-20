@@ -31,6 +31,8 @@ before_count="$(cd "${REPO_AUTO}" && git rev-list --count HEAD)"
 result="$(run_tool git-hex-rebaseWithPlan "${REPO_AUTO}" '{"onto": "HEAD~3", "autoStash": false, "autosquash": true, "plan": []}' 60)"
 after_count="$(cd "${REPO_AUTO}" && git rev-list --count HEAD)"
 assert_json_field "${result}" '.success' "true" "rebaseWithPlan should succeed"
+backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
+assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 assert_eq "3" "${after_count}" "fixup commit should be squashed (4 -> 3 commits)"
 test_pass "autosquash works with empty plan"
 
@@ -69,6 +71,24 @@ new_count="$(cd "${REPO_DROP}" && git rev-list --count HEAD)"
 assert_eq "3" "${new_count}" "history should have one fewer commit after drop"
 test_pass "drop action works"
 
+# PLAN-06: Invalid action rejected (defense in depth; do not rely on schema validation)
+printf  ' -> PLAN-06 invalid action rejected\n'
+REPO_BAD_ACTION="${TEST_TMPDIR}/rebase-bad-action"
+create_test_repo "${REPO_BAD_ACTION}" 3
+# Use a 2-commit range so a hypothetical unvalidated `exec ...` line would still allow a successful rebase,
+# ensuring this test would catch regressions (tool should fail before executing rebase).
+# shellcheck disable=SC2207
+bad_action_commits=($(cd "${REPO_BAD_ACTION}" && git rev-list --reverse HEAD~2..HEAD))
+plan_bad_action="["
+plan_bad_action="${plan_bad_action}{\"action\":\"pick\",\"commit\":\"${bad_action_commits[0]}\"},"
+plan_bad_action="${plan_bad_action}{\"action\":\"exec true\",\"commit\":\"${bad_action_commits[1]}\"}"
+plan_bad_action="${plan_bad_action}]"
+if  run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_BAD_ACTION}" "{\"onto\": \"HEAD~2\", \"plan\": ${plan_bad_action}, \"requireComplete\": true}"; then
+	test_pass "invalid action rejected"
+else
+	test_fail "invalid action should be rejected"
+fi
+
 # MSG-01..06/11: Messages with special characters preserved
 printf ' -> MSG-* reword preserves special characters\n'
 REPO_MSG="${TEST_TMPDIR}/rebase-messages"
@@ -84,6 +104,23 @@ for msg in "${messages[@]}"; do
 	assert_eq "${msg}" "${latest_msg}" "commit message should match input"
 done
 test_pass "reword handles special characters safely"
+
+# RBP-04: Squash with custom message preserves squash semantics and applies message
+printf ' -> RBP-04 squash with custom message\n'
+REPO_SQUASH_MSG="${TEST_TMPDIR}/rebase-squash-message"
+create_test_repo "${REPO_SQUASH_MSG}" 3
+# shellcheck disable=SC2207
+squash_commits=($(cd "${REPO_SQUASH_MSG}" && git rev-list --reverse HEAD~2..HEAD))
+count_before_squash="$(cd "${REPO_SQUASH_MSG}" && git rev-list --count HEAD)"
+squash_message="Squashed commit message"
+plan_squash="$(jq -n --arg c1 "${squash_commits[0]}" --arg c2 "${squash_commits[1]}" --arg m "${squash_message}" '[{action:"pick",commit:$c1},{action:"squash",commit:$c2,message:$m}]')"
+result_squash="$(run_tool git-hex-rebaseWithPlan "${REPO_SQUASH_MSG}" "$(jq -n --argjson p "${plan_squash}" '{onto:"HEAD~2", plan:$p, requireComplete:true}')" 90)"
+assert_json_field "${result_squash}" '.success' "true" "squash rebase should succeed"
+count_after_squash="$(cd "${REPO_SQUASH_MSG}" && git rev-list --count HEAD)"
+assert_eq "$((count_before_squash - 1))" "${count_after_squash}" "squash should reduce commit count by 1"
+latest_subject="$(cd "${REPO_SQUASH_MSG}" && git log -1 --format='%s')"
+assert_eq "${squash_message}" "${latest_subject}" "squash should apply custom message"
+test_pass "squash with custom message works"
 
 # MSG-08/09: Message with newline or TAB rejected
 printf ' -> MSG-08/09 message validation rejects newline/TAB\n'
@@ -160,6 +197,14 @@ if [ -n "${pause_head_after}" ] && [ -n "${pause_head_before_field}" ]; then
 	test_pass "paused response includes headBefore/headAfter"
 else
 	test_fail "paused response should include headBefore/headAfter"
+fi
+
+pause_backup_ref="$(printf '%s' "${pause_result}" | jq -r '.backupRef // empty')"
+if [ -n "${pause_backup_ref}" ]; then
+	assert_contains "${pause_backup_ref}" "git-hex/backup/" "paused response should include backupRef"
+	test_pass "paused response includes backupRef"
+else
+	test_fail "paused response should include backupRef"
 fi
 
 # RBC-03: autoStash works with abortOnConflict=false (native)

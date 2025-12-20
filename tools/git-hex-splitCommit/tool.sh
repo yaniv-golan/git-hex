@@ -51,11 +51,14 @@ git_hex_require_repo  "${repo_path}"
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
-operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-if  [ "${operation}" = "rebase" ]; then
-	# splitCommit itself runs an interactive rebase; only block when a rebase is already in progress.
-	mcp_fail_invalid_args "Cannot split commit while rebase is in progress"
-fi
+operation="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+case "${operation}" in
+rebase)  mcp_fail_invalid_args "Cannot split commit while rebase is in progress" ;;
+cherry-pick)  mcp_fail_invalid_args "Cannot split commit while cherry-pick is in progress" ;;
+revert)  mcp_fail_invalid_args "Cannot split commit while revert is in progress" ;;
+merge)  mcp_fail_invalid_args "Cannot split commit while merge is in progress" ;;
+bisect)  mcp_fail_invalid_args "Cannot split commit while bisect is in progress" ;;
+esac
 
 # Resolve commit
 full_commit="$(git -C "${repo_path}" rev-parse --verify "${commit_ref}^{commit}" 2>/dev/null || true)"

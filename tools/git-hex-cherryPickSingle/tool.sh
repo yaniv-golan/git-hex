@@ -85,11 +85,13 @@ fi
 
 # Check for any in-progress git operations
 git_dir="$( git_hex_get_git_dir "${repo_path}")"
-operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation}" in
-rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+rebase)   mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+cherry-pick)   mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+merge)   mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 esac
 
 # Verify commit exists and resolve to full hash.
@@ -118,7 +120,7 @@ fi
 head_before="$(git -C "${repo_path}" rev-parse HEAD)"
 
 # Create backup ref for undo support (after validation, before mutations)
-git_hex_create_backup "${repo_path}" "cherryPickSingle" >/dev/null
+backup_ref="$( git_hex_create_backup "${repo_path}" "cherryPickSingle")"
 
 # Build cherry-pick command
 pick_args=()
@@ -159,10 +161,11 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 			--arg headBefore "${head_before}" \
 			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
+			--arg backupRef "${backup_ref}" \
 			--arg summary "Changes from ${source_hash:0:7} applied but not committed (staged)" \
 			--arg commitMessage "${source_subject}" \
 			--argjson stashNotRestored "${stash_not_restored}" \
-			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
 	else
 		# shellcheck disable=SC2016
 		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -170,10 +173,11 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 			--arg headBefore "${head_before}" \
 			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
+			--arg backupRef "${backup_ref}" \
 			--arg summary "Cherry-picked ${source_hash:0:7} as new commit ${head_after:0:7}" \
 			--arg commitMessage "${source_subject}" \
 			--argjson stashNotRestored "${stash_not_restored}" \
-			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
 	fi
 else
 	# Cherry-pick failed - cleanup will abort
@@ -198,9 +202,10 @@ else
 				--arg headBefore "${head_before}" \
 				--arg headAfter "${head_after_pause}" \
 				--arg sourceCommit "${source_hash}" \
+				--arg backupRef "${backup_ref}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
-				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
 		else
 			git_dir="$(git_hex_get_git_dir "${repo_path}")"
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"

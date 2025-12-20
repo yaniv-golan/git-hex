@@ -63,8 +63,11 @@ if [ -z "${onto}" ]; then
 fi
 
 # Verify onto ref exists (except for empty tree which always exists)
-if [ "${onto}" != "${empty_tree_sha}" ]; then
-	if ! git -C "${repo_path}" rev-parse "${onto}" >/dev/null 2>&1; then
+if  [ "${onto}" != "${empty_tree_sha}" ]; then
+	if ! git -C "${repo_path}" rev-parse --verify "${onto}^{commit}" >/dev/null 2>&1; then
+		if git_hex_is_shallow_repo "${repo_path}"; then
+			mcp_fail_invalid_args "Invalid onto ref: ${onto} (repository is shallow; try git fetch --unshallow)"
+		fi
 		mcp_fail_invalid_args "Invalid onto ref: ${onto}"
 	fi
 fi

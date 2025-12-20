@@ -44,6 +44,7 @@
         "type": "array",
         "items": {
           "type": "object",
+          "required": ["hash", "subject", "prediction"],
           "properties": {
             "hash": { "type": "string" },
             "subject": { "type": "string" },

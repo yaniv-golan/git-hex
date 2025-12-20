@@ -51,6 +51,16 @@ git_hex_get_in_progress_operation_from_git_dir() {
 	return 0
 }
 
+git_hex_is_detached_head() {
+	local repo_path="$1"
+	local branch
+
+	branch="$(git -C "${repo_path}" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+	[ -z "${branch}" ] && return 0
+	[ "${branch}" = "HEAD" ] && return 0
+	return 1
+}
+
 git_hex_require_no_in_progress_operation() {
 	local operation="$1"
 
@@ -62,6 +72,14 @@ git_hex_require_no_in_progress_operation() {
 	merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
 	bisect) mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
 	esac
+}
+
+git_hex_require_clean_worktree_tracked() {
+	local repo_path="$1"
+
+	if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
+		mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
+	fi
 }
 
 git_hex_get_conflicting_files_json() {

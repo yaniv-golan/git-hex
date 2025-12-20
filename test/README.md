@@ -27,6 +27,11 @@ Run all tests:
 ./test/run.sh
 ```
 
+Run schema checks only:
+```bash
+./test/schema/run.sh
+```
+
 Run only integration tests:
 ```bash
 ./test/integration/run.sh
@@ -36,6 +41,10 @@ Run only integration tests:
 
 The integration runner supports optional filtering:
 
+- PR suite (skips adversarial integration tests that run in nightly CI):
+  ```bash
+  GITHEX_TEST_SUITE=pr ./test/integration/run.sh
+  ```
 - Windows PR smoke profile:
   ```bash
   GITHEX_TEST_PROFILE=windows-smoke GITHEX_TEST_STRICT=1 ./test/integration/run.sh
@@ -81,6 +90,8 @@ test/
 │   ├── env.sh               # Test environment setup
 │   ├── assert.sh            # Assertion helpers
 │   └── git_fixtures.sh      # Git repository fixtures
+├── schema/
+│   ├── run.sh               # Schema contract checks (tool.meta.json + docs coverage)
 ├── integration/
 │   ├── run.sh               # Integration test runner
 │   └── test_*.sh            # Individual integration tests

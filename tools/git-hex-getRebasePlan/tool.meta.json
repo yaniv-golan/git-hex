@@ -48,6 +48,7 @@
         "description": "List of commits in rebase order (oldest first)",
         "items": {
           "type": "object",
+          "required": ["hash", "shortHash", "subject", "author", "date"],
           "properties": {
             "hash": { "type": "string" },
             "shortHash": { "type": "string" },

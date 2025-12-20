@@ -41,6 +41,47 @@ first_pred="$(printf '%s' "${result_file_dir}" | jq -r '.commits[0].prediction')
 assert_eq "conflict" "${first_pred}" "first commit should be predicted conflict"
 test_pass "file/directory conflict predicted"
 
+# CHK-06: Merge commits are ignored (match default git rebase behavior)
+printf ' -> CHK-06 merge commits are ignored\n'
+REPO_MERGES="${TEST_TMPDIR}/check-merge-commits"
+mkdir -p "${REPO_MERGES}"
+(
+	cd "${REPO_MERGES}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "base" >f.txt
+	git add f.txt && git commit -m "Base" >/dev/null
+
+	echo "main1" >f.txt
+	git add f.txt && git commit -m "Main 1" >/dev/null
+	onto_ref="$(git rev-parse HEAD)"
+
+	git checkout -b feature >/dev/null 2>&1
+	echo "feature" >g.txt
+	git add g.txt && git commit -m "Feature" >/dev/null
+
+	git checkout main >/dev/null 2>&1
+	echo "main2" >h.txt
+	git add h.txt && git commit -m "Main 2" >/dev/null
+
+	git merge --no-ff feature -m "Merge feature" >/dev/null 2>&1
+	echo "post" >p.txt
+	git add p.txt && git commit -m "Post merge" >/dev/null
+
+	echo "${onto_ref}" >"${TEST_TMPDIR}/chk06_onto"
+)
+onto_ref="$(cat "${TEST_TMPDIR}/chk06_onto")"
+rm -f "${TEST_TMPDIR}/chk06_onto"
+
+expected_nonmerge="$(cd "${REPO_MERGES}" && git rev-list --no-merges --count "${onto_ref}..HEAD")"
+result_merges="$(run_tool git-hex-checkRebaseConflicts "${REPO_MERGES}" "{\"onto\": \"${onto_ref}\"}")"
+total_nonmerge="$(printf '%s' "${result_merges}" | jq -r '.totalCommits')"
+assert_eq "${expected_nonmerge}" "${total_nonmerge}" "totalCommits should count only non-merge commits"
+test_pass "merge commits ignored"
+
 # CHK-03/04: First conflict identified, subsequent unknown
 printf ' -> CHK-03 first conflict identified, later unknown\n'
 REPO_MULTI="${TEST_TMPDIR}/check-multi"

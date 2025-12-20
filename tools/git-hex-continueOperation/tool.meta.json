@@ -20,7 +20,7 @@
     "required": ["success", "operationType", "completed", "paused", "conflictingFiles", "summary"],
     "properties": {
       "success": { "type": "boolean" },
-      "operationType": { "type": "string" },
+      "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
       "completed": { "type": "boolean" },
       "paused": { "type": "boolean" },
       "conflictingFiles": {

@@ -58,6 +58,8 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 > - `abortOnConflict=false` leaves the rebase paused so you can call `getConflictStatus` / `resolveConflict` / `continueOperation`
 > - Uses native `--autostash` when `autoStash=true`
 
+The rebase can also pause for non-conflict reasons (e.g., a git hook rejecting a rewritten commit). In that case `paused=true`, `reason="stopped"`, and `conflictingFiles` is empty; you can inspect the repo state and then call `continueOperation` or `abortOperation`.
+
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
@@ -109,6 +111,20 @@ Structured interactive rebase with plan support (reorder, drop, squash, reword) 
 }
 ```
 
+**When paused for a non-conflict stop:**
+```json
+{
+  "success": false,
+  "paused": true,
+  "reason": "stopped",
+  "headBefore": "abc123...",
+  "headAfter": "def456...",
+  "backupRef": "git-hex/backup/1700000000_rebaseWithPlan_xxx",
+  "conflictingFiles": [],
+  "summary": "Rebase paused (non-conflict stop): <details>."
+}
+```
+
 ### git-hex-checkRebaseConflicts
 
 Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
@@ -118,6 +134,7 @@ Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktre
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 
 `confidence` is `"estimate"` when predictions were computed normally; it is `"unknown"` when `merge-tree` errors for a commit, in which case the tool fails safe by reporting `wouldConflict=true`.
+Merge commits are ignored (matching the default behavior of `git rebase` without `--rebase-merges`).
 
 **Parameters:**
 | Name | Type | Required | Description |

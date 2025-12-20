@@ -20,7 +20,7 @@ source  "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 onto="$(mcp_args_require '.onto')"
 plan_json="$( mcp_args_get '.plan' || true)"
-trimmed_plan="$( echo "${plan_json:-}" | tr -d '[:space:]')"
+trimmed_plan="$(tr -d '[:space:]' <<<"${plan_json:-}")"
 if  [ -z "${trimmed_plan}" ] || [ "${trimmed_plan}" = "null" ]; then
 	plan_json="[]"
 else
@@ -50,6 +50,12 @@ trap '_git_hex_cleanup' EXIT
 # Validate repo
 git_hex_require_repo "${repo_path}"
 
+# Detached HEAD warning (match getRebasePlan behavior)
+detached_head_warning=""
+if git_hex_is_detached_head "${repo_path}"; then
+	detached_head_warning=" Warning: detached HEAD; rebasing may rewrite commits without an easy branch reference."
+fi
+
 # Check HEAD exists
 if ! git -C "${repo_path}" rev-parse HEAD >/dev/null 2>&1; then
 	mcp_fail_invalid_args "Repository has no commits. Nothing to rebase."
@@ -63,9 +69,7 @@ git_hex_require_no_in_progress_operation  "${operation_in_progress}"
 
 # Dirty working tree check (unless using native autostash)
 if [ "${auto_stash}" = "false" ]; then
-	if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
-		mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
-	fi
+	git_hex_require_clean_worktree_tracked "${repo_path}"
 fi
 
 # Validate onto: require a commit-ish, not an arbitrary token that could be interpreted as a path.
@@ -335,7 +339,7 @@ if [ "${rebase_status}" -eq 0 ]; then
 		--arg headAfter "${head_after}" \
 		--arg backupRef "${backup_ref}" \
 		--argjson commitsRebased "${actual_count}" \
-		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}" \
+		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}.${detached_head_warning}" \
 		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
 	exit 0
 else
@@ -366,7 +370,7 @@ else
 				--arg headAfter "${head_after_pause}" \
 				--arg backupRef "${backup_ref}" \
 				--argjson conflictingFiles "${conflicting_json}" \
-				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details." \
+				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details.${detached_head_warning}" \
 				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
 			exit 0
 		else
@@ -374,6 +378,26 @@ else
 			_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
 			mcp_fail -32603 "Rebase failed due to conflicts. Repository has been restored to original state."
 		fi
+	elif [ "${rebase_in_progress}" = "true" ]; then
+		# Rebase stopped for a non-conflict reason (e.g., hooks, missing editor, exec failure).
+		# Do not abort: leave state for manual intervention and allow continueOperation/abortOperation.
+		head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
+		error_hint="${rebase_output%%$'\n'*}"
+		if [ -z "${error_hint}" ]; then
+			error_hint="Rebase stopped"
+		fi
+		# shellcheck disable=SC2016
+		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
+			--argjson success false \
+			--argjson paused true \
+			--arg reason "stopped" \
+			--arg headBefore "${head_before}" \
+			--arg headAfter "${head_after_pause}" \
+			--arg backupRef "${backup_ref}" \
+			--argjson conflictingFiles "[]" \
+			--arg summary "Rebase paused (non-conflict stop): ${error_hint}.${detached_head_warning}" \
+			'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+		exit 0
 	elif grep -qi "nothing to do" <<<"${rebase_output}"; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"

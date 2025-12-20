@@ -13,6 +13,7 @@ GITHEX_TEST_PROFILE="${GITHEX_TEST_PROFILE:-}"
 GITHEX_TEST_INCLUDE="${GITHEX_TEST_INCLUDE:-}"
 GITHEX_TEST_EXCLUDE="${GITHEX_TEST_EXCLUDE:-}"
 GITHEX_TEST_STRICT="${GITHEX_TEST_STRICT:-0}"
+GITHEX_TEST_SUITE="${GITHEX_TEST_SUITE:-}"
 
 # Detect CI environment
 IS_CI="${CI:-${GITHUB_ACTIONS:-0}}"
@@ -69,6 +70,12 @@ WINDOWS_SMOKE_TESTS=(
 	test_rebase_with_plan.sh
 )
 
+PR_EXCLUDE_TESTS=(
+	test_edge_cases.sh
+	test_high_value_adversarial.sh
+	test_uncommon_git_states.sh
+)
+
 TESTS=()
 while IFS= read -r path; do
 	[ -f "${path}" ] || continue
@@ -101,6 +108,19 @@ filter_tests() {
 			exit 2
 			;;
 		esac
+	fi
+
+	if [ "${GITHEX_TEST_SUITE}" = "pr" ] && [ -z "${GITHEX_TEST_PROFILE}" ] && [ -z "${GITHEX_TEST_INCLUDE}" ]; then
+		local existing_exclude="${GITHEX_TEST_EXCLUDE}"
+		local t
+		for t in "${PR_EXCLUDE_TESTS[@]}"; do
+			if [ -z "${existing_exclude}" ]; then
+				existing_exclude="${t}"
+			else
+				existing_exclude="${existing_exclude},${t}"
+			fi
+		done
+		GITHEX_TEST_EXCLUDE="${existing_exclude}"
 	fi
 
 	if [ -n "${GITHEX_TEST_INCLUDE}" ]; then
@@ -185,7 +205,7 @@ filter_tests() {
 	TESTS=("${resolved[@]}")
 }
 
-if [ -n "${GITHEX_TEST_PROFILE}" ] || [ -n "${GITHEX_TEST_INCLUDE}" ] || [ -n "${GITHEX_TEST_EXCLUDE}" ]; then
+if [ -n "${GITHEX_TEST_PROFILE}" ] || [ -n "${GITHEX_TEST_INCLUDE}" ] || [ -n "${GITHEX_TEST_EXCLUDE}" ] || [ -n "${GITHEX_TEST_SUITE}" ]; then
 	filter_tests
 fi
 

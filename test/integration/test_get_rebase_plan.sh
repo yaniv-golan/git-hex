@@ -137,6 +137,37 @@ echo "${subject3}" | grep -q 'in it' || test_fail "full message after tab should
 test_pass "get-rebase-plan handles special characters in messages"
 
 # ============================================================
+# TEST: get-rebase-plan handles ASCII unit separator in subject (U+001F)
+# ============================================================
+printf ' -> get-rebase-plan handles ASCII unit separator in subject (U+001F)\n'
+
+REPO4B="${TEST_TMPDIR}/test-repo-4b"
+mkdir -p "${REPO4B}"
+(
+	cd "${REPO4B}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test"
+	git config commit.gpgsign false
+
+	echo "base" >file1.txt
+	git add file1.txt
+	git commit -m "Base" >/dev/null
+
+	echo "x" >file2.txt
+	git add file2.txt
+	git commit -m $'before\x1fafter' >/dev/null
+)
+
+result="$(run_tool git-hex-getRebasePlan "${REPO4B}" '{"count": 2, "onto": "HEAD~1"}')"
+assert_json_field "${result}" '.success' "true" "should succeed"
+commits_count="$(printf '%s' "${result}" | jq -r '.commits | length')"
+assert_eq "1" "${commits_count}" "should return 1 commit"
+subject_us="$(printf '%s' "${result}" | jq -r '.commits[0].subject')"
+printf '%s' "${subject_us}" | LC_ALL=C grep -q $'before\x1fafter' || test_fail "subject should preserve unit separator"
+test_pass "get-rebase-plan handles unit separator in subject"
+
+# ============================================================
 # TEST: get-rebase-plan handles detached HEAD
 # ============================================================
 printf ' -> get-rebase-plan handles detached HEAD state\n'

@@ -46,6 +46,8 @@ export GIT_OBJECT_DIRECTORY="${object_dir}"
 export GIT_ALTERNATE_OBJECT_DIRECTORIES="${alt_objects}"
 
 total_commits="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
+total_commits_including_merges="${total_commits}"
+total_commits="$(git -C "${repo_path}" rev-list --no-merges --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 current_tree="$(git -C "${repo_path}" rev-parse "${onto}^{tree}")"
 
 would_conflict="false"
@@ -57,7 +59,7 @@ commit_index=0
 limit_exceeded="false"
 
 log_format='%H%x1f%P%x1f%s'
-commit_stream="$(git -C "${repo_path}" log --reverse --format="${log_format}" "${onto}..HEAD")"
+commit_stream="$(git -C "${repo_path}" log --reverse --no-merges --format="${log_format}" "${onto}..HEAD")"
 if [ "${total_commits}" -gt "${max_commits}" ]; then
 	limit_exceeded="true"
 	commit_stream="$(printf '%s\n' "${commit_stream}" | head -n "${max_commits}")"
@@ -154,9 +156,13 @@ elif [ "${would_conflict}" = "true" ]; then
 	summary="Rebase would conflict at commit ${first_conflict_index}/${total_commits} (${first_conflict_hash:0:7})"
 elif [ "${limit_exceeded}" = "true" ]; then
 	summary="Checked first ${max_commits} of ${total_commits} commits - no conflicts found in checked range"
+elif [ "${total_commits}" -eq 0 ] && [ "${total_commits_including_merges}" -gt 0 ]; then
+	summary="No commits to rebase (merge commits ignored)"
 else
 	summary="Rebase predicted to complete cleanly"
 fi
+
+note="Predictions may not match actual rebase behavior in all cases. Merge commits are ignored (default git rebase behavior)."
 
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -167,6 +173,7 @@ mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson totalCommits "${total_commits}" \
 	--argjson checkedCommits "${commit_index}" \
 	--arg summary "${summary}" \
+	--arg note "${note}" \
 	'{
 		success: true,
 		wouldConflict: $wouldConflict,
@@ -176,5 +183,5 @@ mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		totalCommits: $totalCommits,
 		checkedCommits: $checkedCommits,
 		summary: $summary,
-		note: "Predictions may not match actual rebase behavior in all cases"
+		note: $note
 	}')"

@@ -109,21 +109,37 @@ while  IFS= read -r -d '' file; do
 		fi
 
 		is_binary="false"
-		if [ -f "${repo_path}/${file}" ]; then
-			# Treat empty files as text (grep -I can misclassify empties).
-			if [ -s "${repo_path}/${file}" ] && ! grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
-				is_binary="true"
+		if command -v file >/dev/null 2>&1; then
+			if [ -f "${repo_path}/${file}" ]; then
+				enc="$(file -b --mime-encoding "${repo_path}/${file}" 2>/dev/null || true)"
+			else
+				# Prefer checking the stage-2 blob (ours). For delete conflicts, stage-2 may not exist; fall back to stage-3.
+				stage_for_binary="2"
+				case "${stages}" in
+				"1,3,") stage_for_binary="3" ;; # deleted_by_us -> check theirs
+				"1,2,") stage_for_binary="2" ;; # deleted_by_them -> check ours
+				esac
+				enc="$(git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | file -b --mime-encoding - 2>/dev/null || true)"
 			fi
-		else
-			# Prefer checking the stage-2 blob (ours). For delete conflicts, stage-2 may not exist; fall back to stage-3.
-			stage_for_binary="2"
-			case "${stages}" in
-			"1,3,") stage_for_binary="3" ;; # deleted_by_us -> check theirs
-			"1,2,") stage_for_binary="2" ;; # deleted_by_them -> check ours
+			case "${enc}" in
+			binary | unknown*) is_binary="true" ;;
 			esac
-			size_for_binary="$(git -C "${repo_path}" cat-file -s ":${stage_for_binary}:${file}" 2>/dev/null || echo "0")"
-			if [ "${size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | grep -Iq .; then
-				is_binary="true"
+		else
+			if [ -f "${repo_path}/${file}" ]; then
+				# Treat empty files as text (grep -I can misclassify empties).
+				if [ -s "${repo_path}/${file}" ] && ! grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
+					is_binary="true"
+				fi
+			else
+				stage_for_binary="2"
+				case "${stages}" in
+				"1,3,") stage_for_binary="3" ;;
+				"1,2,") stage_for_binary="2" ;;
+				esac
+				size_for_binary="$(git -C "${repo_path}" cat-file -s ":${stage_for_binary}:${file}" 2>/dev/null || echo "0")"
+				if [ "${size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | grep -Iq .; then
+					is_binary="true"
+				fi
 			fi
 		fi
 
@@ -138,7 +154,10 @@ while  IFS= read -r -d '' file; do
 			base_size="$(git -C "${repo_path}" cat-file -s ":1:${file}" 2>/dev/null || echo "0")"
 			ours_size="$(git -C "${repo_path}" cat-file -s ":2:${file}" 2>/dev/null || echo "0")"
 			theirs_size="$(git -C "${repo_path}" cat-file -s ":3:${file}" 2>/dev/null || echo "0")"
-			working_size="$(LC_ALL=C wc -c <"${repo_path}/${file}" 2>/dev/null | tr -d ' ' || echo "0")"
+			working_size="0"
+			if [ -f "${repo_path}/${file}" ]; then
+				working_size="$(LC_ALL=C wc -c <"${repo_path}/${file}" 2>/dev/null | tr -d ' ' || echo "0")"
+			fi
 			truncated="false"
 			if [ "${base_size}" -gt "${max_content}" ] || [ "${ours_size}" -gt "${max_content}" ] || [ "${theirs_size}" -gt "${max_content}" ] || [ "${working_size}" -gt "${max_content}" ]; then
 				truncated="true"
@@ -147,7 +166,10 @@ while  IFS= read -r -d '' file; do
 			base_content="$(git -C "${repo_path}" show ":1:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
 			ours_content="$(git -C "${repo_path}" show ":2:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
 			theirs_content="$(git -C "${repo_path}" show ":3:${file}" 2>/dev/null | head -c "${max_content}" || echo "")"
-			working_content="$(head -c "${max_content}" "${repo_path}/${file}" 2>/dev/null || echo "")"
+			working_content=""
+			if [ -f "${repo_path}/${file}" ]; then
+				working_content="$(head -c "${max_content}" "${repo_path}/${file}" 2>/dev/null || echo "")"
+			fi
 
 			# shellcheck disable=SC2016
 			files_json="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" \

@@ -32,7 +32,7 @@ trap cleanup EXIT
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 commit_ref="$(mcp_args_require '.commit')"
 splits_json="$(mcp_args_get '.splits')"
-trimmed_splits="$(echo "${splits_json:-}" | tr -d '[:space:]')"
+trimmed_splits="$(tr -d '[:space:]' <<<"${splits_json:-}")"
 if [ -z "${trimmed_splits}" ] || [ "${trimmed_splits}" = "null" ]; then
 	splits_json="[]"
 else
@@ -87,7 +87,7 @@ if [ "${split_count}" -lt 2 ]; then
 	mcp_fail_invalid_args "At least 2 splits required"
 fi
 
-original_files="$(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r "${full_commit}")"
+original_files="$(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r "${full_commit}" --)"
 if [ -z "${original_files}" ]; then
 	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
 fi

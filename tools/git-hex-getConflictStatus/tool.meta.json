@@ -39,6 +39,7 @@
         "type": "array",
           "items": {
             "type": "object",
+            "required": ["path", "conflictType"],
             "properties": {
               "path": { "type": "string" },
             "conflictType": {

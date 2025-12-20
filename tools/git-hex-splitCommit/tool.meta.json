@@ -60,6 +60,7 @@
         "type": "array",
         "items": {
           "type": "object",
+          "required": ["hash", "message", "files"],
           "properties": {
             "hash": { "type": "string" },
             "message": { "type": "string" },

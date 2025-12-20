@@ -75,29 +75,25 @@ fi
 # Generate unique plan ID
 plan_id="plan_$(date +%s)_$$"
 
-# Get commits using ASCII unit/record separators to avoid delimiter ambiguities
-# (NUL-delimited output from `git log -z` yields empty fields between records).
-# This is O(1) git and jq invocations regardless of commit count.
-# shellcheck disable=SC2016
-commits_json="$(git -C "${repo_path}" log --reverse -n "${count}" \
-	--format='%H%x1f%h%x1f%s%x1f%an%x1f%aI%x1e' \
-	"${onto}..HEAD" 2>/dev/null | "${MCPBASH_JSON_TOOL_BIN}" -Rs '
-	split("\u001e")
-	| map(select(length > 0))
-	| map(split("\u001f") | select(length == 5))
-	| map({
-		hash: .[0],
-		shortHash: .[1],
-		subject: .[2],
-		author: .[3],
-		date: .[4]
-	})
-' || echo "[]")"
-
-# Handle empty result
-if [ -z "${commits_json}" ] || [ "${commits_json}" = "null" ]; then
-	commits_json="[]"
-fi
+commits_json="[]"
+log_format='%H%x00%h%x00%s%x00%an%x00%aI'
+while IFS= read -r -d '' hash \
+	&& IFS= read -r -d '' short_hash \
+	&& IFS= read -r -d '' subject \
+	&& IFS= read -r -d '' author \
+	&& IFS= read -r -d '' date; do
+	[ -z "${hash}" ] && continue
+	# shellcheck disable=SC2016
+	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+		--arg hash "${hash}" \
+		--arg shortHash "${short_hash}" \
+		--arg subject "${subject}" \
+		--arg author "${author}" \
+		--arg date "${date}" \
+		'{hash: $hash, shortHash: $shortHash, subject: $subject, author: $author, date: $date}')"
+	# shellcheck disable=SC2016
+	commits_json="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+done < <(git -C "${repo_path}" log --reverse -n "${count}" -z --format="${log_format}" "${onto}..HEAD" 2>/dev/null || true)
 
 # Resolve onto to display value (show original ref, not empty tree hash)
 onto_display="${onto}"

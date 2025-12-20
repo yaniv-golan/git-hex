@@ -8,6 +8,10 @@ _git_hex_stash_message() {
 	date +%s
 }
 
+_git_hex_stash_unique_token() {
+	printf '%s-%s-%s' "$(_git_hex_stash_message)" "$$" "${RANDOM:-0}"
+}
+
 # Determine whether the repo has uncommitted changes that should be stashed.
 # Mode "keep-index" still stashes tracked staged/unstaged changes (but preserves the index).
 git_hex_should_stash() {
@@ -31,12 +35,8 @@ git_hex_auto_stash() {
 	local should_stash
 	should_stash="$(git_hex_should_stash "${repo_path}" "${mode}")"
 	if [ "${should_stash}" = "true" ]; then
-		# Track top-of-stack before creating a new stash so we don't operate on a pre-existing one
-		local before_top
-		before_top="$(git -C "${repo_path}" stash list --pretty='%H' -n 1 2>/dev/null || echo "")"
-
 		local message
-		message="git-hex auto-stash $(_git_hex_stash_message)"
+		message="git-hex auto-stash $(_git_hex_stash_unique_token)"
 		if [ "${mode}" = "keep-index" ]; then
 			# Preserve staged changes while capturing an immutable stash object ID
 			git -C "${repo_path}" stash push --keep-index -m "${message}" >/dev/null 2>&1 || true
@@ -44,14 +44,22 @@ git_hex_auto_stash() {
 			git -C "${repo_path}" stash push -m "${message}" >/dev/null 2>&1 || true
 		fi
 
-		# Record the specific stash ref so we restore exactly what we created
+		# Record the specific stash ref so we restore exactly what we created, even under concurrency.
 		local stash_oid stash_name
-		stash_oid="$(git -C "${repo_path}" rev-parse 'stash@{0}' 2>/dev/null || true)"
-		stash_name="$(git -C "${repo_path}" stash list --pretty='%gd' -n 1 2>/dev/null || true)"
-		if [ -n "${stash_oid}" ] && [ "${stash_oid}" != "${before_top}" ]; then
-			if [ -z "${stash_name}" ]; then
-				stash_name="stash@{0}"
+		stash_oid=""
+		stash_name=""
+		while IFS=$'\x1f' read -r oid name subj; do
+			[ -n "${oid}" ] || continue
+			[ -n "${name}" ] || continue
+			# Stash subjects typically look like "On <branch>: <message>".
+			if [ -n "${subj}" ] && [[ "${subj}" == *"${message}"* ]]; then
+				stash_oid="${oid}"
+				stash_name="${name}"
+				break
 			fi
+		done < <(git -C "${repo_path}" stash list --pretty='%H%x1f%gd%x1f%gs' 2>/dev/null || true)
+
+		if [ -n "${stash_oid}" ]; then
 			echo "stash:${mode}:${stash_oid}|${stash_name}"
 		else
 			echo "false"

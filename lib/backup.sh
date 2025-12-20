@@ -42,19 +42,31 @@ git_hex_create_backup() {
 	git -C "${repo_path}" update-ref "${last_ref}" "${head_hash}"
 
 	# Then, delete any other existing "last" refs
-	while IFS= read -r ref; do
-		[ -n "${ref}" ] || continue
-		[ "${ref}" = "${last_ref}" ] && continue
-		delete_err=""
-		if ! delete_err="$(git -C "${repo_path}" update-ref -d "${ref}" 2>&1)"; then
-			# Non-fatal, but important to surface (e.g., locked ref / permissions).
-			if command -v mcp_log >/dev/null 2>&1; then
-				mcp_log "warn" "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${delete_err}")"
-			elif command -v mcp_log_warn >/dev/null 2>&1; then
-				mcp_log_warn "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${delete_err}")"
+	refs_to_delete="$(git -C "${repo_path}" for-each-ref --format='%(refname)' "${GIT_HEX_REF_PREFIX}/last/" 2>/dev/null || true)"
+	if [ -n "${refs_to_delete}" ]; then
+		# Prefer batching to avoid spawning one git process per ref; fall back to per-ref deletes on error.
+		delete_stdin="$(printf '%s\n' "${refs_to_delete}" | awk -v keep="${last_ref}" 'NF && $0!=keep {print "delete " $0}')"
+		if [ -n "${delete_stdin}" ]; then
+			delete_err=""
+			if ! delete_err="$(printf '%s\n' "${delete_stdin}" | git -C "${repo_path}" update-ref --stdin 2>&1)"; then
+				while IFS= read -r ref; do
+					[ -n "${ref}" ] || continue
+					[ "${ref}" = "${last_ref}" ] && continue
+					per_ref_err=""
+					if ! per_ref_err="$(git -C "${repo_path}" update-ref -d "${ref}" 2>&1)"; then
+						if command -v mcp_log >/dev/null 2>&1; then
+							mcp_log "warn" "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${per_ref_err}")"
+						elif command -v mcp_log_warn >/dev/null 2>&1; then
+							mcp_log_warn "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${per_ref_err}")"
+						fi
+					fi
+				done <<<"${refs_to_delete}"
+				if [ -n "${delete_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
+					mcp_log_warn "git-hex" "$(printf '{"message":"Batch delete of last refs failed; fell back to per-ref deletes: %s"}' "${delete_err}")"
+				fi
 			fi
 		fi
-	done < <(git -C "${repo_path}" for-each-ref --format='%(refname)' "${GIT_HEX_REF_PREFIX}/last/" 2>/dev/null || true)
+	fi
 
 	# Track the last backup ref for subsequent state recording
 	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${uniq_suffix}"
@@ -199,8 +211,10 @@ git_hex_cleanup_backups() {
 		--format='%(refname)' \
 		"${GIT_HEX_REF_PREFIX}/backup/" 2>/dev/null | tail -n +$((keep_count + 1)))"
 
-	while IFS= read -r ref; do
-		[ -n "${ref}" ] || continue
-		git -C "${repo_path}" update-ref -d "${ref}" 2>/dev/null || true
-	done <<<"${refs_to_delete}"
+	if [ -n "${refs_to_delete}" ]; then
+		delete_stdin="$(printf '%s\n' "${refs_to_delete}" | awk 'NF {print "delete " $0}')"
+		if [ -n "${delete_stdin}" ]; then
+			git -C "${repo_path}" update-ref --stdin 2>/dev/null <<<"${delete_stdin}" || true
+		fi
+	fi
 }

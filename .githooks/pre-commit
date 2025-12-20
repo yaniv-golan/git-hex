@@ -12,3 +12,7 @@ if ! [ -x "./test/lint.sh" ]; then
 fi
 
 ./test/lint.sh
+
+if [ -x "./test/schema/run.sh" ]; then
+	./test/schema/run.sh
+fi

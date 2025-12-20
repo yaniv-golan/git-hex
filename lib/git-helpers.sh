@@ -51,6 +51,35 @@ git_hex_get_in_progress_operation_from_git_dir() {
 	return 0
 }
 
+git_hex_require_no_in_progress_operation() {
+	local operation="$1"
+
+	case "${operation}" in
+	"") return 0 ;;
+	rebase) mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
+	cherry-pick) mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
+	revert) mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
+	merge) mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
+	bisect) mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
+	esac
+}
+
+git_hex_get_conflicting_files_json() {
+	local repo_path="$1"
+
+	local json_tool
+	json_tool="${MCPBASH_JSON_TOOL_BIN:-jq}"
+
+	local conflicting_json="[]"
+	while IFS= read -r -d '' conflict_file; do
+		[ -z "${conflict_file}" ] && continue
+		# shellcheck disable=SC2016
+		conflicting_json="$(printf '%s' "${conflicting_json}" | "${json_tool}" --arg f "${conflict_file}" '. + [$f]')"
+	done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+
+	printf '%s' "${conflicting_json}"
+}
+
 git_hex_parse_git_version() {
 	local git_version_raw
 	git_version_raw="$(git --version | sed 's/git version //')"

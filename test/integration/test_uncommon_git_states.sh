@@ -15,6 +15,46 @@ test_create_tmpdir
 
 echo "=== Uncommon Git State Tests ==="
 
+assert_mutating_tools_blocked() {
+	local repo_path="$1"
+	local keyword="$2"
+	local label="$3"
+
+	run_tool_expect_fail_message_contains \
+		git-hex-rebaseWithPlan \
+		"${repo_path}" \
+		'{"onto":"HEAD~1","plan":[]}' \
+		"${keyword}" \
+		"${label}: rebaseWithPlan should be blocked"
+	run_tool_expect_fail_message_contains \
+		git-hex-amendLastCommit \
+		"${repo_path}" \
+		'{"message":"test"}' \
+		"${keyword}" \
+		"${label}: amendLastCommit should be blocked"
+	run_tool_expect_fail_message_contains \
+		git-hex-createFixup \
+		"${repo_path}" \
+		'{"commit":"HEAD"}' \
+		"${keyword}" \
+		"${label}: createFixup should be blocked"
+	run_tool_expect_fail_message_contains \
+		git-hex-undoLast \
+		"${repo_path}" \
+		'{}' \
+		"${keyword}" \
+		"${label}: undoLast should be blocked"
+
+	# splitCommit parses inputs before checking operation state; provide minimal valid args to reach the guard.
+	args_split_block='{"commit":"HEAD","splits":[{"files":["a"],"message":"A"},{"files":["b"],"message":"B"}]}'
+	run_tool_expect_fail_message_contains \
+		git-hex-splitCommit \
+		"${repo_path}" \
+		"${args_split_block}" \
+		"${keyword}" \
+		"${label}: splitCommit should be blocked"
+}
+
 # STATE-01: Bare repositories rejected early
 printf ' -> STATE-01 bare repositories are rejected\n'
 BARE_REPO="${TEST_TMPDIR}/bare-repo"
@@ -61,11 +101,7 @@ assert_json_field "${revert_status}" '.inConflict' "true" "should detect conflic
 assert_json_field "${revert_status}" '.conflictType' "revert" "should report revert conflictType"
 test_pass "getConflictStatus detects revert"
 
-if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_REVERT}" '{"onto":"HEAD~1","plan":[]}'; then
-	test_pass "mutating tools blocked during revert"
-else
-	test_fail "tools should fail during revert"
-fi
+assert_mutating_tools_blocked "${REPO_REVERT}" "revert" "revert"
 (cd "${REPO_REVERT}" && git revert --abort >/dev/null 2>&1) || true
 
 # STATE-03: Bisect blocks mutating tools
@@ -84,11 +120,7 @@ create_test_repo "${REPO_BISECT}" 4
 	fi
 )
 
-if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_BISECT}" '{"onto":"HEAD~1","plan":[]}'; then
-	test_pass "mutating tools blocked during bisect"
-else
-	test_fail "tools should fail during bisect"
-fi
+assert_mutating_tools_blocked "${REPO_BISECT}" "bisect" "bisect"
 (cd "${REPO_BISECT}" && git bisect reset >/dev/null 2>&1) || true
 
 # STATE-04: Paused cherry-pick blocks mutating tools
@@ -108,11 +140,7 @@ cherry_status="$(run_tool git-hex-getConflictStatus "${REPO_CHERRY_PICK}" '{"inc
 assert_json_field "${cherry_status}" '.inConflict' "true" "should detect conflict"
 assert_json_field "${cherry_status}" '.conflictType' "cherry-pick" "should report cherry-pick conflictType"
 test_pass "getConflictStatus detects cherry-pick"
-if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_CHERRY_PICK}" '{"onto":"HEAD~1","plan":[]}'; then
-	test_pass "mutating tools blocked during cherry-pick"
-else
-	test_fail "tools should fail during cherry-pick"
-fi
+assert_mutating_tools_blocked "${REPO_CHERRY_PICK}" "cherry-pick" "cherry-pick"
 (cd "${REPO_CHERRY_PICK}" && git cherry-pick --abort >/dev/null 2>&1) || true
 
 # STATE-05: Paused merge blocks mutating tools
@@ -131,11 +159,7 @@ merge_status="$(run_tool git-hex-getConflictStatus "${REPO_MERGE}" '{"includeCon
 assert_json_field "${merge_status}" '.inConflict' "true" "should detect conflict"
 assert_json_field "${merge_status}" '.conflictType' "merge" "should report merge conflictType"
 test_pass "getConflictStatus detects merge"
-if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_MERGE}" '{"onto":"HEAD~1","plan":[]}'; then
-	test_pass "mutating tools blocked during merge"
-else
-	test_fail "tools should fail during merge"
-fi
+assert_mutating_tools_blocked "${REPO_MERGE}" "merge" "merge"
 (cd "${REPO_MERGE}" && git merge --abort >/dev/null 2>&1) || true
 
 echo ""

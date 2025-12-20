@@ -25,15 +25,9 @@ force="$(mcp_args_bool '.force' --default false)"
 git_hex_require_repo "${repo_path}"
 
 # Check for any in-progress git operations
-git_dir="$(git_hex_get_git_dir "${repo_path}")"
-operation_in_progress="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-case "${operation_in_progress}" in
-rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
-merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
-bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
-esac
+git_dir="$( git_hex_get_git_dir "${repo_path}")"
+operation_in_progress="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+git_hex_require_no_in_progress_operation  "${operation_in_progress}"
 
 # Check for uncommitted changes
 if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}" diff --cached --quiet -- 2>/dev/null; then
@@ -61,11 +55,11 @@ ref_suffix=""
 if [ -n "${backup_ref}" ]; then
 	ref_suffix="${backup_ref#git-hex/backup/}"
 fi
-if [ -z "${ref_suffix}" ] && [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
+if  [ -z "${ref_suffix}" ] && [ -n "${timestamp}" ] && [ -n "${operation}" ]; then
 	ref_suffix="${timestamp}_${operation}"
 fi
-if [ -n "${ref_suffix}" ]; then
-	recorded_head="$(git -C "${repo_path}" rev-parse "refs/git-hex/last-head/${ref_suffix}" 2>/dev/null || echo "")"
+if  [ -n "${ref_suffix}" ]; then
+	recorded_head="$(git -C "${repo_path}" rev-parse --verify "refs/git-hex/last-head/${ref_suffix}^{commit}" 2>/dev/null || echo "")"
 fi
 
 # Check if we're already at the backup state
@@ -83,15 +77,21 @@ fi
 
 # Check if there are commits between backup and current HEAD that weren't made by git-hex
 # This is a safety check to avoid losing work
-commits_since_backup="$(git -C "${repo_path}" rev-list --count "${backup_hash}..HEAD" 2>/dev/null || echo "0")"
-prev_head="$(git -C "${repo_path}" rev-parse 'HEAD@{1}' 2>/dev/null || echo "")"
+commits_since_backup="$( git -C "${repo_path}" rev-list --count "${backup_hash}..HEAD" 2>/dev/null || echo "0")"
+prev_head="$( git -C "${repo_path}" rev-parse --verify 'HEAD@{1}^{commit}' 2>/dev/null || echo "")"
 # If we have a recorded head from the git-hex operation, use it to detect extra commits
 if [ "${commits_since_backup}" -gt 0 ] && [ "${force}" = "false" ]; then
 	if [ -n "${recorded_head}" ] && [ "${head_before}" != "${recorded_head}" ]; then
 		mcp_fail_invalid_args "Refusing to undo because there are commits after the last git-hex operation. Re-run with force=true to discard them."
-	elif [ -z "${recorded_head}" ] && [ -n "${prev_head}" ] && [ "${prev_head}" != "${backup_hash}" ]; then
-		# Fallback heuristic when recorded head is unavailable (older backups)
-		mcp_fail_invalid_args "Refusing to undo because there are ${commits_since_backup} commit(s) after the last git-hex operation. Re-run with force=true to discard them."
+	elif [ -z "${recorded_head}" ]; then
+		# Fallback heuristic when recorded head is unavailable (older backups).
+		# If reflogs are unavailable, we cannot safely determine whether there are extra commits.
+		if [ -z "${prev_head}" ]; then
+			mcp_fail_invalid_args "Refusing to undo because there are ${commits_since_backup} commit(s) after the backup and reflogs are unavailable to verify safety. Re-run with force=true to discard them."
+		fi
+		if [ "${prev_head}" != "${backup_hash}" ]; then
+			mcp_fail_invalid_args "Refusing to undo because there are ${commits_since_backup} commit(s) after the last git-hex operation. Re-run with force=true to discard them."
+		fi
 	fi
 fi
 

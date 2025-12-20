@@ -85,24 +85,23 @@ fi
 
 # Check for any in-progress git operations
 git_dir="$( git_hex_get_git_dir "${repo_path}")"
-operation="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-case "${operation}" in
-rebase)   mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick)   mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
-merge)   mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
-bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
-esac
+operation="$(   git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+git_hex_require_no_in_progress_operation  "${operation}"
 
 # Verify commit exists and resolve to full hash.
 # Use --verify and ^{commit} so inputs that look like paths don't pass validation.
-source_hash="$(git -C "${repo_path}" rev-parse --verify "${commit}^{commit}" 2>/dev/null || true)"
-if [ -z "${source_hash}" ]; then
+source_hash="$( git -C "${repo_path}" rev-parse --verify "${commit}^{commit}" 2>/dev/null || true)"
+if  [ -z "${source_hash}" ]; then
 	mcp_fail_invalid_args "Invalid commit ref: ${commit}"
 fi
 
+# Reject merge commits early (git cherry-pick requires -m to select a parent).
+if  git -C "${repo_path}" rev-parse --verify "${source_hash}^2" >/dev/null 2>&1; then
+	mcp_fail_invalid_args "Cannot cherry-pick merge commits. Use git cherry-pick -m <parent> manually."
+fi
+
 # Get source commit's subject for commitMessage
-source_subject="$(git -C "${repo_path}" log -1 --format='%s' "${source_hash}" 2>/dev/null || true)"
+source_subject="$( git -C "${repo_path}" log -1 --format='%s' "${source_hash}" 2>/dev/null || true)"
 
 # Handle manual auto-stash (after validating inputs to avoid leaving stashes on early failures)
 stash_created="false"
@@ -187,13 +186,7 @@ else
 			_git_hex_cleanup_abort="false"
 			trap - EXIT
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
-			conflicting_json="[]"
-			# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
-			while IFS= read -r -d '' conflict_file; do
-				[ -z "${conflict_file}" ] && continue
-				# shellcheck disable=SC2016
-				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
-			done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+			conflicting_json="$(git_hex_get_conflicting_files_json "${repo_path}")"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson success false \
@@ -226,7 +219,7 @@ else
 		mcp_fail -32603 "Cherry-pick failed: The commit would be empty (changes already exist in HEAD)."
 	else
 		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
-		error_hint="$(echo "${pick_error}" | head -1)"
+		error_hint="${pick_error%%$'\n'*}"
 		mcp_fail -32603 "Cherry-pick failed: ${error_hint}. Repository has been restored to original state."
 	fi
 fi

@@ -27,15 +27,9 @@ sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 git_hex_require_repo "${repo_path}"
 
 # Check for any in-progress git operations
-git_dir="$(git_hex_get_git_dir "${repo_path}")"
-operation="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-case "${operation}" in
-rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
-merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
-bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
-esac
+git_dir="$( git_hex_get_git_dir "${repo_path}")"
+operation="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+git_hex_require_no_in_progress_operation  "${operation}"
 
 # Verify target commit exists and resolve to full hash
 target_hash="$( git -C "${repo_path}" rev-parse --verify "${commit}^{commit}" 2>/dev/null || true)"
@@ -66,7 +60,7 @@ handle_commit_error()   {
 	elif grep -qi "hook\\|pre-commit\\|commit-msg" <<<"${commit_error}"; then
 		mcp_fail -32603 "Failed to create fixup commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
 	else
-		error_hint="$(echo "${commit_error}" | head -1)"
+		error_hint="${commit_error%%$'\n'*}"
 		mcp_fail -32603 "Failed to create fixup commit: ${error_hint}"
 	fi
 }

@@ -58,14 +58,8 @@ fi
 # Check for in-progress operations
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
-operation_in_progress="$( git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
-case "${operation_in_progress}" in
-rebase)  mcp_fail_invalid_args "Repository is in a rebase state. Please resolve or abort it first." ;;
-cherry-pick)  mcp_fail_invalid_args "Repository is in a cherry-pick state. Please resolve or abort it first." ;;
-revert)  mcp_fail_invalid_args "Repository is in a revert state. Please resolve or abort it first." ;;
-merge)  mcp_fail_invalid_args "Repository is in a merge state. Please resolve or abort it first." ;;
-bisect)  mcp_fail_invalid_args "Repository is in a bisect state. Please reset it first (git bisect reset)." ;;
-esac
+operation_in_progress="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+git_hex_require_no_in_progress_operation  "${operation_in_progress}"
 
 # Dirty working tree check (unless using native autostash)
 if [ "${auto_stash}" = "false" ]; then
@@ -127,11 +121,12 @@ if [ "${plan_length}" -eq 0 ] && [ "${require_complete}" != "true" ]; then
 	use_custom_todo="false"
 fi
 
-if  [ "${plan_length}" -gt 0 ]; then
-	for ((i = 0; i < plan_length; i++)); do
-		action="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].action")"
-		commit_ref="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].commit")"
-		message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"")"
+if   [ "${plan_length}" -gt 0 ]; then
+	# Read plan entries with NUL delimiters so messages can contain any characters except NUL.
+	# Use -j to avoid jq inserting newlines between outputs (newlines inside messages are validated below).
+	while IFS= read -r -d '' action && IFS= read -r -d '' commit_ref && IFS= read -r -d '' message; do
+		[ -z "${action}" ] && action="null"
+		[ -z "${commit_ref}" ] && commit_ref="null"
 
 		validate_rebase_action "${action}"
 
@@ -157,7 +152,10 @@ if  [ "${plan_length}" -gt 0 ]; then
 		plan_actions+=("${action}")
 		plan_commits+=("${full_hash}")
 		plan_messages+=("${message}")
-	done
+	done < <(
+		printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r -j \
+			'.[] | (.action | tostring) + "\u0000" + (.commit | tostring) + "\u0000" + ((.message // "") | tostring) + "\u0000"'
+	)
 fi
 
 if [ "${require_complete}" = "true" ]; then
@@ -357,13 +355,7 @@ else
 
 	if [ "${has_unmerged}" = "true" ] || { [ "${rebase_in_progress}" = "true" ] && grep -qE '(^|\n)CONFLICT' <<<"${rebase_output}"; }; then
 		if [ "${abort_on_conflict}" = "false" ]; then
-			conflicting_json="[]"
-			# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.
-			while IFS= read -r -d '' conflict_file; do
-				[ -z "${conflict_file}" ] && continue
-				# shellcheck disable=SC2016
-				conflicting_json="$(printf '%s' "${conflicting_json}" | "${MCPBASH_JSON_TOOL_BIN}" --arg f "${conflict_file}" '. + [$f]')"
-			done < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
+			conflicting_json="$(git_hex_get_conflicting_files_json "${repo_path}")"
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
 			# shellcheck disable=SC2016
 			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -389,7 +381,7 @@ else
 	else
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 		_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
-		error_hint="$(echo "${rebase_output}" | head -1)"
+		error_hint="${rebase_output%%$'\n'*}"
 		mcp_fail -32603 "Rebase failed: ${error_hint}"
 	fi
 fi

@@ -192,7 +192,7 @@ if { [ -z "${rebase_merge_dir}" ] || [ ! -d "${rebase_merge_dir}" ]; } && { [ -z
 	if [ "${auto_stash}" = "true" ]; then
 		git_hex_restore_stash "${repo_path}" "${stash_created}" >/dev/null
 	fi
-	error_hint="$(echo "${rebase_output}" | head -1)"
+	error_hint="${rebase_output%%$'\n'*}"
 	if [ -z "${error_hint}" ]; then
 		error_hint="Commit ${commit_ref} not in rebase range or rebase failed"
 	fi
@@ -220,12 +220,12 @@ for ((i = 0; i < split_count; i++)); do
 	commit_error=""
 	if [ "${sign_commits}" = "true" ]; then
 		if ! commit_error="$(git -C "${repo_path}" commit -F "${msg_file}" 2>&1)"; then
-			error_hint="$(printf '%s\n' "${commit_error}" | head -1)"
+			error_hint="${commit_error%%$'\n'*}"
 			mcp_fail -32603 "Failed to create split commit $((i + 1))/${split_count}: ${error_hint}"
 		fi
 	else
 		if ! commit_error="$(git -C "${repo_path}" commit --no-gpg-sign -F "${msg_file}" 2>&1)"; then
-			error_hint="$(printf '%s\n' "${commit_error}" | head -1)"
+			error_hint="${commit_error%%$'\n'*}"
 			mcp_fail -32603 "Failed to create split commit $((i + 1))/${split_count}: ${error_hint}"
 		fi
 	fi

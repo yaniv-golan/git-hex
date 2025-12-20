@@ -396,5 +396,41 @@ else
 	test_fail "should fail because staged changes make working tree dirty"
 fi
 
+# ============================================================
+# TEST: undo-last refuses when safety cannot be verified (no recorded head + no reflog)
+# ============================================================
+printf ' -> undo-last refuses when safety cannot be verified (no recorded head + no reflog)\n'
+
+REPO12="${TEST_TMPDIR}/undo-no-reflog"
+create_test_repo "${REPO12}" 2
+
+# Create a backup by running an operation, then add an extra commit after it.
+result="$(run_tool git-hex-amendLastCommit "${REPO12}" '{"message": "Amended for reflog test"}')"
+assert_json_field "${result}" '.success' "true" "amend should succeed"
+
+(
+	cd "${REPO12}"
+	echo "extra" >extra.txt
+	git add extra.txt
+	git commit -m "Extra commit after git-hex op" >/dev/null
+
+	# Simulate an older backup: remove recorded last-head refs used for safety checks.
+	while IFS= read -r ref; do
+		[ -n "${ref}" ] || continue
+		git update-ref -d "${ref}" >/dev/null 2>&1 || true
+	done < <(git for-each-ref --format='%(refname)' refs/git-hex/last-head/ 2>/dev/null || true)
+
+	# Simulate missing reflogs: remove HEAD and branch logs.
+	rm -f .git/logs/HEAD .git/logs/refs/heads/* 2>/dev/null || true
+)
+
+run_tool_expect_fail_message_contains \
+	git-hex-undoLast \
+	"${REPO12}" \
+	'{}' \
+	"reflogs are unavailable" \
+	"undoLast should refuse when it cannot safely verify extra commits without force=true"
+test_pass "undo-last refuses when safety cannot be verified"
+
 echo ""
 echo "All git-hex-undoLast tests passed!"

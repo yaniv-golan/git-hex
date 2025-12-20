@@ -250,6 +250,48 @@ else
 fi
 
 # ============================================================
+# TEST: cherry-pick-single rejects merge commits (requires -m)
+# ============================================================
+printf ' -> cherry-pick-single rejects merge commits\n'
+
+REPO_MERGE_COMMIT="${TEST_TMPDIR}/pick-merge-commit"
+mkdir -p "${REPO_MERGE_COMMIT}"
+tmp_merge_hash="$(mktemp "${TEST_TMPDIR}/merge_hash.XXXXXX")"
+(
+	cd "${REPO_MERGE_COMMIT}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test"
+	git config commit.gpgsign false
+
+	echo "base" >base.txt
+	git add base.txt && git commit -m "Base" >/dev/null
+
+	git checkout -b feature >/dev/null 2>&1
+	echo "feature" >feature.txt
+	git add feature.txt && git commit -m "Feature" >/dev/null
+
+	git checkout main >/dev/null 2>&1
+	echo "main" >main.txt
+	git add main.txt && git commit -m "Main" >/dev/null
+
+	git merge --no-ff feature -m "Merge feature" >/dev/null 2>&1
+	merge_hash="$(git rev-parse HEAD)"
+	echo "${merge_hash}" >"${tmp_merge_hash}"
+)
+
+merge_hash="$(cat "${tmp_merge_hash}")"
+rm -f "${tmp_merge_hash}"
+
+run_tool_expect_fail_message_contains \
+	git-hex-cherryPickSingle \
+	"${REPO_MERGE_COMMIT}" \
+	"{\"commit\": \"${merge_hash}\"}" \
+	"merge commits" \
+	"cherryPickSingle should reject merge commits with a helpful message"
+test_pass "cherry-pick-single rejects merge commits"
+
+# ============================================================
 # TEST: cherry-pick-single handles empty commit (already applied)
 # ============================================================
 printf ' -> cherry-pick-single handles empty commit (changes already exist)\n'

@@ -277,6 +277,33 @@ create_branch_scenario() {
 	)
 }
 
+create_file_directory_conflict_scenario() {
+	local repo_dir="$1"
+
+	mkdir -p "${repo_dir}"
+	(
+		cd "${repo_dir}"
+		git init --initial-branch=main
+		_configure_test_repo
+
+		echo "base" >path
+		git add path && git commit -m "Base"
+
+		git checkout -b feature
+		git rm -f -- path >/dev/null 2>&1
+		mkdir -p path
+		echo "feature" >path/child
+		git add path/child
+		git commit -m "File to dir"
+
+		git checkout main
+		echo "main" >path
+		git add path && git commit -m "Modify file"
+
+		git checkout feature >/dev/null 2>&1
+	)
+}
+
 # Create repo with binary file conflict
 create_binary_conflict_scenario() {
 	local repo_dir="$1"

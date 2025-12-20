@@ -188,5 +188,48 @@ assert_eq  "deleted_by_us" "${file_conflict_type}" "image.png should be a delete
 test_pass  "binary delete conflict isBinary detected"
 ( cd "${REPO_BIN_DELETE}" && git merge --abort >/dev/null 2>&1) || true
 
+# HV-08: git am conflict (rebase-apply) is detected by getConflictStatus (original-commit may be missing)
+printf  ' -> HV-08 git am conflict detected by getConflictStatus\n'
+REPO_AM_SRC="${TEST_TMPDIR}/am-src"
+REPO_AM_DST="${TEST_TMPDIR}/am-dst"
+mkdir  -p "${REPO_AM_SRC}" "${REPO_AM_DST}"
+(
+	cd "${REPO_AM_SRC}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "one" >f.txt
+	git add f.txt && git commit -m "Base" >/dev/null
+	echo "from-src" >f.txt
+	git add f.txt && git commit -m "Change" >/dev/null
+	git format-patch -1 HEAD --stdout >"${TEST_TMPDIR}/am-change.patch"
+)
+(
+	cd "${REPO_AM_DST}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "one" >f.txt
+	git add f.txt && git commit -m "Base" >/dev/null
+	echo "from-dst" >f.txt
+	git add f.txt && git commit -m "Other change" >/dev/null
+	git am "${TEST_TMPDIR}/am-change.patch" >/dev/null 2>&1 || true
+	if [ ! -d ".git/rebase-apply" ]; then
+		echo "WARNING: expected rebase-apply not found; git am did not enter conflict state" >&2
+		exit 1
+	fi
+)
+am_status="$( run_tool git-hex-getConflictStatus "${REPO_AM_DST}" '{"includeContent": false}')"
+assert_json_field  "${am_status}" '.inConflict' "true" "repo should be in conflict after git am"
+assert_json_field  "${am_status}" '.conflictType' "rebase" "conflictType should be rebase for rebase-apply state"
+has_conflicting_commit_field="$( printf '%s' "${am_status}" | jq -r 'has("conflictingCommit") | tostring')"
+assert_eq  "true" "${has_conflicting_commit_field}" "conflictingCommit field should exist (may be empty)"
+test_pass  "git am conflict detected"
+( cd "${REPO_AM_DST}" && git am --abort >/dev/null 2>&1) || true
+
 echo  ""
 echo  "High-value adversarial tests completed"

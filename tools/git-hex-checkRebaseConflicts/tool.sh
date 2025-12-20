@@ -49,6 +49,7 @@ total_commits="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/n
 current_tree="$(git -C "${repo_path}" rev-parse "${onto}^{tree}")"
 
 would_conflict="false"
+had_merge_tree_error="false"
 first_conflict_index=""
 first_conflict_hash=""
 commits_json="[]"
@@ -84,10 +85,29 @@ while IFS=$'\x1f' read -r commit parents subject; do
 		parent="$(git -C "${repo_path}" hash-object -t tree /dev/null)"
 	fi
 
-	result="$(git -C "${repo_path}" merge-tree --write-tree --merge-base="${parent}" "${current_tree}" "${commit}" 2>&1 || true)"
-	tree_sha="$(echo "${result}" | head -1)"
+	result=""
+	merge_exit=0
+	result="$(git -C "${repo_path}" merge-tree --write-tree --no-messages --merge-base="${parent}" "${current_tree}" "${commit}" 2>&1)" || merge_exit=$?
+	tree_sha="${result%%$'\n'*}"
 	has_conflict=""
-	if grep -qi "CONFLICT" <<<"${result}"; then
+	if [ "${merge_exit}" -eq 1 ]; then
+		has_conflict="true"
+	elif [ "${merge_exit}" -ne 0 ]; then
+		had_merge_tree_error="true"
+		would_conflict="true"
+		if [ -z "${first_conflict_index}" ]; then
+			first_conflict_index="${commit_index}"
+			first_conflict_hash="${commit}"
+		fi
+		# shellcheck disable=SC2016
+		commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+			--arg hash "${commit}" \
+			--arg subject "${subject}" \
+			'{hash: $hash, subject: $subject, prediction: "unknown"}')"
+		# shellcheck disable=SC2016
+		commits_json="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+		continue
+	elif grep -qi "CONFLICT" <<<"${result}"; then
 		has_conflict="true"
 	fi
 	if [ -z "${has_conflict}" ] && [ -n "${tree_sha}" ]; then
@@ -126,7 +146,11 @@ while IFS=$'\x1f' read -r commit parents subject; do
 	commits_json="$(printf '%s' "${commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
 done <<<"${commit_stream}"
 
-if [ "${would_conflict}" = "true" ]; then
+confidence="estimate"
+if [ "${had_merge_tree_error}" = "true" ]; then
+	confidence="unknown"
+	summary="Unable to fully predict rebase conflicts (merge-tree error at commit ${first_conflict_index}/${total_commits} (${first_conflict_hash:0:7})); treating as wouldConflict=true"
+elif [ "${would_conflict}" = "true" ]; then
 	summary="Rebase would conflict at commit ${first_conflict_index}/${total_commits} (${first_conflict_hash:0:7})"
 elif [ "${limit_exceeded}" = "true" ]; then
 	summary="Checked first ${max_commits} of ${total_commits} commits - no conflicts found in checked range"
@@ -137,6 +161,7 @@ fi
 # shellcheck disable=SC2016
 mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson wouldConflict "${would_conflict}" \
+	--arg confidence "${confidence}" \
 	--argjson commits "${commits_json}" \
 	--argjson limitExceeded "${limit_exceeded}" \
 	--argjson totalCommits "${total_commits}" \
@@ -145,7 +170,7 @@ mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	'{
 		success: true,
 		wouldConflict: $wouldConflict,
-		confidence: "estimate",
+		confidence: $confidence,
 		commits: $commits,
 		limitExceeded: $limitExceeded,
 		totalCommits: $totalCommits,

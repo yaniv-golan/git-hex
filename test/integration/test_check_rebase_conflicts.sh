@@ -31,6 +31,16 @@ result_conflict="$(run_tool git-hex-checkRebaseConflicts "${REPO_CONFLICT}" '{"o
 assert_json_field "${result_conflict}" '.wouldConflict' "true" "should predict conflict"
 test_pass "conflict predicted"
 
+# CHK-05: File/directory conflicts (no conflict markers) are predicted via merge-tree exit status
+printf ' -> CHK-05 predicts file/directory conflict via merge-tree exit status\n'
+REPO_FILE_DIR="${TEST_TMPDIR}/check-file-dir"
+create_file_directory_conflict_scenario "${REPO_FILE_DIR}"
+result_file_dir="$(run_tool git-hex-checkRebaseConflicts "${REPO_FILE_DIR}" '{"onto": "main"}')"
+assert_json_field "${result_file_dir}" '.wouldConflict' "true" "should predict file/directory conflict"
+first_pred="$(printf '%s' "${result_file_dir}" | jq -r '.commits[0].prediction')"
+assert_eq "conflict" "${first_pred}" "first commit should be predicted conflict"
+test_pass "file/directory conflict predicted"
+
 # CHK-03/04: First conflict identified, subsequent unknown
 printf ' -> CHK-03 first conflict identified, later unknown\n'
 REPO_MULTI="${TEST_TMPDIR}/check-multi"

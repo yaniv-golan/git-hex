@@ -44,7 +44,7 @@ if  [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
 	if [ -f "${rebase_merge_dir}/stopped-sha" ]; then
 		conflicting_commit="$(<"${rebase_merge_dir}/stopped-sha")"
 	fi
-elif  [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
+elif   [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
 	conflict_type="rebase"
 	if [ -f "${rebase_apply_dir}/next" ]; then
 		current_step="$(<"${rebase_apply_dir}/next")"
@@ -55,11 +55,18 @@ elif  [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
 	# Prefer original-commit for rebase-apply when available.
 	if [ -f "${rebase_apply_dir}/original-commit" ]; then
 		conflicting_commit="$(<"${rebase_apply_dir}/original-commit")"
+	elif [ -f "${rebase_apply_dir}/patch" ]; then
+		# Best-effort fallback: some rebase-apply flows may not have original-commit.
+		# If the patch is in mailbox format, it may include a "From <sha> ..." header.
+		patch_sha="$(LC_ALL=C awk '$1=="From" && $2 ~ /^[0-9a-f]{40}$/ {print $2; exit}' "${rebase_apply_dir}/patch" 2>/dev/null || true)"
+		if [ -n "${patch_sha}" ]; then
+			conflicting_commit="$(git -C "${repo_path}" rev-parse --verify "${patch_sha}^{commit}" 2>/dev/null || echo "")"
+		fi
 	fi
-elif   [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
+elif    [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	conflict_type="cherry-pick"
 	conflicting_commit="$(<"${cherry_pick_head_path}")"
-elif   [ -n "${revert_head_path}" ] && [ -f "${revert_head_path}" ]; then
+elif    [ -n "${revert_head_path}" ] && [ -f "${revert_head_path}" ]; then
 	conflict_type="revert"
 	conflicting_commit="$(<"${revert_head_path}")"
 elif   [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then

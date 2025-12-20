@@ -117,6 +117,8 @@ Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktre
 
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 
+`confidence` is `"estimate"` when predictions were computed normally; it is `"unknown"` when `merge-tree` errors for a commit, in which case the tool fails safe by reporting `wouldConflict=true`.
+
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
@@ -254,6 +256,19 @@ Continue a paused rebase/merge/cherry-pick after resolving conflicts.
 ```
 
 On failure, `success` is false and an `error` string may be included.
+
+**Example (failure with error):**
+```json
+{
+  "success": false,
+  "operationType": "rebase",
+  "completed": false,
+  "paused": false,
+  "conflictingFiles": [],
+  "error": "Failed to continue rebase (no conflicts detected). <details>",
+  "summary": "Failed to continue rebase (no conflicts detected). <details>"
+}
+```
 
 ### git-hex-abortOperation
 

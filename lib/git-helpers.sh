@@ -135,47 +135,48 @@ git_hex_is_shallow_repo() {
 git_hex_is_safe_repo_relative_path() {
 	local path="$1"
 
-	local orig_len clean_len
-	orig_len="$(printf '%s' "${path}" | LC_ALL=C wc -c | tr -d ' ')"
-	clean_len="$(printf '%s' "${path}" | LC_ALL=C tr -d '\0' | wc -c | tr -d ' ')"
-	if [ "${orig_len}" -ne "${clean_len}" ]; then
-		return 1
-	fi
-	if [[ "${path}" == /* ]]; then
-		return 1
-	fi
-	# Reject traversal segments, but allow filenames that merely start with ".." (e.g., "dir/..backup").
-	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/../"* || "${path}" == */.. ]]; then
-		return 1
-	fi
-	case "${path}" in
-	[A-Za-z]:/* | [A-Za-z]:\\*)
-		return 1
-		;;
-	esac
-	return 0
+	_git_hex_repo_relative_path_error_reason "${path}" >/dev/null 2>&1
 }
 
-git_hex_require_safe_repo_relative_path() {
+_git_hex_repo_relative_path_error_reason() {
 	local path="$1"
 
 	local orig_len clean_len
 	orig_len="$(printf '%s' "${path}" | LC_ALL=C wc -c | tr -d ' ')"
 	clean_len="$(printf '%s' "${path}" | LC_ALL=C tr -d '\0' | wc -c | tr -d ' ')"
 	if [ "${orig_len}" -ne "${clean_len}" ]; then
-		mcp_fail_invalid_args "Null bytes are not allowed in paths"
+		printf 'null_bytes\n'
+		return 1
 	fi
 	if [[ "${path}" == /* ]]; then
-		mcp_fail_invalid_args "Absolute paths are not allowed"
+		printf 'absolute\n'
+		return 1
 	fi
 	# Reject traversal segments, but allow filenames that merely start with ".." (e.g., "dir/..backup").
 	if [[ "${path}" == "../"* || "${path}" == ".." || "${path}" == *"/../"* || "${path}" == */.. ]]; then
-		mcp_fail_invalid_args "Path traversal is not allowed"
+		printf 'traversal\n'
+		return 1
 	fi
-	# Reject Windows-style drive letter paths to avoid ambiguity
 	case "${path}" in
 	[A-Za-z]:/* | [A-Za-z]:\\*)
-		mcp_fail_invalid_args "Drive-letter paths are not allowed; use repo-relative POSIX paths"
+		printf 'drive_letter\n'
+		return 1
 		;;
+	esac
+	printf '\n'
+	return 0
+}
+
+git_hex_require_safe_repo_relative_path() {
+	local path="$1"
+
+	reason="$(_git_hex_repo_relative_path_error_reason "${path}")"
+	case "${reason}" in
+	null_bytes) mcp_fail_invalid_args "Null bytes are not allowed in paths" ;;
+	absolute) mcp_fail_invalid_args "Absolute paths are not allowed" ;;
+	traversal) mcp_fail_invalid_args "Path traversal is not allowed" ;;
+	drive_letter) mcp_fail_invalid_args "Drive-letter paths are not allowed; use repo-relative POSIX paths" ;;
+	"") return 0 ;;
+	*) mcp_fail_invalid_args "Invalid path" ;;
 	esac
 }

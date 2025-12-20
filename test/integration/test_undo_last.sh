@@ -217,6 +217,48 @@ assert_ne "${first_head}" "${restored_head}" "should NOT restore to state before
 test_pass "undo-last only undoes the last operation"
 
 # ============================================================
+# TEST: undo-last refuses to overwrite untracked file by default
+# ============================================================
+printf ' -> undo-last refuses to overwrite untracked file by default\n'
+
+REPO_UNTRACKED="${TEST_TMPDIR}/undo-untracked-overwrite"
+mkdir -p "${REPO_UNTRACKED}"
+(
+	cd "${REPO_UNTRACKED}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test"
+	git config commit.gpgsign false
+
+	echo "tracked" >a.txt
+	echo "keep" >keep.txt
+	git add a.txt keep.txt
+	git commit -m "Add a.txt" >/dev/null
+
+	# Stage deletion and amend the last commit via git-hex (creates backup at commit-with-a.txt).
+	git rm -f -- a.txt >/dev/null 2>&1
+)
+
+result_untracked="$(run_tool git-hex-amendLastCommit "${REPO_UNTRACKED}" '{"message":"Remove a.txt"}')"
+assert_json_field "${result_untracked}" '.success' "true" "amend should succeed"
+
+# Create an untracked file at the same path that exists in the backup state.
+echo "untracked" >"${REPO_UNTRACKED}/a.txt"
+
+run_tool_expect_fail_message_contains \
+	git-hex-undoLast "${REPO_UNTRACKED}" '{"force": false}' \
+	"untracked file" \
+	"undoLast should refuse to overwrite untracked files by default"
+test_pass "undo-last refuses untracked overwrite by default"
+
+# With force=true, undo proceeds (may overwrite untracked file).
+result_force="$(run_tool git-hex-undoLast "${REPO_UNTRACKED}" '{"force": true}')"
+assert_json_field "${result_force}" '.success' "true" "undo with force should succeed"
+content_after_force="$(cat "${REPO_UNTRACKED}/a.txt" 2>/dev/null || echo "")"
+assert_eq "tracked" "${content_after_force}" "force undo should restore tracked file content (overwriting untracked)"
+test_pass "undo-last can proceed with force=true"
+
+# ============================================================
 # TEST: double undo fails (no backup after first undo)
 # ============================================================
 printf ' -> double undo fails after first undo\n'

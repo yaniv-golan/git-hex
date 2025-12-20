@@ -375,6 +375,10 @@ rm -f "${tmp_cherry_hash9}"
 result9="$(run_tool git-hex-cherryPickSingle "${REPO9}" "{\"commit\": \"${cherry_hash9}\", \"abortOnConflict\": false}")" || true
 paused_val="$(printf '%s' "${result9}" | jq -r '.paused // empty')"
 if [ "${paused_val}" = "true" ]; then
+	commit_msg="$(printf '%s' "${result9}" | jq -r '.commitMessage // empty')"
+	if [ -z "${commit_msg}" ]; then
+		test_fail "paused cherry-pick should include commitMessage"
+	fi
 	# Verify repo is in cherry-pick state
 	if [ -f "${REPO9}/.git/CHERRY_PICK_HEAD" ]; then
 		test_pass "cherry-pick-single pauses on conflict with abortOnConflict=false"

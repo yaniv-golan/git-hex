@@ -92,12 +92,36 @@ if [ -z "${original_files}" ]; then
 	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
 fi
 
+# Read original files as NUL-delimited list for newline-safe comparisons.
+original_files_arr=()
+while IFS= read -r -d '' f; do
+	[ -n "${f}" ] || continue
+	original_files_arr+=("${f}")
+done < <(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r -z "${full_commit}" -- 2>/dev/null || true)
+
+if [ "${#original_files_arr[@]}" -eq 0 ]; then
+	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
+fi
+
+array_contains() {
+	local needle="$1"
+	shift
+	local item
+	for item in "$@"; do
+		if [ "${item}" = "${needle}" ]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 # Validate coverage
-covered_files=""
+covered_files_arr=()
 for ((i = 0; i < split_count; i++)); do
-	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	split_files_json="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -c ".[$i].files // []" 2>/dev/null || echo "[]")"
 	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
-	if [ -z "${split_files}" ]; then
+	split_files_len="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+	if [ "${split_files_len}" -eq 0 ]; then
 		mcp_fail_invalid_args "Split $((i + 1)) has no files"
 	fi
 	case "${message}" in
@@ -105,24 +129,25 @@ for ((i = 0; i < split_count; i++)); do
 		mcp_fail_invalid_args "Split message cannot contain TAB or newline"
 		;;
 	esac
-	while IFS= read -r file; do
+	while IFS= read -r -d '' file; do
 		[ -z "${file}" ] && continue
-		if ! printf '%s\n' "${original_files}" | grep -Fqx -- "${file}"; then
+		git_hex_require_safe_repo_relative_path "${file}"
+		if ! array_contains "${file}" "${original_files_arr[@]}"; then
 			mcp_fail_invalid_args "File '${file}' not in original commit"
 		fi
-		if printf '%s\n' "${covered_files}" | grep -Fqx -- "${file}"; then
+		if array_contains "${file}" "${covered_files_arr[@]}"; then
 			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
 		fi
-		covered_files="${covered_files}${file}"$'\n'
-	done <<<"${split_files}"
+		covered_files_arr+=("${file}")
+	done < <(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -j '.[]? + "\u0000"')
 done
 
-while IFS= read -r file; do
+for file in "${original_files_arr[@]}"; do
 	[ -z "${file}" ] && continue
-	if ! printf '%s\n' "${covered_files}" | grep -Fqx -- "${file}"; then
+	if ! array_contains "${file}" "${covered_files_arr[@]}"; then
 		mcp_fail_invalid_args "File '${file}' from original commit not assigned to any split"
 	fi
-done <<<"${original_files}"
+done
 
 # Handle auto-stash
 stash_created="false"
@@ -209,14 +234,15 @@ git -C "${repo_path}" reset HEAD >/dev/null 2>&1
 
 new_commits_json="[]"
 for ((i = 0; i < split_count; i++)); do
-	split_files="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files[]?" 2>/dev/null || true)"
+	split_files_json="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -c ".[$i].files // []" 2>/dev/null || echo "[]")"
 	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	msg_file="${msg_dir}/msg_${i}.txt"
 	printf '%s\n' "${message}" >"${msg_file}"
-	while IFS= read -r file; do
+	while IFS= read -r -d '' file; do
 		[ -z "${file}" ] && continue
+		git_hex_require_safe_repo_relative_path "${file}"
 		git -C "${repo_path}" add -- "${file}"
-	done <<<"${split_files}"
+	done < <(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -j '.[]? + "\u0000"')
 	commit_error=""
 	if [ "${sign_commits}" = "true" ]; then
 		if ! commit_error="$(git -C "${repo_path}" commit -F "${msg_file}" 2>&1)"; then
@@ -230,7 +256,7 @@ for ((i = 0; i < split_count; i++)); do
 		fi
 	fi
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
-	files_json="$(printf '%s' "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"
+	files_json="${split_files_json}"
 	# shellcheck disable=SC2016
 	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg hash "${new_hash}" \

@@ -196,9 +196,10 @@ else
 				--arg headAfter "${head_after_pause}" \
 				--arg sourceCommit "${source_hash}" \
 				--arg backupRef "${backup_ref}" \
+				--arg commitMessage "${source_subject}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
-				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, commitMessage: $commitMessage, conflictingFiles: $conflictingFiles, summary: $summary}')"
 		else
 			git_dir="$(git_hex_get_git_dir "${repo_path}")"
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"

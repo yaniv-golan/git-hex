@@ -15,7 +15,7 @@
       },
       "force": {
         "type": "boolean",
-        "description": "Allow undo even if new commits exist after the backup (those commits will be lost)"
+        "description": "Allow undo even if new commits exist after the backup (those commits will be lost) and allow overwriting untracked files that collide with tracked paths in the backup state"
       }
     }
   },

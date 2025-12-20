@@ -44,6 +44,45 @@ assert_contains "${new_messages}" "First part" "new commits should include first
 assert_contains "${new_messages}" "Second part" "new commits should include second split message"
 test_pass "splitCommit created two commits"
 
+# SPLIT-02: Split commit with newline filename
+printf ' -> SPLIT-02 split commit containing newline filename\n'
+REPO_SPLIT_NL="${TEST_TMPDIR}/split-newline"
+mkdir -p "${REPO_SPLIT_NL}"
+(
+	cd "${REPO_SPLIT_NL}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "base" >base.txt
+	git add base.txt
+	git commit -m "Base" >/dev/null
+
+	nl_name="line1"$'\n'"line2.txt"
+	printf 'newline file\n' >"${nl_name}"
+	echo "normal" >normal.txt
+	git add -- "${nl_name}" normal.txt
+	git commit -m "Commit with newline file" >/dev/null
+
+	echo "after" >after.txt
+	git add after.txt
+	git commit -m "After" >/dev/null
+)
+
+target_commit_nl="$(commit_to_split "${REPO_SPLIT_NL}")"
+nl_name="line1"$'\n'"line2.txt"
+args_nl="$(jq -n --arg c "${target_commit_nl}" --arg f "${nl_name}" '{
+  commit: $c,
+  splits: [
+    {files: [$f], message: "Newline file"},
+    {files: ["normal.txt"], message: "Normal file"}
+  ]
+}')"
+result_nl="$(run_tool git-hex-splitCommit "${REPO_SPLIT_NL}" "${args_nl}" 120)"
+assert_json_field "${result_nl}" '.success' "true" "splitCommit should support newline filenames"
+test_pass "splitCommit supports newline filename"
+
 # SPLIT-10: File not in original commit should fail
 printf ' -> SPLIT-10 file not in original commit rejected\n'
 REPO_INVALID_FILE="${TEST_TMPDIR}/split-invalid-file"

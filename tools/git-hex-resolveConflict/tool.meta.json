@@ -28,7 +28,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "file", "remainingConflicts"],
+    "required": ["success", "file", "remainingConflicts", "summary"],
     "properties": {
       "success": { "type": "boolean" },
       "file": { "type": "string" },

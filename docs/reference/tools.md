@@ -483,6 +483,8 @@ Undo the last git-hex operation by resetting to the backup ref.
 
 Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pick) automatically creates a backup ref before making changes. This tool restores the repository to that state.
 
+> **Safety note:** By default, `undoLast` refuses to run if the reset would overwrite an untracked file (e.g., you created an untracked file at a path that was tracked in the backup state). Re-run with `force=true` only if you are OK losing those untracked changes.
+
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|

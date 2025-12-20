@@ -34,6 +34,38 @@ if ! git -C "${repo_path}" diff --quiet -- 2>/dev/null || ! git -C "${repo_path}
 	mcp_fail_invalid_args "Repository has uncommitted changes. Please commit or stash them first."
 fi
 
+_git_hex_find_untracked_overwrites() {
+	local repo="$1"
+	local target_commit="$2"
+
+	local -a untracked_files
+	untracked_files=()
+	while IFS= read -r -d '' f; do
+		[ -n "${f}" ] || continue
+		untracked_files+=("${f}")
+	done < <(git -C "${repo}" ls-files -z --others --exclude-standard 2>/dev/null || true)
+
+	[ "${#untracked_files[@]}" -gt 0 ] || return 0
+
+	local -a overwrites
+	overwrites=()
+	while IFS= read -r -d '' tracked_path; do
+		[ -n "${tracked_path}" ] || continue
+		local u
+		for u in "${untracked_files[@]}"; do
+			if [ "${u}" = "${tracked_path}" ]; then
+				overwrites+=("${u}")
+				break
+			fi
+		done
+	done < <(git -C "${repo}" ls-tree -r -z --name-only "${target_commit}^{tree}" 2>/dev/null || true)
+
+	if [ "${#overwrites[@]}" -gt 0 ]; then
+		printf '%s\n' "${overwrites[@]}"
+	fi
+	return 0
+}
+
 # Get the last backup info
 backup_info="$(git_hex_get_last_backup "${repo_path}")"
 
@@ -92,6 +124,21 @@ if [ "${commits_since_backup}" -gt 0 ] && [ "${force}" = "false" ]; then
 		if [ "${prev_head}" != "${backup_hash}" ]; then
 			mcp_fail_invalid_args "Refusing to undo because there are ${commits_since_backup} commit(s) after the last git-hex operation. Re-run with force=true to discard them."
 		fi
+	fi
+fi
+
+# Safety: refuse to overwrite untracked files by default.
+# `git reset --hard` can overwrite an untracked file if the reset target has that path tracked.
+if [ "${force}" = "false" ]; then
+	untracked_overwrites="$(_git_hex_find_untracked_overwrites "${repo_path}" "${backup_hash}")"
+	if [ -n "${untracked_overwrites}" ]; then
+		# Keep the message compact; list up to 5 paths.
+		count="$(printf '%s\n' "${untracked_overwrites}" | wc -l | tr -d ' ')"
+		list="$(printf '%s\n' "${untracked_overwrites}" | head -n 5 | paste -sd ', ' -)"
+		if [ "${count}" -gt 5 ]; then
+			list="${list}, ..."
+		fi
+		mcp_fail_invalid_args "Refusing to undo because ${count} untracked file(s) would be overwritten: ${list}. Move/delete them or re-run with force=true to proceed."
 	fi
 fi
 

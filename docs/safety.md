@@ -24,10 +24,16 @@ export GIT_HEX_READ_ONLY=1
 
 In this mode:
 - ✅ `git-hex-getRebasePlan` — allowed (inspection only)
+- ✅ `git-hex-checkRebaseConflicts` — allowed (inspection only)
+- ✅ `git-hex-getConflictStatus` — allowed (inspection only)
 - ❌ `git-hex-rebaseWithPlan` — blocked
 - ❌ `git-hex-createFixup` — blocked
 - ❌ `git-hex-amendLastCommit` — blocked
 - ❌ `git-hex-cherryPickSingle` — blocked
+- ❌ `git-hex-splitCommit` — blocked
+- ❌ `git-hex-resolveConflict` — blocked
+- ❌ `git-hex-continueOperation` — blocked
+- ❌ `git-hex-abortOperation` — blocked
 - ❌ `git-hex-undoLast` — blocked
 
 Blocked tools return error code `-32602` with a clear message explaining that read-only mode is active.
@@ -53,7 +59,7 @@ git reset --hard HEAD@{2}
 
 ```bash
 git for-each-ref refs/git-hex/
-git reset --hard refs/git-hex/backup/<timestamp>_<operation>
+git reset --hard refs/git-hex/backup/<timestamp>_<operation>_<unique>
 ```
 
 ## When not to use git-hex

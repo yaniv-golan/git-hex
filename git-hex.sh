@@ -397,8 +397,8 @@ install_from_verified_archive() {
 	fi
 
 	if [ -z "${archive_url}" ]; then
-		# v0.7.0+: verification is published for the release tarball + SHA256SUMS.
-		archive_url="https://github.com/yaniv-golan/mcp-bash-framework/releases/download/${version}/mcp-bash-${version}.tar.gz"
+		# Default to the GitHub tag archive (always available for tags). Override via GIT_HEX_MCPBASH_ARCHIVE_URL if needed.
+		archive_url="https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/${version}.tar.gz"
 	fi
 
 	local tmp_archive

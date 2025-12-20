@@ -3,8 +3,8 @@ FROM debian:bookworm-slim
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
 ARG FRAMEWORK_VERSION=v0.8.0
-# SHA256 for the release tarball (see: https://github.com/yaniv-golan/mcp-bash-framework/releases)
-ARG FRAMEWORK_SHA256=488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d33761e8edb9be45349
+# SHA256 for the GitHub tag archive (https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/<version>.tar.gz)
+ARG FRAMEWORK_SHA256=a18118323a45d358c4b93feadfb0a29d5ed6f312e4c04a50f2da996ad48de558
 ENV XDG_DATA_HOME=/root/.local/share
 ENV PATH="/root/.local/bin:${PATH}"
 
@@ -17,14 +17,14 @@ COPY . /app
 
 WORKDIR /app
 
-# Prefer a vendored framework if present; otherwise install the pinned release tarball with verification.
+# Prefer a vendored framework if present; otherwise install the pinned tag archive tarball with verification.
 RUN set -euo pipefail; \
     mkdir -p "${XDG_DATA_HOME}" /root/.local/bin; \
     if [ -x "/app/mcp-bash-framework/bin/mcp-bash" ]; then \
         ln -snf "/app/mcp-bash-framework" "${XDG_DATA_HOME}/mcp-bash"; \
     else \
         tmp="/tmp/mcp-bash.tgz"; \
-        url="https://github.com/yaniv-golan/mcp-bash-framework/releases/download/${FRAMEWORK_VERSION}/mcp-bash-${FRAMEWORK_VERSION}.tar.gz"; \
+        url="https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/${FRAMEWORK_VERSION}.tar.gz"; \
         echo "Downloading mcp-bash framework ${FRAMEWORK_VERSION}..." >&2; \
         curl -fsSL "${url}" -o "${tmp}"; \
         echo "${FRAMEWORK_SHA256}  ${tmp}" | sha256sum -c - >/dev/null; \

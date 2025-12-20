@@ -80,7 +80,7 @@ fi
 
 if [ -z "${MCP_BASH}" ]; then
 	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
-	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the published checksum for v0.8.0, then run ./git-hex.sh (it will download + verify the release tarball).\n" >&2
+	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the expected checksum for v0.8.0, then run ./git-hex.sh (it will download + verify the GitHub tag archive).\n" >&2
 	exit 1
 fi
 

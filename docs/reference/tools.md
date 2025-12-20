@@ -9,7 +9,7 @@ This is the per-tool API reference.
 Get a structured view of recent commits for rebase planning and inspection.
 
 > **Note:** The `count` parameter limits how many commits are returned. When `onto` is not specified, the tool uses the upstream tracking branch if available, otherwise defaults to `HEAD~count`. This means `count` affects both the display limit *and* the default commit range. To inspect a specific range, always provide an explicit `onto` value.
-> For single-commit repositories, the default base is the empty tree so the lone commit is included. To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
+> For single-commit repositories, the default base is the empty tree so the lone commit is included; the returned `onto` value is `(root)`. To avoid surprises when a branch has an upstream, set both `onto` (e.g., `main`) and `count` (for display only).
 
 **Parameters:**
 | Name | Type | Required | Description |

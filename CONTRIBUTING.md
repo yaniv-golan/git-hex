@@ -19,8 +19,8 @@ git clone https://github.com/yaniv-golan/git-hex.git
 cd git-hex
 
 # Install the mcp-bash framework (if not already installed)
-# v0.8.0 tarball SHA256 (from the mcp-bash-framework release SHA256SUMS).
-export GIT_HEX_MCPBASH_SHA256="488469bbc221b6eb9d16d6eec1d85cdd82f49ae128b30d33761e8edb9be45349"
+# v0.8.0 tag archive tarball SHA256 (https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.8.0.tar.gz).
+export GIT_HEX_MCPBASH_SHA256="a18118323a45d358c4b93feadfb0a29d5ed6f312e4c04a50f2da996ad48de558"
 ./git-hex.sh doctor --fix
 
 # Verify setup

@@ -31,6 +31,8 @@
     "required": [
       "success",
       "wouldConflict",
+      "confidence",
+      "commits",
       "limitExceeded",
       "totalCommits",
       "checkedCommits",
@@ -39,7 +41,7 @@
     "properties": {
       "success": { "type": "boolean" },
       "wouldConflict": { "type": "boolean" },
-      "confidence": { "type": "string" },
+      "confidence": { "type": "string", "enum": ["estimate", "unknown"] },
       "commits": {
         "type": "array",
         "items": {

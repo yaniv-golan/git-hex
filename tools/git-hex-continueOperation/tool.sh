@@ -12,6 +12,8 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../../lib/rebase-msg-dir.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/rebase-msg-dir.sh"
+# shellcheck source=../../lib/backup.sh disable=SC1091
+source "${SCRIPT_DIR}/../../lib/backup.sh"
 # shellcheck source=../../lib/git-helpers.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 
@@ -41,6 +43,22 @@ if  [ "${operation}" != "rebase" ] && [ "${operation}" != "cherry-pick" ] && [ "
 		'{success: $success, operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary, error: $error}')"
 	exit 0
 fi
+
+orig_head_before_continue=""
+case "${operation}" in
+rebase)
+	if [ -d "${git_dir}/rebase-merge" ] && [ -f "${git_dir}/rebase-merge/orig-head" ]; then
+		orig_head_before_continue="$(cat "${git_dir}/rebase-merge/orig-head" 2>/dev/null || true)"
+	elif [ -d "${git_dir}/rebase-apply" ] && [ -f "${git_dir}/rebase-apply/orig-head" ]; then
+		orig_head_before_continue="$(cat "${git_dir}/rebase-apply/orig-head" 2>/dev/null || true)"
+	else
+		orig_head_before_continue="$(git -C "${repo_path}" rev-parse --verify 'ORIG_HEAD^{commit}' 2>/dev/null || true)"
+	fi
+	;;
+cherry-pick | merge)
+	orig_head_before_continue="$(git -C "${repo_path}" rev-parse --verify 'ORIG_HEAD^{commit}' 2>/dev/null || true)"
+	;;
+esac
 
 status="true"
 completed="false"
@@ -108,6 +126,33 @@ else
 			status="false"
 			error_msg="${merge_err%%$'\n'*}"
 			summary="Failed to continue merge (no conflicts detected). ${error_msg}"
+		fi
+	fi
+fi
+
+if [ "${completed}" = "true" ] && [ "${status}" = "true" ]; then
+	backup_info="$(git_hex_get_last_backup "${repo_path}")"
+	if [ -n "${backup_info}" ]; then
+		IFS='|' read -r backup_hash backup_operation _backup_timestamp _backup_ref <<<"${backup_info}"
+		should_record="false"
+		case "${operation}" in
+		rebase)
+			case "${backup_operation}" in
+			rebaseWithPlan | splitCommit) should_record="true" ;;
+			esac
+			;;
+		cherry-pick)
+			case "${backup_operation}" in
+			cherryPickSingle) should_record="true" ;;
+			esac
+			;;
+		esac
+
+		if [ "${should_record}" = "true" ] && [ -n "${backup_hash}" ] && [ -n "${orig_head_before_continue}" ] && [ "${backup_hash}" = "${orig_head_before_continue}" ]; then
+			head_after="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || true)"
+			if [ -n "${head_after}" ]; then
+				git_hex_record_last_head "${repo_path}" "${head_after}"
+			fi
 		fi
 	fi
 fi

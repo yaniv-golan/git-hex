@@ -67,6 +67,22 @@ else
 	test_fail "includeContent should include file contents"
 fi
 
+# CONF-21: Fallback binary detection (no working `file` command) treats newline-only files as text
+printf ' -> CONF-21 fallback binary detection treats newline-only files as text\n'
+REPO_FALLBACK_TEXT="${TEST_TMPDIR}/conflict-fallback-text"
+prepare_rebase_conflict "${REPO_FALLBACK_TEXT}"
+printf '\n\n' >"${REPO_FALLBACK_TEXT}/conflict.txt"
+NO_FILE_BIN="${TEST_TMPDIR}/no-file-bin"
+mkdir -p "${NO_FILE_BIN}"
+cat >"${NO_FILE_BIN}/file" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+chmod +x "${NO_FILE_BIN}/file"
+status_fallback="$(PATH="${NO_FILE_BIN}:${PATH}" run_tool git-hex-getConflictStatus "${REPO_FALLBACK_TEXT}" '{"includeContent": true, "maxContentSize": 200}')"
+assert_json_field "${status_fallback}" '.conflictingFiles[0].isBinary' "false" "newline-only conflict file should not be binary in fallback"
+test_pass "fallback binary detection treats newline-only files as text"
+
 # CONF-22: Binary file excluded from content
 printf ' -> CONF-22 binary file treated as binary\n'
 REPO_BINARY="${TEST_TMPDIR}/conflict-binary"
@@ -100,6 +116,17 @@ assert_json_field "${res_result}" '.remainingConflicts' "0" "all conflicts shoul
 cont_result="$(run_tool git-hex-continueOperation "${REPO_RESOLVE}" '{}')"
 assert_json_field "${cont_result}" '.completed' "true" "continueOperation should finish rebase"
 test_pass "resolveConflict + continueOperation completes rebase"
+
+# RESV-01b: resolveConflict rejects partially-resolved markers
+printf ' -> RESV-01b resolveConflict rejects leftover conflict markers\n'
+REPO_PARTIAL="${TEST_TMPDIR}/conflict-partial-markers"
+prepare_rebase_conflict "${REPO_PARTIAL}"
+printf 'resolved content\n=======\nleft\n>>>>>>> theirs\n' >"${REPO_PARTIAL}/conflict.txt"
+run_tool_expect_fail_message_contains \
+	git-hex-resolveConflict "${REPO_PARTIAL}" '{"file":"conflict.txt"}' \
+	"conflict markers" \
+	"resolveConflict should reject leftover conflict markers"
+test_pass "resolveConflict rejects files with remaining markers"
 
 # RESV-02/03: Resolve delete conflicts
 printf ' -> RESV-02 delete-by-us resolution\n'

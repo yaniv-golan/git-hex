@@ -207,6 +207,30 @@ else
 	test_fail "paused response should include backupRef"
 fi
 
+# RBC-02b: continueOperation records last-head for paused git-hex rebase
+printf  ' -> RBC-02b continueOperation records last-head after completion\n'
+backup_suffix_path="$(cd "${REPO_CONFLICT}" && git rev-parse --git-path git-hex-last-backup)"
+backup_suffix="$(cd "${REPO_CONFLICT}" && head -1 "${backup_suffix_path}" 2>/dev/null || true)"
+backup_suffix="$(printf '%s' "${backup_suffix}" | tr -d '\r\n')"
+if [ -z "${backup_suffix}" ]; then
+	test_fail "git-hex-last-backup suffix missing for paused rebase"
+fi
+
+echo "resolved content" >"${REPO_CONFLICT}/conflict.txt"
+res_result="$(run_tool git-hex-resolveConflict "${REPO_CONFLICT}" '{"file":"conflict.txt"}')"
+assert_json_field "${res_result}" '.remainingConflicts' "0" "all conflicts should be resolved"
+
+cont_result="$(run_tool git-hex-continueOperation "${REPO_CONFLICT}" '{}')"
+assert_json_field "${cont_result}" '.completed' "true" "continueOperation should finish paused rebase"
+
+head_after_continue="$(cd "${REPO_CONFLICT}" && git rev-parse HEAD)"
+recorded_head="$(cd "${REPO_CONFLICT}" && git rev-parse --verify "refs/git-hex/last-head/${backup_suffix}^{commit}" 2>/dev/null || echo "")"
+if [ -z "${recorded_head}" ]; then
+	test_fail "refs/git-hex/last-head/${backup_suffix} not recorded after continueOperation"
+fi
+assert_eq "${head_after_continue}" "${recorded_head}" "last-head should match HEAD after continueOperation"
+test_pass "continueOperation recorded last-head for paused rebase"
+
 # RBC-03: autoStash works with abortOnConflict=false (native)
 printf  ' -> RBC-03 autoStash works with abortOnConflict=false\n'
 REPO_AUTOSTASH="${TEST_TMPDIR}/rebase-autostash-native"

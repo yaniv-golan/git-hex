@@ -35,7 +35,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "headBefore", "headAfter", "stashNotRestored"],
+    "required": ["success", "headBefore", "headAfter", "backupRef", "summary", "commitMessage", "stashNotRestored"],
     "properties": {
       "success": {
         "type": "boolean",

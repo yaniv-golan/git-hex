@@ -21,6 +21,10 @@ git_hex_create_backup() {
 
 	local git_dir
 	git_dir="$(git -C "${repo_path}" rev-parse --git-dir)"
+	case "${git_dir}" in
+	/*) ;;
+	*) git_dir="${repo_path}/${git_dir}" ;;
+	esac
 
 	local timestamp
 	timestamp="$(date +%s)"
@@ -109,12 +113,22 @@ git_hex_get_last_backup() {
 	local timestamp=""
 	local operation=""
 	# Parse timestamp_operation_unique format using parameter expansion (more portable than regex)
-	if [[ "${ref_basename}" == *_* ]]; then
+	if [[ "${ref_basename}" == [0-9]*_* ]]; then
 		timestamp="${ref_basename%%_*}" # Everything before first underscore
+		timestamp="${timestamp%%[^0-9]*}"
 		local rest
 		rest="${ref_basename#*_}" # operation_unique
 		if [[ "${rest}" == *_* ]]; then
-			operation="${rest%_*}" # drop trailing _unique
+			local uniq
+			uniq="${rest##*_}"
+			case "${uniq}" in
+			"" | *[!0-9]*)
+				operation="${rest}"
+				;;
+			*)
+				operation="${rest%_*}" # drop trailing _unique
+				;;
+			esac
 		else
 			operation="${rest}"
 		fi
@@ -151,6 +165,10 @@ git_hex_record_last_head() {
 	else
 		local git_dir
 		git_dir="$(git -C "${repo_path}" rev-parse --git-dir 2>/dev/null || true)"
+		case "${git_dir}" in
+		/*) ;;
+		*) git_dir="${repo_path}/${git_dir}" ;;
+		esac
 		if [ -n "${git_dir}" ] && [ -f "${git_dir}/git-hex-last-backup" ]; then
 			suffix="$(head -1 "${git_dir}/git-hex-last-backup" 2>/dev/null | tr -d '\r\n')"
 		fi

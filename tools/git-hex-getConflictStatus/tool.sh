@@ -109,7 +109,12 @@ while  IFS= read -r -d '' file; do
 		fi
 
 		is_binary="false"
-		if command -v file >/dev/null 2>&1; then
+		use_file_cmd="false"
+		if command -v file >/dev/null 2>&1 && file -b --mime-encoding /dev/null >/dev/null 2>&1; then
+			use_file_cmd="true"
+		fi
+
+		if [ "${use_file_cmd}" = "true" ]; then
 			if [ -f "${repo_path}/${file}" ]; then
 				enc="$(file -b --mime-encoding "${repo_path}/${file}" 2>/dev/null || true)"
 			else
@@ -125,10 +130,15 @@ while  IFS= read -r -d '' file; do
 			binary | unknown*) is_binary="true" ;;
 			esac
 		else
+			sample_limit=8000
 			if [ -f "${repo_path}/${file}" ]; then
-				# Treat empty files as text (grep -I can misclassify empties).
-				if [ -s "${repo_path}/${file}" ] && ! grep -Iq . "${repo_path}/${file}" 2>/dev/null; then
-					is_binary="true"
+				# Treat empty files as text.
+				if [ -s "${repo_path}/${file}" ]; then
+					sample_size="$(LC_ALL=C head -c "${sample_limit}" "${repo_path}/${file}" 2>/dev/null | wc -c | tr -d ' ')"
+					sample_no_nul_size="$(LC_ALL=C head -c "${sample_limit}" "${repo_path}/${file}" 2>/dev/null | tr -d '\000' | wc -c | tr -d ' ')"
+					if [ -n "${sample_size}" ] && [ -n "${sample_no_nul_size}" ] && [ "${sample_size}" -ne "${sample_no_nul_size}" ]; then
+						is_binary="true"
+					fi
 				fi
 			else
 				stage_for_binary="2"
@@ -137,8 +147,12 @@ while  IFS= read -r -d '' file; do
 				"1,2,") stage_for_binary="2" ;;
 				esac
 				size_for_binary="$(git -C "${repo_path}" cat-file -s ":${stage_for_binary}:${file}" 2>/dev/null || echo "0")"
-				if [ "${size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | grep -Iq .; then
-					is_binary="true"
+				if [ "${size_for_binary}" -gt 0 ]; then
+					sample_size="$(git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | head -c "${sample_limit}" | wc -c | tr -d ' ')"
+					sample_no_nul_size="$(git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | head -c "${sample_limit}" | tr -d '\000' | wc -c | tr -d ' ')"
+					if [ -n "${sample_size}" ] && [ -n "${sample_no_nul_size}" ] && [ "${sample_size}" -ne "${sample_no_nul_size}" ]; then
+						is_binary="true"
+					fi
 				fi
 			fi
 		fi

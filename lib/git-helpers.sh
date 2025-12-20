@@ -103,13 +103,28 @@ git_hex_parse_git_version() {
 	git_version_raw="$(git --version | sed 's/git version //')"
 
 	local git_major git_minor
-	git_major="$(echo "${git_version_raw}" | cut -d. -f1)"
-	git_minor="$(echo "${git_version_raw}" | cut -d. -f2)"
+	git_major="$(printf '%s' "${git_version_raw}" | cut -d. -f1)"
+	git_minor="$(printf '%s' "${git_version_raw}" | cut -d. -f2)"
 	git_major="${git_major%%[^0-9]*}"
 	git_minor="${git_minor%%[^0-9]*}"
 	git_minor="${git_minor:-0}"
 
 	printf '%s\t%s\t%s\n' "${git_major}" "${git_minor}" "${git_version_raw}"
+}
+
+git_hex_fail_commit_error() {
+	local failure_prefix="$1"
+	local commit_error="${2:-}"
+	local extra_suffix="${3:-}"
+
+	if printf '%s' "${commit_error}" | grep -qi "gpg\\|signing\\|sign"; then
+		mcp_fail -32603 "${failure_prefix}: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable.${extra_suffix}"
+	elif printf '%s' "${commit_error}" | grep -qi "hook\\|pre-commit\\|commit-msg"; then
+		mcp_fail -32603 "${failure_prefix}: A git hook rejected the commit. Check your pre-commit or commit-msg hooks.${extra_suffix}"
+	else
+		local error_hint="${commit_error%%$'\n'*}"
+		mcp_fail -32603 "${failure_prefix}: ${error_hint}${extra_suffix}"
+	fi
 }
 
 git_hex_is_shallow_repo() {

@@ -43,7 +43,8 @@ if [ -f "${repo_path}/${file}" ]; then
 	if [ "${resolution}" = "delete" ]; then
 		git -C "${repo_path}" rm -f -- "${file}" >/dev/null 2>&1
 	else
-		if grep -q "^<<<<<<< " "${repo_path}/${file}" 2>/dev/null; then
+		# Detect all common conflict marker lines (including diff3's "|||||||").
+		if grep -qE '^(<<<<<<<|=======|>>>>>>>|[|]{7})' -- "${repo_path}/${file}" 2>/dev/null; then
 			mcp_fail_invalid_args "File still contains conflict markers. Please resolve all conflicts first."
 		fi
 		git -C "${repo_path}" add -- "${file}"

@@ -31,7 +31,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "headBefore", "headAfter"],
+    "required": ["success", "headBefore", "headAfter", "backupRef", "targetCommit", "summary", "commitMessage"],
     "properties": {
       "success": {
         "type": "boolean",

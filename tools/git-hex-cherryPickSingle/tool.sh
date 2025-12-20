@@ -211,9 +211,9 @@ else
 			fi
 			mcp_fail -32603 "Cherry-pick failed due to conflicts. Repository has been restored to original state."
 		fi
-	elif grep -qi "gpg\\|signing\\|sign" <<<"${pick_error}"; then
+	elif grep -qi "gpg\\|signing\\|sign\\|hook\\|pre-commit\\|commit-msg" <<<"${pick_error}"; then
 		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
-		mcp_fail -32603 "Cherry-pick failed: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
+		git_hex_fail_commit_error "Cherry-pick failed" "${pick_error}" " Repository has been restored to original state."
 	elif grep -qi "empty" <<<"${pick_error}"; then
 		[ "${auto_stash}" = "true" ] && stash_restore_attempted="true" && stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"
 		mcp_fail -32603 "Cherry-pick failed: The commit would be empty (changes already exist in HEAD)."

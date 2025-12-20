@@ -25,7 +25,7 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "plan_id", "commits", "onto", "branch"],
+    "required": ["success", "plan_id", "commits", "onto", "branch", "summary"],
     "properties": {
       "success": {
         "type": "boolean",

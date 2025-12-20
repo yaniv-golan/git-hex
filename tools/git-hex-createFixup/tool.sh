@@ -52,19 +52,6 @@ backup_ref="$( git_hex_create_backup "${repo_path}" "createFixup")"
 # Get the original commit's subject for the fixup message
 original_subject="$(git -C "${repo_path}" log -1 --format='%s' "${target_hash}" 2>/dev/null || true)"
 
-# Helper to handle commit errors with better messages
-handle_commit_error()   {
-	local commit_error="$1"
-	if grep -qi "gpg\\|signing\\|sign" <<<"${commit_error}"; then
-		mcp_fail -32603 "Failed to create fixup commit: GPG signing error. Check your signing configuration or use 'git config commit.gpgsign false' to disable."
-	elif grep -qi "hook\\|pre-commit\\|commit-msg" <<<"${commit_error}"; then
-		mcp_fail -32603 "Failed to create fixup commit: A git hook rejected the commit. Check your pre-commit or commit-msg hooks."
-	else
-		error_hint="${commit_error%%$'\n'*}"
-		mcp_fail -32603 "Failed to create fixup commit: ${error_hint}"
-	fi
-}
-
 # Create the fixup commit (capture stderr for better error messages)
 commit_error=""
 if [ -n "${extra_message}" ]; then
@@ -77,7 +64,7 @@ ${extra_message}"
 		commit_args+=("--no-gpg-sign")
 	fi
 	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
-		handle_commit_error "${commit_error}"
+		git_hex_fail_commit_error "Failed to create fixup commit" "${commit_error}"
 	fi
 else
 	# Use git's built-in fixup
@@ -86,7 +73,7 @@ else
 		commit_args+=("--no-gpg-sign")
 	fi
 	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
-		handle_commit_error "${commit_error}"
+		git_hex_fail_commit_error "Failed to create fixup commit" "${commit_error}"
 	fi
 fi
 # Echo output to stderr for logging

@@ -8,8 +8,16 @@ _git_hex_stash_message() {
 	date +%s
 }
 
+_git_hex_random_hex() {
+	if [ -r /dev/urandom ] && command -v od >/dev/null 2>&1; then
+		LC_ALL=C od -An -N8 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n'
+		return 0
+	fi
+	printf '%s' "${RANDOM:-0}${RANDOM:-0}${RANDOM:-0}"
+}
+
 _git_hex_stash_unique_token() {
-	printf '%s-%s-%s' "$(_git_hex_stash_message)" "$$" "${RANDOM:-0}"
+	printf '%s-%s-%s-%s' "$(_git_hex_stash_message)" "$$" "${RANDOM:-0}" "$(_git_hex_random_hex)"
 }
 
 # Determine whether the repo has uncommitted changes that should be stashed.
@@ -52,7 +60,7 @@ git_hex_auto_stash() {
 			[ -n "${oid}" ] || continue
 			[ -n "${name}" ] || continue
 			# Stash subjects typically look like "On <branch>: <message>".
-			if [ -n "${subj}" ] && [[ "${subj}" == *"${message}"* ]]; then
+			if [ -n "${subj}" ] && [[ "${subj}" == *": ${message}" ]]; then
 				stash_oid="${oid}"
 				stash_name="${name}"
 				break

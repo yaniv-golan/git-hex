@@ -56,13 +56,21 @@ elif [ -n "${unmerged}" ]; then
 		case "${stages}" in
 		"1,3,")
 			# deleted_by_us: restore theirs
-			git -C "${repo_path}" checkout --theirs -- "${file}" >/dev/null 2>&1 || true
-			git -C "${repo_path}" add -- "${file}"
+			if ! git -C "${repo_path}" checkout --theirs -- "${file}" >/dev/null 2>&1; then
+				mcp_fail -32603 "Failed to restore '${file}' from theirs - manual resolution required"
+			fi
+			if ! git -C "${repo_path}" add -- "${file}" >/dev/null 2>&1; then
+				mcp_fail -32603 "Failed to stage '${file}' after restore - manual resolution required"
+			fi
 			;;
 		"1,2,")
 			# deleted_by_them: restore ours
-			git -C "${repo_path}" checkout --ours -- "${file}" >/dev/null 2>&1 || true
-			git -C "${repo_path}" add -- "${file}"
+			if ! git -C "${repo_path}" checkout --ours -- "${file}" >/dev/null 2>&1; then
+				mcp_fail -32603 "Failed to restore '${file}' from ours - manual resolution required"
+			fi
+			if ! git -C "${repo_path}" add -- "${file}" >/dev/null 2>&1; then
+				mcp_fail -32603 "Failed to stage '${file}' after restore - manual resolution required"
+			fi
 			;;
 		*)
 			mcp_fail_invalid_args "Cannot keep file '${file}' - restore it manually or use resolution='delete'."

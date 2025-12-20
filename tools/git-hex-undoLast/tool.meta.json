@@ -37,7 +37,7 @@
       },
       "undoneOperation": {
         "type": "string",
-        "description": "Name of the operation that was undone"
+        "description": "Name of the operation that was undone (or \"unknown\")"
       },
       "backupRef": {
         "type": "string",

@@ -208,16 +208,67 @@ else
 fi
 
 # RBC-03: autoStash works with abortOnConflict=false (native)
-printf ' -> RBC-03 autoStash works with abortOnConflict=false\n'
+printf  ' -> RBC-03 autoStash works with abortOnConflict=false\n'
 REPO_AUTOSTASH="${TEST_TMPDIR}/rebase-autostash-native"
-create_dirty_repo "${REPO_AUTOSTASH}"
-result_autostash="$(run_tool git-hex-rebaseWithPlan "${REPO_AUTOSTASH}" '{"onto": "main", "abortOnConflict": false, "autoStash": true}')"
-assert_json_field "${result_autostash}" '.paused' "false" "rebase should complete without pause in clean scenario"
-if ! (cd "${REPO_AUTOSTASH}" && git diff --quiet); then
+create_dirty_repo  "${REPO_AUTOSTASH}"
+result_autostash="$( run_tool git-hex-rebaseWithPlan "${REPO_AUTOSTASH}" '{"onto": "main", "abortOnConflict": false, "autoStash": true}')"
+assert_json_field  "${result_autostash}" '.paused' "false" "rebase should complete without pause in clean scenario"
+if  ! (cd "${REPO_AUTOSTASH}" && git diff --quiet); then
 	test_pass "native autoStash restored working tree"
 else
 	test_fail "dirty changes should be restored after rebase"
 fi
 
-echo ""
-echo "rebaseWithPlan tests completed"
+# RBC-04: Output containing the word "conflict" does not imply a conflict pause (e.g., hooks)
+printf  ' -> RBC-04 output containing \"conflict\" is not misclassified as a conflict pause\n'
+REPO_FALSE_CONFLICT="${TEST_TMPDIR}/rebase-false-conflict-word"
+mkdir  -p "${REPO_FALSE_CONFLICT}"
+(
+	cd "${REPO_FALSE_CONFLICT}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "base a" >a.txt
+	echo "base b" >b.txt
+	git add a.txt b.txt
+	git commit -m "Base" >/dev/null
+
+	git checkout -b feature >/dev/null 2>&1
+	echo "feature change" >a.txt
+	git add a.txt
+	git commit -m "feat: word conflict in subject" >/dev/null
+
+	git checkout main >/dev/null 2>&1
+	echo "main change" >b.txt
+	git add b.txt
+	git commit -m "Main change" >/dev/null
+
+	git checkout feature >/dev/null 2>&1
+
+	mkdir -p .githooks
+	cat >.githooks/pre-rebase <<'EOF'
+#!/usr/bin/env bash
+echo "conflict: deny rebase (hook)" >&2
+exit 1
+EOF
+	chmod +x .githooks/pre-rebase
+	git config core.hooksPath .githooks
+)
+head_before_false_conflict="$( cd "${REPO_FALSE_CONFLICT}" && git rev-parse HEAD)"
+if  run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_FALSE_CONFLICT}" '{"onto":"main","abortOnConflict":false,"plan":[]}'; then
+	test_pass "non-conflict failure is not treated as conflict pause"
+else
+	test_fail "rebaseWithPlan should fail (not pause) even if output contains 'conflict'"
+fi
+if  [ -d "${REPO_FALSE_CONFLICT}/.git/rebase-merge" ] || [ -d "${REPO_FALSE_CONFLICT}/.git/rebase-apply" ]; then
+	test_fail "rebaseWithPlan should abort and not leave a paused rebase state on non-conflict failures"
+else
+	test_pass "non-conflict failure aborted cleanly"
+fi
+head_after_false_conflict="$( cd "${REPO_FALSE_CONFLICT}" && git rev-parse HEAD)"
+assert_eq  "${head_before_false_conflict}" "${head_after_false_conflict}" "HEAD should be restored after non-conflict rebase failure"
+
+echo  ""
+echo  "rebaseWithPlan tests completed"

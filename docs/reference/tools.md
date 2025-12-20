@@ -145,14 +145,14 @@ Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates
 
 ### Conflict Workflow
 
-- **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
+- **git-hex-getConflictStatus** — Detects whether a rebase/merge/cherry-pick/revert is paused, which files conflict, and optional base/ours/theirs content (`includeContent`, `maxContentSize`).
 - **git-hex-resolveConflict** — Marks a file as resolved (`resolution`: `keep` or `delete`, handles delete conflicts and paths with spaces).
 - **git-hex-continueOperation** — Runs `rebase --continue`, `cherry-pick --continue`, or `merge --continue`, returning `completed`/`paused` with conflicting files when paused.
 - **git-hex-abortOperation** — Aborts the in-progress rebase/merge/cherry-pick and restores the original state.
 
 ### git-hex-getConflictStatus
 
-Detect whether a rebase/merge/cherry-pick is paused, which files conflict, and (optionally) return per-file content.
+Detect whether a rebase/merge/cherry-pick/revert is paused, which files conflict, and (optionally) return per-file content.
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -474,3 +474,5 @@ Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pi
   "summary": "Undid cherryPickSingle from 2024-01-15 10:30:00. Reset 1 commit(s) from mno345 to def456"
 }
 ```
+
+`undoneOperation` may be `"unknown"` when git-hex cannot determine the originating operation for an older backup.

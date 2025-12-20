@@ -25,10 +25,11 @@ current_step=0
 total_steps=0
 conflicting_commit=""
 
-git_dir="$(git_hex_get_git_dir "${repo_path}")"
+git_dir="$( git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
 cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"
+revert_head_path="${git_dir}/REVERT_HEAD"
 merge_head_path="${git_dir}/MERGE_HEAD"
 rebase_head_path="${git_dir}/REBASE_HEAD"
 
@@ -55,10 +56,13 @@ elif  [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
 	if [ -f "${rebase_apply_dir}/original-commit" ]; then
 		conflicting_commit="$(<"${rebase_apply_dir}/original-commit")"
 	fi
-elif  [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
+elif   [ -n "${cherry_pick_head_path}" ] && [ -f "${cherry_pick_head_path}" ]; then
 	conflict_type="cherry-pick"
 	conflicting_commit="$(<"${cherry_pick_head_path}")"
-elif  [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
+elif   [ -n "${revert_head_path}" ] && [ -f "${revert_head_path}" ]; then
+	conflict_type="revert"
+	conflicting_commit="$(<"${revert_head_path}")"
+elif   [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
 	conflicting_commit="$(<"${merge_head_path}")"
 else
@@ -104,9 +108,14 @@ while  IFS= read -r -d '' file; do
 				is_binary="true"
 			fi
 		else
-			# Prefer checking the stage-2 blob (ours). Treat empty blob as text.
-			ours_size_for_binary="$(git -C "${repo_path}" cat-file -s ":2:${file}" 2>/dev/null || echo "0")"
-			if [ "${ours_size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":2:${file}" 2>/dev/null | grep -Iq .; then
+			# Prefer checking the stage-2 blob (ours). For delete conflicts, stage-2 may not exist; fall back to stage-3.
+			stage_for_binary="2"
+			case "${stages}" in
+			"1,3,") stage_for_binary="3" ;; # deleted_by_us -> check theirs
+			"1,2,") stage_for_binary="2" ;; # deleted_by_them -> check ours
+			esac
+			size_for_binary="$(git -C "${repo_path}" cat-file -s ":${stage_for_binary}:${file}" 2>/dev/null || echo "0")"
+			if [ "${size_for_binary}" -gt 0 ] && ! git -C "${repo_path}" cat-file -p ":${stage_for_binary}:${file}" 2>/dev/null | grep -Iq .; then
 				is_binary="true"
 			fi
 		fi

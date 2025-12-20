@@ -55,6 +55,12 @@ mkdir -p "${REPO_REVERT}"
 	fi
 )
 
+printf '    - getConflictStatus detects revert conflicts\n'
+revert_status="$(run_tool git-hex-getConflictStatus "${REPO_REVERT}" '{"includeContent": false}')"
+assert_json_field "${revert_status}" '.inConflict' "true" "should detect conflict"
+assert_json_field "${revert_status}" '.conflictType' "revert" "should report revert conflictType"
+test_pass "getConflictStatus detects revert"
+
 if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_REVERT}" '{"onto":"HEAD~1","plan":[]}'; then
 	test_pass "mutating tools blocked during revert"
 else
@@ -84,6 +90,53 @@ else
 	test_fail "tools should fail during bisect"
 fi
 (cd "${REPO_BISECT}" && git bisect reset >/dev/null 2>&1) || true
+
+# STATE-04: Paused cherry-pick blocks mutating tools
+printf ' -> STATE-04 paused cherry-pick blocks mutating tools\n'
+REPO_CHERRY_PICK="${TEST_TMPDIR}/paused-cherry-pick"
+create_conflict_scenario "${REPO_CHERRY_PICK}"
+(
+	cd "${REPO_CHERRY_PICK}"
+	main_tip="$(git rev-parse main)"
+	git cherry-pick "${main_tip}" >/dev/null 2>&1 || true
+	if [ ! -f ".git/CHERRY_PICK_HEAD" ]; then
+		echo "WARNING: expected CHERRY_PICK_HEAD not found; test fixture did not enter paused cherry-pick state" >&2
+		exit 1
+	fi
+)
+cherry_status="$(run_tool git-hex-getConflictStatus "${REPO_CHERRY_PICK}" '{"includeContent": false}')"
+assert_json_field "${cherry_status}" '.inConflict' "true" "should detect conflict"
+assert_json_field "${cherry_status}" '.conflictType' "cherry-pick" "should report cherry-pick conflictType"
+test_pass "getConflictStatus detects cherry-pick"
+if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_CHERRY_PICK}" '{"onto":"HEAD~1","plan":[]}'; then
+	test_pass "mutating tools blocked during cherry-pick"
+else
+	test_fail "tools should fail during cherry-pick"
+fi
+(cd "${REPO_CHERRY_PICK}" && git cherry-pick --abort >/dev/null 2>&1) || true
+
+# STATE-05: Paused merge blocks mutating tools
+printf ' -> STATE-05 paused merge blocks mutating tools\n'
+REPO_MERGE="${TEST_TMPDIR}/paused-merge"
+create_conflict_scenario "${REPO_MERGE}"
+(
+	cd "${REPO_MERGE}"
+	git merge main >/dev/null 2>&1 || true
+	if [ ! -f ".git/MERGE_HEAD" ]; then
+		echo "WARNING: expected MERGE_HEAD not found; test fixture did not enter paused merge state" >&2
+		exit 1
+	fi
+)
+merge_status="$(run_tool git-hex-getConflictStatus "${REPO_MERGE}" '{"includeContent": false}')"
+assert_json_field "${merge_status}" '.inConflict' "true" "should detect conflict"
+assert_json_field "${merge_status}" '.conflictType' "merge" "should report merge conflictType"
+test_pass "getConflictStatus detects merge"
+if run_tool_expect_fail git-hex-rebaseWithPlan "${REPO_MERGE}" '{"onto":"HEAD~1","plan":[]}'; then
+	test_pass "mutating tools blocked during merge"
+else
+	test_fail "tools should fail during merge"
+fi
+(cd "${REPO_MERGE}" && git merge --abort >/dev/null 2>&1) || true
 
 echo ""
 echo "Uncommon git state tests completed"

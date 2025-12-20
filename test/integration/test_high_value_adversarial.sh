@@ -127,5 +127,66 @@ EOF
 	test_pass "hook failure surfaced"
 fi
 
-echo ""
-echo "High-value adversarial tests completed"
+printf  ' -> HV-06 splitCommit fails (not silent) when hook rejects commit\n'
+if  is_windows; then
+	test_pass "splitCommit hook test skipped on Windows"
+else
+	REPO_SPLIT_HOOK="${TEST_TMPDIR}/split-hook-fail"
+	create_split_commit_scenario "${REPO_SPLIT_HOOK}" 2
+	target_commit="$(cd "${REPO_SPLIT_HOOK}" && git rev-list --reverse HEAD | sed -n '2p')"
+	(
+		cd "${REPO_SPLIT_HOOK}"
+		mkdir -p .githooks
+		cat >.githooks/pre-commit <<'EOF'
+#!/usr/bin/env bash
+echo "pre-commit: reject" >&2
+exit 1
+EOF
+		chmod +x .githooks/pre-commit
+		git config core.hooksPath .githooks
+	)
+	args_split="$(
+		cat <<JSON
+{
+  "commit": "${target_commit}",
+  "splits": [
+    { "files": ["file1.txt"], "message": "Part 1" },
+    { "files": ["file2.txt"], "message": "Part 2" }
+  ]
+}
+JSON
+	)"
+	run_tool_expect_fail_message_contains \
+		git-hex-splitCommit \
+		"${REPO_SPLIT_HOOK}" \
+		"${args_split}" \
+		"Failed to create split commit" \
+		"splitCommit should fail loudly when hook rejects commit"
+	test_pass "splitCommit hook failure surfaced"
+fi
+
+# HV-07: binary delete conflicts should still be detected as binary even if the working-copy file is missing
+printf  ' -> HV-07 binary delete conflict reports isBinary even when file missing\n'
+REPO_BIN_DELETE="${TEST_TMPDIR}/binary-delete-conflict"
+create_binary_delete_conflict_scenario  "${REPO_BIN_DELETE}"
+(
+	cd "${REPO_BIN_DELETE}"
+	git merge main >/dev/null 2>&1 || true
+	if [ ! -f ".git/MERGE_HEAD" ]; then
+		echo "WARNING: expected MERGE_HEAD not found; test fixture did not enter paused merge state" >&2
+		exit 1
+	fi
+	rm -f image.png 2>/dev/null || true
+)
+bin_delete_status="$( run_tool git-hex-getConflictStatus "${REPO_BIN_DELETE}" '{"includeContent": true, "maxContentSize": 1000}')"
+assert_json_field  "${bin_delete_status}" '.inConflict' "true" "repo should be in conflict"
+assert_json_field  "${bin_delete_status}" '.conflictType' "merge" "conflictType should be merge"
+is_binary="$( printf '%s' "${bin_delete_status}" | jq -r '.conflictingFiles[] | select(.path=="image.png") | .isBinary // empty')"
+assert_eq  "true" "${is_binary}" "image.png should be detected as binary even when missing from working copy"
+file_conflict_type="$( printf '%s' "${bin_delete_status}" | jq -r '.conflictingFiles[] | select(.path=="image.png") | .conflictType // empty')"
+assert_eq  "deleted_by_us" "${file_conflict_type}" "image.png should be a delete-by-us conflict"
+test_pass  "binary delete conflict isBinary detected"
+( cd "${REPO_BIN_DELETE}" && git merge --abort >/dev/null 2>&1) || true
+
+echo  ""
+echo  "High-value adversarial tests completed"

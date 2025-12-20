@@ -217,10 +217,17 @@ for ((i = 0; i < split_count; i++)); do
 		[ -z "${file}" ] && continue
 		git -C "${repo_path}" add -- "${file}"
 	done <<<"${split_files}"
+	commit_error=""
 	if [ "${sign_commits}" = "true" ]; then
-		git -C "${repo_path}" commit -F "${msg_file}" >/dev/null 2>&1
+		if ! commit_error="$(git -C "${repo_path}" commit -F "${msg_file}" 2>&1)"; then
+			error_hint="$(printf '%s\n' "${commit_error}" | head -1)"
+			mcp_fail -32603 "Failed to create split commit $((i + 1))/${split_count}: ${error_hint}"
+		fi
 	else
-		git -C "${repo_path}" commit --no-gpg-sign -F "${msg_file}" >/dev/null 2>&1
+		if ! commit_error="$(git -C "${repo_path}" commit --no-gpg-sign -F "${msg_file}" 2>&1)"; then
+			error_hint="$(printf '%s\n' "${commit_error}" | head -1)"
+			mcp_fail -32603 "Failed to create split commit $((i + 1))/${split_count}: ${error_hint}"
+		fi
 	fi
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
 	files_json="$(printf '%s' "${split_files}" | "${MCPBASH_JSON_TOOL_BIN}" -R -s 'split("\n") | map(select(length>0))')"

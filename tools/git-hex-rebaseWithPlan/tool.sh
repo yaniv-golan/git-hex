@@ -341,7 +341,21 @@ if [ "${rebase_status}" -eq 0 ]; then
 		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
 	exit 0
 else
-	if grep -qi "conflict" <<<"${rebase_output}"; then
+	rebase_merge_dir="$(git -C "${repo_path}" rev-parse --git-path rebase-merge 2>/dev/null || true)"
+	rebase_apply_dir="$(git -C "${repo_path}" rev-parse --git-path rebase-apply 2>/dev/null || true)"
+	rebase_in_progress="false"
+	if [ -n "${rebase_merge_dir}" ] && [ -d "${rebase_merge_dir}" ]; then
+		rebase_in_progress="true"
+	elif [ -n "${rebase_apply_dir}" ] && [ -d "${rebase_apply_dir}" ]; then
+		rebase_in_progress="true"
+	fi
+
+	has_unmerged="false"
+	if IFS= read -r -d '' _ < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true); then
+		has_unmerged="true"
+	fi
+
+	if [ "${has_unmerged}" = "true" ] || { [ "${rebase_in_progress}" = "true" ] && grep -qE '(^|\n)CONFLICT' <<<"${rebase_output}"; }; then
 		if [ "${abort_on_conflict}" = "false" ]; then
 			conflicting_json="[]"
 			# Use NUL-delimited output to avoid mis-parsing filenames containing newlines.

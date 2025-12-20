@@ -37,9 +37,14 @@ git_hex_create_backup() {
 
 	# Also update a "last" pointer that includes the operation name
 	# Format: refs/git-hex/last/<timestamp>_<operation>_<unique>
-	# First, delete any existing "last" refs
+	# Create the new "last" ref first so there is no window where no "last" ref exists.
+	last_ref="${GIT_HEX_REF_PREFIX}/last/${uniq_suffix}"
+	git -C "${repo_path}" update-ref "${last_ref}" "${head_hash}"
+
+	# Then, delete any other existing "last" refs
 	while IFS= read -r ref; do
 		[ -n "${ref}" ] || continue
+		[ "${ref}" = "${last_ref}" ] && continue
 		delete_err=""
 		if ! delete_err="$(git -C "${repo_path}" update-ref -d "${ref}" 2>&1)"; then
 			# Non-fatal, but important to surface (e.g., locked ref / permissions).
@@ -50,9 +55,6 @@ git_hex_create_backup() {
 			fi
 		fi
 	done < <(git -C "${repo_path}" for-each-ref --format='%(refname)' "${GIT_HEX_REF_PREFIX}/last/" 2>/dev/null || true)
-
-	# Create the new "last" ref with operation in the name
-	git -C "${repo_path}" update-ref "${GIT_HEX_REF_PREFIX}/last/${uniq_suffix}" "${head_hash}"
 
 	# Track the last backup ref for subsequent state recording
 	GIT_HEX_LAST_BACKUP_REF="git-hex/backup/${uniq_suffix}"

@@ -133,17 +133,15 @@ for ((i = 0; i < split_count; i++)); do
 		;;
 	esac
 
-	split_files_stream="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files // [] | (length|tostring), .[]" 2>/dev/null || printf '0\n')"
-	split_files_len="0"
-	line_index=0
-	while IFS= read -r file_line; do
-		if [ "${line_index}" -eq 0 ]; then
-			split_files_len="${file_line:-0}"
-			line_index=1
-			continue
-		fi
-
-		file="${file_line}"
+	split_files_json="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -c ".[$i].files // []" 2>/dev/null || echo "[]")"
+	split_files_len="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+	if [ "${split_files_len}" -eq 0 ]; then
+		mcp_fail_invalid_args "Split $((i + 1)) has no files"
+	fi
+	# Iterate files using JSON index (avoids process substitution issues on macOS CI)
+	file_count="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+	for ((j = 0; j < file_count; j++)); do
+		file="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$j]" 2>/dev/null || true)"
 		[ -z "${file}" ] && continue
 		git_hex_require_safe_repo_relative_path "${file}"
 		if ! array_contains "${file}" "${original_files_arr[@]}"; then
@@ -154,11 +152,7 @@ for ((i = 0; i < split_count; i++)); do
 			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
 		fi
 		covered_files_arr+=("${file}")
-	done <<<"${split_files_stream}"
-
-	if [ "${split_files_len}" -eq 0 ]; then
-		mcp_fail_invalid_args "Split $((i + 1)) has no files"
-	fi
+	done
 done
 
 for file in "${original_files_arr[@]}"; do

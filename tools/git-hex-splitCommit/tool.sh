@@ -126,21 +126,24 @@ array_contains() {
 # Validate coverage
 covered_files_arr=()
 for ((i = 0; i < split_count; i++)); do
-	split_files_json="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -c ".[$i].files // []" 2>/dev/null || echo "[]")"
-	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
-	split_files_len="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
-	if [ "${split_files_len}" -eq 0 ]; then
-		mcp_fail_invalid_args "Split $((i + 1)) has no files"
-	fi
+	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message // \"\"" 2>/dev/null || true)"
 	case "${message}" in
 	*$'\n'* | *$'\t'*)
 		mcp_fail_invalid_args "Split message cannot contain TAB or newline"
 		;;
 	esac
-	# Iterate files using JSON index (avoids process substitution issues on macOS CI)
-	file_count="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
-	for ((j = 0; j < file_count; j++)); do
-		file="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$j]" 2>/dev/null || true)"
+
+	split_files_stream="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].files // [] | (length|tostring), .[]" 2>/dev/null || printf '0\n')"
+	split_files_len="0"
+	line_index=0
+	while IFS= read -r file_line; do
+		if [ "${line_index}" -eq 0 ]; then
+			split_files_len="${file_line:-0}"
+			line_index=1
+			continue
+		fi
+
+		file="${file_line}"
 		[ -z "${file}" ] && continue
 		git_hex_require_safe_repo_relative_path "${file}"
 		if ! array_contains "${file}" "${original_files_arr[@]}"; then
@@ -151,7 +154,11 @@ for ((i = 0; i < split_count; i++)); do
 			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
 		fi
 		covered_files_arr+=("${file}")
-	done
+	done <<<"${split_files_stream}"
+
+	if [ "${split_files_len}" -eq 0 ]; then
+		mcp_fail_invalid_args "Split $((i + 1)) has no files"
+	fi
 done
 
 for file in "${original_files_arr[@]}"; do

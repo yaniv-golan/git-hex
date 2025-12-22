@@ -43,21 +43,21 @@ splits_type="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r 'typ
 if [ "${splits_type}" != "array" ]; then
 	mcp_fail_invalid_args "splits must be an array"
 fi
-auto_stash="$( mcp_args_bool '.autoStash' --default false)"
-sign_commits="$( mcp_args_bool '.signCommits' --default false)"
+auto_stash="$(mcp_args_bool '.autoStash' --default false)"
+sign_commits="$(mcp_args_bool '.signCommits' --default false)"
 
-git_hex_require_repo  "${repo_path}"
+git_hex_require_repo "${repo_path}"
 
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
 rebase_merge_dir="${git_dir}/rebase-merge"
 rebase_apply_dir="${git_dir}/rebase-apply"
-operation="$(  git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
+operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 case "${operation}" in
-rebase)  mcp_fail_invalid_args "Cannot split commit while rebase is in progress" ;;
-cherry-pick)  mcp_fail_invalid_args "Cannot split commit while cherry-pick is in progress" ;;
-revert)  mcp_fail_invalid_args "Cannot split commit while revert is in progress" ;;
-merge)  mcp_fail_invalid_args "Cannot split commit while merge is in progress" ;;
-bisect)  mcp_fail_invalid_args "Cannot split commit while bisect is in progress" ;;
+rebase) mcp_fail_invalid_args "Cannot split commit while rebase is in progress" ;;
+cherry-pick) mcp_fail_invalid_args "Cannot split commit while cherry-pick is in progress" ;;
+revert) mcp_fail_invalid_args "Cannot split commit while revert is in progress" ;;
+merge) mcp_fail_invalid_args "Cannot split commit while merge is in progress" ;;
+bisect) mcp_fail_invalid_args "Cannot split commit while bisect is in progress" ;;
 esac
 
 # Resolve commit
@@ -92,12 +92,16 @@ if [ -z "${original_files}" ]; then
 	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
 fi
 
-# Read original files as NUL-delimited list for newline-safe comparisons.
+# Read original files as JSON array (NUL-delimited, converted via jq).
+# Avoids process substitution and read -d '' which have macOS CI issues.
+original_files_json="$(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r -z "${full_commit}" -- 2>/dev/null | "${MCPBASH_JSON_TOOL_BIN}" -Rs 'split("\u0000") | map(select(length > 0))' 2>/dev/null || echo "[]")"
+original_files_count="$(printf '%s' "${original_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
 original_files_arr=()
-while IFS= read -r -d '' f; do
-	[ -n "${f}" ] || continue
+for ((i = 0; i < original_files_count; i++)); do
+	f="$(printf '%s' "${original_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i]" 2>/dev/null || true)"
+	[ -z "${f}" ] && continue
 	original_files_arr+=("${f}")
-done < <(git -C "${repo_path}" diff-tree --no-commit-id --name-only -r -z "${full_commit}" -- 2>/dev/null || true)
+done
 
 if [ "${#original_files_arr[@]}" -eq 0 ]; then
 	mcp_fail_invalid_args "Commit ${commit_ref} has no file changes"
@@ -106,6 +110,10 @@ fi
 array_contains() {
 	local needle="$1"
 	shift
+	# Handle empty array case explicitly (bash 3.2 compatibility)
+	if [ $# -eq 0 ]; then
+		return 1
+	fi
 	local item
 	for item in "$@"; do
 		if [ "${item}" = "${needle}" ]; then
@@ -129,17 +137,21 @@ for ((i = 0; i < split_count; i++)); do
 		mcp_fail_invalid_args "Split message cannot contain TAB or newline"
 		;;
 	esac
-	while IFS= read -r -d '' file; do
+	# Iterate files using JSON index (avoids process substitution issues on macOS CI)
+	file_count="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+	for ((j = 0; j < file_count; j++)); do
+		file="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$j]" 2>/dev/null || true)"
 		[ -z "${file}" ] && continue
 		git_hex_require_safe_repo_relative_path "${file}"
 		if ! array_contains "${file}" "${original_files_arr[@]}"; then
 			mcp_fail_invalid_args "File '${file}' not in original commit"
 		fi
-		if array_contains "${file}" "${covered_files_arr[@]}"; then
+		# Check for duplicate - use ${arr[@]+"${arr[@]}"} pattern for bash 3.2 empty array safety
+		if [ "${#covered_files_arr[@]}" -gt 0 ] && array_contains "${file}" "${covered_files_arr[@]}"; then
 			mcp_fail_invalid_args "File '${file}' appears in multiple splits"
 		fi
 		covered_files_arr+=("${file}")
-	done < <(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -j '.[]? + "\u0000"')
+	done
 done
 
 for file in "${original_files_arr[@]}"; do
@@ -167,7 +179,7 @@ msg_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.split.msg.XXXXXX")"
 _git_hex_split_cleanup_files="${seq_editor}"
 _git_hex_split_cleanup_dirs="${msg_dir}"
 
-cat >"${seq_editor}"  <<'EDITOR_SCRIPT'
+cat >"${seq_editor}" <<'EDITOR_SCRIPT'
 #!/usr/bin/env bash
 set -e
 todo_file="$1"
@@ -238,11 +250,14 @@ for ((i = 0; i < split_count; i++)); do
 	message="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$i].message" 2>/dev/null || true)"
 	msg_file="${msg_dir}/msg_${i}.txt"
 	printf '%s\n' "${message}" >"${msg_file}"
-	while IFS= read -r -d '' file; do
+	# Iterate files using JSON index (avoids process substitution issues on macOS CI)
+	file_count="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length' 2>/dev/null || echo "0")"
+	for ((j = 0; j < file_count; j++)); do
+		file="$(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r ".[$j]" 2>/dev/null || true)"
 		[ -z "${file}" ] && continue
 		git_hex_require_safe_repo_relative_path "${file}"
 		git -C "${repo_path}" add -- "${file}"
-	done < <(printf '%s' "${split_files_json}" | "${MCPBASH_JSON_TOOL_BIN}" -j '.[]? + "\u0000"')
+	done
 	commit_error=""
 	if [ "${sign_commits}" = "true" ]; then
 		if ! commit_error="$(git -C "${repo_path}" commit -F "${msg_file}" 2>&1)"; then
@@ -262,9 +277,25 @@ for ((i = 0; i < split_count; i++)); do
 		--arg hash "${new_hash}" \
 		--arg message "${message}" \
 		--argjson files "${files_json}" \
-		'{hash: $hash, message: $message, files: $files}')"
+		'{hash: $hash, message: $message, files: $files}' 2>/dev/null || true)"
+	if [ -z "${commit_json}" ]; then
+		# Fallback: build commit JSON manually
+		hash_esc="$(mcp_json_escape "${new_hash}")"
+		msg_esc="$(mcp_json_escape "${message}")"
+		commit_json="{\"hash\":${hash_esc},\"message\":${msg_esc},\"files\":${files_json}}"
+	fi
 	# shellcheck disable=SC2016
-	new_commits_json="$(printf '%s' "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]')"
+	updated_json="$(printf '%s' "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" --argjson c "${commit_json}" '. + [$c]' 2>/dev/null || true)"
+	if [ -n "${updated_json}" ]; then
+		new_commits_json="${updated_json}"
+	else
+		# Fallback: append manually (remove trailing ], add comma if needed, append new, close)
+		if [ "${new_commits_json}" = "[]" ]; then
+			new_commits_json="[${commit_json}]"
+		else
+			new_commits_json="${new_commits_json%]},${commit_json}]"
+		fi
+	fi
 done
 
 # Continue rebase
@@ -292,6 +323,15 @@ git_hex_record_last_head "${repo_path}" "${head_after}"
 trap - EXIT
 cleanup
 
+summary="Split ${full_commit:0:7} into ${split_count} commits"
+
+# Validate new_commits_json is valid JSON array before using with jq
+if ! printf '%s' "${new_commits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -e '.' >/dev/null 2>&1; then
+	printf 'ERROR: new_commits_json is invalid JSON: %s\n' "${new_commits_json:-<empty>}" >&2
+	new_commits_json="[]"
+fi
+
+# Build output JSON - if jq fails, fall back to manual construction
 # shellcheck disable=SC2016
 output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson success true \
@@ -300,12 +340,16 @@ output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg backupRef "${backup_ref}" \
 	--argjson rebasePaused "${rebase_paused}" \
 	--argjson stashNotRestored "${stash_not_restored}" \
-	--arg summary "Split ${full_commit:0:7} into ${split_count} commits" \
-	'{success: $success, originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}')"
+	--arg summary "${summary}" \
+	'{success: $success, originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}' 2>/dev/null || true)"
 
-if [ "${GIT_HEX_DEBUG_SPLIT:-}" = "true" ]; then
-	printf '%s\n' "${output_json}" >&2
-	printf '%s\n' "${output_json}" >"${TMPDIR:-/tmp}/git-hex-split-debug.json"
+if [ -z "${output_json}" ]; then
+	# jq failed - construct JSON manually
+	printf 'WARNING: jq output construction failed, using manual fallback\n' >&2
+	original_esc="$(mcp_json_escape "${full_commit}")"
+	backup_esc="$(mcp_json_escape "${backup_ref}")"
+	summary_esc="$(mcp_json_escape "${summary}")"
+	output_json="{\"success\":true,\"originalCommit\":${original_esc},\"newCommits\":${new_commits_json},\"backupRef\":${backup_esc},\"rebasePaused\":${rebase_paused},\"stashNotRestored\":${stash_not_restored},\"summary\":${summary_esc}}"
 fi
 
 mcp_emit_json "${output_json}"

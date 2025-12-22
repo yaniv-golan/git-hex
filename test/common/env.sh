@@ -88,11 +88,17 @@ run_tool() {
 
 	# Framework sends diagnostics to stderr, stdout is clean JSON (may be multiple lines)
 	# Capture stderr to a temp file for debugging on failure
+	# In CI mode, add --verbose to stream tool stderr for better debugging
+	local verbose_flag=""
+	if [ "${MCPBASH_CI_MODE:-}" = "1" ] || [ "${MCPBASH_CI_VERBOSE:-}" = "1" ]; then
+		verbose_flag="--verbose"
+	fi
+	# shellcheck disable=SC2086
 	raw_output="$(mcp-bash run-tool "${tool_name}" \
 		--project-root "${MCPBASH_PROJECT_ROOT}" \
 		--roots "${roots}" \
 		--args "${args_json}" \
-		--timeout "${timeout}" 2>"${stderr_file}")" || true
+		--timeout "${timeout}" ${verbose_flag} 2>"${stderr_file}")" || true
 
 	local jq_status=0
 	local error_obj=""

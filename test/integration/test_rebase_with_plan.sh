@@ -210,7 +210,10 @@ fi
 # RBC-02b: continueOperation records last-head for paused git-hex rebase
 printf  ' -> RBC-02b continueOperation records last-head after completion\n'
 backup_suffix_path="$(cd "${REPO_CONFLICT}" && git rev-parse --git-path git-hex-last-backup)"
-backup_suffix="$(cd "${REPO_CONFLICT}" && head -1 "${backup_suffix_path}" 2>/dev/null || true)"
+backup_suffix=""
+if backup_suffix_line="$(cd "${REPO_CONFLICT}" && head -1 "${backup_suffix_path}" 2>/dev/null)"; then
+	backup_suffix="${backup_suffix_line}"
+fi
 backup_suffix="$(printf '%s' "${backup_suffix}" | tr -d '\r\n')"
 if [ -z "${backup_suffix}" ]; then
 	test_fail "git-hex-last-backup suffix missing for paused rebase"

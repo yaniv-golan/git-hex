@@ -95,7 +95,7 @@ REPO_MSG="${TEST_TMPDIR}/rebase-messages"
 create_test_repo "${REPO_MSG}" 2
 # shellcheck disable=SC2016
 messages=('Say "hello"' "It's working" 'Fix $PATH issue' 'Use $(whoami)' 'Run `ls`' 'Path: C:\\Users' '修复 🐛 bug')
-for msg in "${messages[@]}"; do
+for msg in "${messages[@]}"; do # bash32-safe: messages hardcoded non-empty above
 	target="$(cd "${REPO_MSG}" && git rev-list --reverse HEAD~1..HEAD | tail -n 1)"
 	plan_json="$(jq -n --arg commit "${target}" --arg message "${msg}" '{onto: "HEAD~1", plan: [{action: "reword", commit: $commit, message: $message}], requireComplete: true}')"
 	result="$(run_tool git-hex-rebaseWithPlan "${REPO_MSG}" "${plan_json}")"

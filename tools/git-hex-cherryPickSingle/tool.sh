@@ -136,7 +136,7 @@ pick_args+=("${source_hash}")
 
 # Perform cherry-pick (capture stderr for better error messages)
 pick_error=""
-if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; then
+if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; then # bash32-safe: pick_args always contains source_hash (line 135)
 	# Success - clear the trap
 	trap - EXIT
 	# Echo output to stderr for logging

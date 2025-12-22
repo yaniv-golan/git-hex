@@ -143,7 +143,7 @@ assert_json_fields_eq() {
 	local jq_filter values
 	jq_filter='['
 	local field
-	for field in "${fields[@]}"; do
+	for field in "${fields[@]}"; do # bash32-safe: fields populated by while loop above, requires at least 1 field
 		jq_filter+="(${field}),"
 	done
 	# Use a delimiter that won't collide with JSON strings containing tabs/spaces.

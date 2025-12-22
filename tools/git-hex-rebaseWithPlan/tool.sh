@@ -305,15 +305,15 @@ rebase_output=""
 rebase_status=0
 if  [ "${use_custom_todo}" = "true" ]; then
 	if [ "${sign_commits}" = "true" ]; then
-		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$? # bash32-safe: rebase_args always contains -i (line 294)
 	else
-		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" GIT_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$? # bash32-safe: rebase_args always contains -i (line 294)
 	fi
 else
 	if [ "${sign_commits}" = "true" ]; then
-		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$? # bash32-safe: rebase_args always contains -i (line 294)
 	else
-		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$?
+		rebase_output="$(GIT_SEQUENCE_EDITOR=true git -c commit.gpgsign=false -C "${repo_path}" rebase "${rebase_args[@]}" "${onto}" 2>&1)" || rebase_status=$? # bash32-safe: rebase_args always contains -i (line 294)
 	fi
 fi
 

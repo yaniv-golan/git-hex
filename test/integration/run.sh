@@ -91,17 +91,17 @@ split_list() {
 	# Split on commas and whitespace.
 	# shellcheck disable=SC2206 # intended word splitting
 	local items=(${1//,/ })
-	printf '%s\n' "${items[@]}"
+	[ "${#items[@]}" -gt 0 ] && printf '%s\n' "${items[@]}"
 }
 
 filter_tests() {
 	local -a resolved
-	resolved=("${TESTS[@]}")
+	resolved=("${TESTS[@]}") # bash32-safe: TESTS checked non-empty on line 85-88
 
 	if [ -n "${GITHEX_TEST_PROFILE}" ]; then
 		case "${GITHEX_TEST_PROFILE}" in
 		windows-smoke)
-			resolved=("${WINDOWS_SMOKE_TESTS[@]}")
+			resolved=("${WINDOWS_SMOKE_TESTS[@]}") # bash32-safe: WINDOWS_SMOKE_TESTS hardcoded non-empty (line 65-71)
 			;;
 		*)
 			printf 'Unknown GITHEX_TEST_PROFILE: %s\n' "${GITHEX_TEST_PROFILE}" >&2
@@ -113,7 +113,7 @@ filter_tests() {
 	if [ "${GITHEX_TEST_SUITE}" = "pr" ] && [ -z "${GITHEX_TEST_PROFILE}" ] && [ -z "${GITHEX_TEST_INCLUDE}" ]; then
 		local existing_exclude="${GITHEX_TEST_EXCLUDE}"
 		local t
-		for t in "${PR_EXCLUDE_TESTS[@]}"; do
+		for t in "${PR_EXCLUDE_TESTS[@]}"; do # bash32-safe: PR_EXCLUDE_TESTS hardcoded non-empty (line 73-77)
 			if [ -z "${existing_exclude}" ]; then
 				existing_exclude="${t}"
 			else
@@ -131,7 +131,7 @@ filter_tests() {
 		done < <(split_list "${GITHEX_TEST_INCLUDE}")
 		resolved=()
 		local t
-		for t in "${include[@]}"; do
+		for t in ${include[@]+"${include[@]}"}; do # bash32-safe: include may be empty, use safe expansion
 			[ -n "${t}" ] || continue
 			resolved+=("${t}")
 		done
@@ -145,9 +145,9 @@ filter_tests() {
 		done < <(split_list "${GITHEX_TEST_EXCLUDE}")
 		filtered=()
 		local t ex matched
-		for t in "${resolved[@]}"; do
+		for t in ${resolved[@]+"${resolved[@]}"}; do # bash32-safe: resolved may be empty after include filter
 			matched=0
-			for ex in "${exclude[@]}"; do
+			for ex in ${exclude[@]+"${exclude[@]}"}; do # bash32-safe: exclude may be empty
 				[ -n "${ex}" ] || continue
 				if [ "${t}" = "${ex}" ]; then
 					matched=1
@@ -158,14 +158,14 @@ filter_tests() {
 				filtered+=("${t}")
 			fi
 		done
-		resolved=("${filtered[@]}")
+		resolved=(${filtered[@]+"${filtered[@]}"}) # bash32-safe: filtered may be empty
 	fi
 
 	# Validate selected tests exist in discovered list.
 	local -a missing
 	missing=()
 	local t found d
-	for t in "${resolved[@]}"; do
+	for t in ${resolved[@]+"${resolved[@]}"}; do # bash32-safe: resolved may be empty
 		found=0
 		for d in "${TESTS[@]}"; do
 			if [ "${t}" = "${d}" ]; then
@@ -187,7 +187,7 @@ filter_tests() {
 		# Non-strict: drop missing tests.
 		local -a existing
 		existing=()
-		for t in "${resolved[@]}"; do
+		for t in ${resolved[@]+"${resolved[@]}"}; do # bash32-safe: resolved may be empty
 			found=0
 			for d in "${TESTS[@]}"; do
 				if [ "${t}" = "${d}" ]; then
@@ -199,10 +199,10 @@ filter_tests() {
 				existing+=("${t}")
 			fi
 		done
-		resolved=("${existing[@]}")
+		resolved=(${existing[@]+"${existing[@]}"}) # bash32-safe: existing may be empty
 	fi
 
-	TESTS=("${resolved[@]}")
+	TESTS=(${resolved[@]+"${resolved[@]}"}) # bash32-safe: resolved may be empty after filtering
 }
 
 if [ -n "${GITHEX_TEST_PROFILE}" ] || [ -n "${GITHEX_TEST_INCLUDE}" ] || [ -n "${GITHEX_TEST_EXCLUDE}" ] || [ -n "${GITHEX_TEST_SUITE}" ]; then

@@ -19,7 +19,7 @@ REPO_SEC_MSG="${TEST_TMPDIR}/sec-message"
 create_test_repo "${REPO_SEC_MSG}" 2
 
 messages=("'; rm -rf /'" "\$(cat /etc/passwd)" "\`id\`" "\$HOME")
-for msg in "${messages[@]}"; do
+for msg in "${messages[@]}"; do # bash32-safe: messages hardcoded non-empty above
 	target_commit="$(cd "${REPO_SEC_MSG}" && git rev-list --reverse HEAD~1..HEAD | tail -n1)"
 	encoded_msg="$(printf '%s' "${msg}" | jq -Rs '.')"
 	plan="[ {\"action\": \"reword\", \"commit\": \"${target_commit}\", \"message\": ${encoded_msg} } ]"

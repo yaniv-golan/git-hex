@@ -76,7 +76,7 @@ fi
 
 # Perform the amend (capture stderr for better error messages)
 commit_error=""
-if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; then
+if ! commit_error="$(git -C "${repo_path}" commit "${amend_args[@]}" 2>&1)"; then # bash32-safe: amend_args always contains --amend (line 67)
 	# On failure, attempt to restore stash if we created one
 	if [ "${auto_stash}" = "true" ]; then
 		stash_not_restored="$(git_hex_restore_stash "${repo_path}" "${stash_created}")"

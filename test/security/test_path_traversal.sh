@@ -83,7 +83,7 @@ traversal_patterns=(
 	"dir/subdir/file/.." # Another path ending with /..
 )
 
-for pattern in  "${traversal_patterns[@]}"; do
+for pattern in "${traversal_patterns[@]}"; do # bash32-safe: traversal_patterns hardcoded non-empty above
 	if run_tool_expect_fail git-hex-resolveConflict "${REPO_FILE_TRAVERSAL}" "{\"file\": \"${pattern}\"}"; then
 		printf '   [PASS] blocked: %s\n' "${pattern}"
 	else

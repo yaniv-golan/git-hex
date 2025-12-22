@@ -63,7 +63,7 @@ ${extra_message}"
 	if [ "${sign_commits}" != "true" ]; then
 		commit_args+=("--no-gpg-sign")
 	fi
-	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
+	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then # bash32-safe: commit_args contains -m message (line 62)
 		git_hex_fail_commit_error "Failed to create fixup commit" "${commit_error}"
 	fi
 else
@@ -72,7 +72,7 @@ else
 	if [ "${sign_commits}" != "true" ]; then
 		commit_args+=("--no-gpg-sign")
 	fi
-	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then
+	if ! commit_error="$(git -C "${repo_path}" commit "${commit_args[@]}" 2>&1)"; then # bash32-safe: commit_args contains --fixup (line 72)
 		git_hex_fail_commit_error "Failed to create fixup commit" "${commit_error}"
 	fi
 fi

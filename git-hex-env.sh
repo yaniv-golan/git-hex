@@ -6,7 +6,7 @@ set -euo pipefail
 # starting the server so tool discovery matches your Terminal setup.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_MCPBASH_MIN_VERSION="0.8.1"
+REQUIRED_MCPBASH_MIN_VERSION="0.8.2"
 SHELL_PROFILE=""
 
 if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
@@ -80,7 +80,7 @@ fi
 
 if [ -z "${MCP_BASH}" ]; then
 	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
-	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the expected checksum for v0.8.1, then run ./git-hex.sh (it will download + verify the GitHub tag archive).\n" >&2
+	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the expected checksum for v0.8.2, then run ./git-hex.sh (it will download + verify the GitHub tag archive).\n" >&2
 	exit 1
 fi
 

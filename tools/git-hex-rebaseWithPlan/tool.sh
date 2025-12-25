@@ -287,6 +287,8 @@ else
 	seq_editor=""
 fi
 
+mcp_debug "rebaseWithPlan: onto=${onto} plan_length=${plan_length} commits=${actual_count} autosquash=${autosquash}"
+
 # Backup before mutating
 head_before="$( git -C "${repo_path}" rev-parse HEAD)"
 backup_ref="$( git_hex_create_backup "${repo_path}" "rebaseWithPlan")"
@@ -328,6 +330,7 @@ fi
 
 if [ "${rebase_status}" -eq 0 ]; then
 	head_after="$(git -C "${repo_path}" rev-parse HEAD)"
+	mcp_debug "rebaseWithPlan: completed successfully head=${head_after:0:7}"
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
@@ -358,6 +361,7 @@ else
 	fi
 
 	if [ "${has_unmerged}" = "true" ] || { [ "${rebase_in_progress}" = "true" ] && grep -qE '(^|\n)CONFLICT' <<<"${rebase_output}"; }; then
+		mcp_debug "rebaseWithPlan: paused due to conflicts"
 		if [ "${abort_on_conflict}" = "false" ]; then
 			conflicting_json="$(git_hex_get_conflicting_files_json "${repo_path}")"
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"

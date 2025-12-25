@@ -169,6 +169,8 @@ if [ "${auto_stash}" = "true" ]; then
 	stash_created="$(git_hex_auto_stash "${repo_path}")"
 fi
 
+mcp_debug "splitCommit: validated commit=${full_commit:0:7} split_count=${split_count} files=${#original_files_arr[@]}"
+
 # Backup ref
 backup_ref="$(git_hex_create_backup "${repo_path}" "splitCommit")"
 
@@ -245,6 +247,8 @@ fi
 git -C "${repo_path}" reset HEAD^ --soft >/dev/null 2>&1
 git -C "${repo_path}" reset HEAD >/dev/null 2>&1
 
+mcp_debug "splitCommit: rebase paused at edit step, creating ${split_count} splits"
+
 new_commits_json="[]"
 for ((i = 0; i < split_count; i++)); do
 	split_files_json="$(printf '%s' "${splits_json}" | "${MCPBASH_JSON_TOOL_BIN}" -c ".[$i].files // []" 2>/dev/null || echo "[]")"
@@ -272,6 +276,7 @@ for ((i = 0; i < split_count; i++)); do
 		fi
 	fi
 	new_hash="$(git -C "${repo_path}" rev-parse HEAD)"
+	mcp_debug "splitCommit: created split $((i + 1))/${split_count} hash=${new_hash:0:7}"
 	files_json="${split_files_json}"
 	# shellcheck disable=SC2016
 	commit_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
@@ -304,8 +309,10 @@ rebase_paused="false"
 if ! git -C "${repo_path}" rebase --continue >/dev/null 2>&1; then
 	rebase_paused="true"
 	_git_hex_abort_rebase="false"
+	mcp_debug "splitCommit: rebase paused after splits (conflicts or further edits)"
 else
 	_git_hex_abort_rebase="false"
+	mcp_debug "splitCommit: rebase completed successfully"
 fi
 
 stash_not_restored="false"

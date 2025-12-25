@@ -25,6 +25,7 @@ jobs:
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
+      MCPBASH_DEBUG_ERRORS: "true"
       MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +97,7 @@ jobs:
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
           MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
-          MCPBASH_REV="539ee0aafaef09c2ef72c6266cf1a19622d95d7c"
+          MCPBASH_REV="acaf7cf0728ab22ab77ab34292fefcf3fa693371"
           git init "$MCPBASH_HOME"
           git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
           git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
@@ -208,6 +209,7 @@ jobs:
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
+      MCPBASH_DEBUG_ERRORS: "true"
       MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
     steps:
       - uses: actions/checkout@v4
@@ -255,7 +257,7 @@ jobs:
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
           MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
-          MCPBASH_REV="539ee0aafaef09c2ef72c6266cf1a19622d95d7c"
+          MCPBASH_REV="acaf7cf0728ab22ab77ab34292fefcf3fa693371"
           git init "$MCPBASH_HOME"
           git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
           git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"

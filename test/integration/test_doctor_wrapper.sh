@@ -62,7 +62,7 @@ EOF
 	printf '%s\n' "marker" >"${fw_dir}/MARKER.txt"
 }
 
-make_stub_framework_081() {
+make_stub_framework_082() {
 	local home_dir="$1"
 
 	local fw_dir="${home_dir}/.local/share/mcp-bash"
@@ -73,7 +73,7 @@ make_stub_framework_081() {
 set -euo pipefail
 case "${1:-}" in
 --version)
-  echo "mcp-bash 0.8.1"
+  echo "mcp-bash 0.8.2"
   ;;
 doctor)
   shift || true
@@ -140,7 +140,7 @@ test_too_old_framework_read_only_does_not_delete() {
 
 		capture_run_in_home "${home_dir}" doctor
 		assert_eq "1" "${CAPTURE_STATUS}" "doctor should exit 1 when framework too old"
-		assert_contains "${CAPTURE_OUTPUT}" "requires v0.8.1+" "doctor should report minimum version requirement"
+		assert_contains "${CAPTURE_OUTPUT}" "requires v0.8.2+" "doctor should report minimum version requirement"
 
 		assert_file_exists "${home_dir}/.local/share/mcp-bash/MARKER.txt" "read-only doctor should not delete existing framework"
 		test_pass "doctor does not delete too-old framework without --fix"
@@ -171,21 +171,21 @@ test_doctor_fix_refuses_mcpbash_home() {
 	)
 }
 
-test_doctor_delegates_for_081_plus() {
+test_doctor_delegates_for_082_plus() {
 	(
 		local home_dir
 		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
 		trap 'rm -rf "${home_dir}"' EXIT
 
-		make_stub_framework_081 "${home_dir}"
+		make_stub_framework_082 "${home_dir}"
 
 		capture_run_in_home "${home_dir}" doctor --dry-run
-		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.8.1"
+		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.8.2"
 		assert_contains "${CAPTURE_OUTPUT}" "framework doctor dry-run" "doctor --dry-run should be handled by framework"
 		if [[ "${CAPTURE_OUTPUT}" == *"Would install framework"* ]]; then
-			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.8.1"
+			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.8.2"
 		fi
-		test_pass "doctor delegates to framework for >=0.8.1"
+		test_pass "doctor delegates to framework for >=0.8.2"
 	)
 }
 
@@ -194,7 +194,7 @@ test_missing_framework_read_only_doctor
 test_missing_framework_dry_run
 test_too_old_framework_read_only_does_not_delete
 test_doctor_fix_refuses_mcpbash_home
-test_doctor_delegates_for_081_plus
+test_doctor_delegates_for_082_plus
 
 echo ""
 echo "All doctor wrapper tests passed!"

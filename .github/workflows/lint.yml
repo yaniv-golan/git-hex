@@ -47,7 +47,7 @@ jobs:
           MCPBASH_HOME="$HOME/.local/share/mcp-bash"
           rm -rf "$MCPBASH_HOME"
           MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
-          MCPBASH_REV="539ee0aafaef09c2ef72c6266cf1a19622d95d7c"
+          MCPBASH_REV="acaf7cf0728ab22ab77ab34292fefcf3fa693371"
           git init "$MCPBASH_HOME"
           git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
           git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"

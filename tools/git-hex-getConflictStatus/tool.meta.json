@@ -1,0 +1,70 @@
+{
+  "name": "git-hex-getConflictStatus",
+  "description": "Get detailed information about merge/rebase/cherry-pick conflicts in the repository",
+  "icons": [
+    {
+      "src": "../../assets/icons/get-conflict-status.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (defaults to single configured root)"
+      },
+      "includeContent": {
+        "type": "boolean",
+        "description": "Include base/ours/theirs content for each conflict (text files only)",
+        "default": false
+      },
+      "maxContentSize": {
+        "type": "integer",
+        "description": "Maximum bytes of content to return per file",
+        "default": 10000
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "inConflict", "summary"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "inConflict": { "type": "boolean" },
+      "conflictType": { "type": "string", "enum": ["rebase", "merge", "cherry-pick", "revert", "none"], "description": "rebase, merge, cherry-pick, revert, or none" },
+      "currentStep": { "type": "integer" },
+      "totalSteps": { "type": "integer" },
+      "conflictingCommit": { "type": "string" },
+      "conflictingFiles": {
+        "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "conflictType"],
+            "properties": {
+              "path": { "type": "string" },
+            "conflictType": {
+              "type": "string",
+              "enum": ["both_modified", "deleted_by_us", "deleted_by_them", "added_by_both", "deleted_by_both", "unknown"],
+              "description": "Type of conflict for this file"
+            },
+              "isBinary": { "type": "boolean" },
+              "base": { "type": "string" },
+              "ours": { "type": "string" },
+              "theirs": { "type": "string" },
+              "workingCopy": { "type": "string" },
+              "truncated": { "type": "boolean", "description": "True if any returned content was truncated to maxContentSize" },
+              "note": { "type": "string", "description": "Optional note (e.g., binary content omitted)" }
+            }
+          }
+        },
+      "summary": { "type": "string" }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

@@ -1,0 +1,74 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Go paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+          echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+          echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+          echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+          mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+
+      - name: Setup Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Cache Go (gojq)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: ${{ runner.os }}-gojq-v0.12.16-${{ steps.go.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
+      - name: Install mcp-bash framework
+        run: |
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="d9e2e08e516e6c75e89effdbae4da572cd3986f5"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Run doctor (read-only)
+        run: ./git-hex.sh doctor
+
+      - name: Install lint dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt
+
+      - name: Run lint
+        run: ./test/lint.sh
+
+      - name: Check Markdown local links
+        run: python3 ./test/check_doc_links.py

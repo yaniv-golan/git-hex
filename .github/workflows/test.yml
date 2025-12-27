@@ -1,0 +1,307 @@
+name: Test git-hex
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  tests:
+    if: github.event_name != 'schedule'
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      KEEP_INTEGRATION_LOGS: "1"
+      MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG: "false"
+      GIT_HEX_DEBUG_REBASE: "false"
+      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_VERBOSE: "1"
+      MCPBASH_TRACE_TOOLS: "true"
+      MCPBASH_TRACE_MAX_BYTES: "60000"
+      MCPBASH_DEBUG_ERRORS: "true"
+      MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Go paths
+        run: |
+          set -euo pipefail
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            win_home="$(cygpath -w "${HOME}")"
+            win_gopath="${win_home}\\go"
+            win_gomodcache="${win_gopath}\\pkg\\mod"
+            win_gocache="${LOCALAPPDATA:-${win_home}\\AppData\\Local}\\go-build"
+            echo "GOPATH=${win_gopath}" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${win_gomodcache}" >> "$GITHUB_ENV"
+            echo "GOCACHE=${win_gocache}" >> "$GITHUB_ENV"
+            echo "$(cygpath -u "${win_gopath}")/bin" >> "$GITHUB_PATH"
+            mkdir -p "$(cygpath -u "${win_gopath}")/bin" "$(cygpath -u "${win_gomodcache}")" "$(cygpath -u "${win_gocache}")"
+          else
+            echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+            echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+            echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+            echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+            mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+          fi
+
+      - name: Setup Go
+        id: go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Cache Go (gojq)
+        id: gocache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: ${{ runner.os }}-gojq-v0.12.16-${{ steps.go.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
+      - name: Set temp log dir
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Keep tmp/state under the runner temp drive (usually D:) to avoid the slower
+            # user profile temp (C:) which can make the integration suite exceed its budget.
+            win_temp_posix="$(cygpath -u "${RUNNER_TEMP}")"
+            echo "TMPDIR=${win_temp_posix}" >> "$GITHUB_ENV"
+            echo "MCPBASH_TMP_ROOT=${win_temp_posix}" >> "$GITHUB_ENV"
+            # Keep Windows-native paths for non-bash actions (e.g., upload-artifact).
+            echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+            echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
+            echo "MCPBASH_PROJECT_ROOT=$(cygpath -u "${GITHUB_WORKSPACE}")" >> "$GITHUB_ENV"
+          else
+            echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+            echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
+            echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install mcp-bash framework
+        run: |
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="d9e2e08e516e6c75e89effdbae4da572cd3986f5"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Install test dependencies
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y jq || sudo apt-get install -y jq
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew install jq || brew install jq
+          else
+            choco install jq -y
+          fi
+
+      - name: Trim PATH on Windows (avoid E2BIG)
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+            exit 0
+          fi
+          win_gopath="$(cygpath -u "${GOPATH}")"
+          win_mcpbash="${HOME}/.local/share/mcp-bash/bin"
+          trimmed="${win_mcpbash}:${win_gopath}/bin:/usr/bin:/mingw64/bin:/c/ProgramData/Chocolatey/bin"
+          echo "PATH=${trimmed}" >> "$GITHUB_ENV"
+          # Keep MSYS path conversion enabled for native tools (e.g., jq.exe reading files),
+          # but prevent conversion of the JSON string passed to `mcp-bash run-tool --args`.
+          echo "MSYS2_ARG_CONV_EXCL=--args" >> "$GITHUB_ENV"
+
+      - name: Validate project
+        run: |
+          "$MCPBASH_HOME/bin/mcp-bash" validate
+
+      - name: Run schema checks
+        run: ./test/schema/run.sh
+
+      - name: Run integration tests
+        id: integration
+        run: |
+          start=$(date +%s)
+          if [[ "$RUNNER_OS" == "Windows" && "${GITHUB_EVENT_NAME}" != "schedule" ]]; then
+            export GITHEX_TEST_PROFILE=windows-smoke
+            export GITHEX_TEST_STRICT=1
+          fi
+          export GITHEX_TEST_SUITE=pr
+          if ./test/integration/run.sh; then
+            status=0
+          else
+            status=$?
+          fi
+          end=$(date +%s)
+          echo "duration=$((end - start))" >> "$GITHUB_OUTPUT"
+          exit "${status}"
+      - name: Run security tests
+        if: matrix.os != 'windows-latest'
+        run: ./test/security/run.sh
+
+      - name: Enforce Windows integration budget
+        if: matrix.os == 'windows-latest'
+        run: |
+          duration="${{ steps.integration.outputs.duration }}"
+          if [ "${GITHUB_EVENT_NAME}" != "schedule" ]; then
+            warn_budget=1500
+            fail_budget=2100
+          else
+            warn_budget=3045
+            fail_budget=4060
+          fi
+          if [ -n "${duration}" ] && [ "${duration}" -gt "${warn_budget}" ]; then
+            echo "::warning ::Integration duration ${duration}s exceeded warning budget ${warn_budget}s"
+          fi
+          if [ -n "${duration}" ] && [ "${duration}" -gt "${fail_budget}" ]; then
+            echo "Integration exceeded fail budget (${duration}s)" >&2
+            exit 1
+          fi
+
+      - name: Upload integration logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ matrix.os }}
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/
+          retention-days: 7
+
+      - name: Upload mcp-bash logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcpbash-logs-${{ matrix.os }}
+          path: ${{ env.MCPBASH_LOG_DIR }}/
+          retention-days: 7
+
+  nightly:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      KEEP_INTEGRATION_LOGS: "1"
+      MCPBASH_KEEP_LOGS: "1"
+      GIT_HEX_DEBUG: "false"
+      GIT_HEX_DEBUG_REBASE: "false"
+      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_VERBOSE: "1"
+      MCPBASH_TRACE_TOOLS: "true"
+      MCPBASH_TRACE_MAX_BYTES: "60000"
+      MCPBASH_DEBUG_ERRORS: "true"
+      MCPBASH_TOOL_ALLOWLIST: "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Go paths
+        run: |
+          set -euo pipefail
+          echo "GOPATH=${HOME}/go" >> "$GITHUB_ENV"
+          echo "GOMODCACHE=${HOME}/go/pkg/mod" >> "$GITHUB_ENV"
+          echo "GOCACHE=${HOME}/.cache/go-build" >> "$GITHUB_ENV"
+          echo "${HOME}/go/bin" >> "$GITHUB_PATH"
+          mkdir -p "${HOME}/go/bin" "${HOME}/go/pkg/mod" "${HOME}/.cache/go-build"
+
+      - name: Setup Go
+        id: go-nightly
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: false
+
+      - name: Cache Go (gojq)
+        id: gocache-nightly
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.GOMODCACHE }}
+            ${{ env.GOCACHE }}
+            ${{ env.GOPATH }}/bin
+          key: nightly-${{ runner.os }}-gojq-v0.12.16-${{ steps.go-nightly.outputs.go-version }}
+
+      - name: Install gojq
+        run: |
+          set -euo pipefail
+          go install github.com/itchyny/gojq/cmd/gojq@v0.12.16
+
+      - name: Set temp log dir
+        run: |
+          echo "GITHEX_INTEGRATION_TMP=${RUNNER_TEMP}/githex-integration" >> "$GITHUB_ENV"
+          echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
+          echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+
+      - name: Install mcp-bash framework
+        run: |
+          set -euo pipefail
+          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
+          rm -rf "$MCPBASH_HOME"
+          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
+          MCPBASH_REV="d9e2e08e516e6c75e89effdbae4da572cd3986f5"
+          git init "$MCPBASH_HOME"
+          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
+          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
+          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
+          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
+          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
+            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
+            exit 1
+          fi
+          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
+          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq shellcheck shfmt || sudo apt-get install -y jq shellcheck shfmt
+
+      - name: Validate project
+        run: |
+          "$MCPBASH_HOME/bin/mcp-bash" validate
+
+      - name: Run full test suite
+        run: ./test/run.sh
+
+      - name: Upload integration logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-logs
+          path: ${{ env.GITHEX_INTEGRATION_TMP }}/
+          retention-days: 7
+
+      - name: Upload mcp-bash logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-mcpbash-logs
+          path: ${{ env.MCPBASH_LOG_DIR }}/
+          retention-days: 7
+      - name: Verify registry and tool availability
+        run: |
+          "$MCPBASH_HOME/bin/mcp-bash" registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          "$MCPBASH_HOME/bin/mcp-bash" run-tool git-hex-getRebasePlan \
+            --project-root "$MCPBASH_PROJECT_ROOT" \
+            --roots "$MCPBASH_PROJECT_ROOT" \
+            --args '{}' \
+            --timeout 10 \
+            --verbose

@@ -1,0 +1,105 @@
+{
+  "name": "git-hex-cherryPickSingle",
+  "description": "Cherry-pick a single commit with configurable merge strategy. Requires a clean working tree unless autoStash=true. Aborts cleanly on conflict.",
+  "icons": [
+    {
+      "src": "../../assets/icons/cherry-pick-single.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "commit": {
+        "type": "string",
+        "description": "Commit hash or ref to cherry-pick (required)"
+      },
+      "strategy": {
+        "type": "string",
+        "description": "Merge strategy: 'recursive', 'ort', 'resolve' (default: git default)",
+        "enum": ["recursive", "ort", "resolve"]
+      },
+      "noCommit": {
+        "type": "boolean",
+        "description": "Apply changes without committing (default: false)"
+      },
+      "abortOnConflict": {
+        "type": "boolean",
+        "description": "If false, pause on conflicts instead of aborting. Use getConflictStatus/resolveConflict to continue.",
+        "default": true
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Automatically stash uncommitted changes before cherry-pick (requires abortOnConflict=true)",
+        "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
+      }
+    },
+    "required": ["commit"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "headBefore", "headAfter"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the operation"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation (same as headBefore if noCommit=true)"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "sourceCommit": {
+        "type": "string",
+        "description": "Full hash of the commit that was cherry-picked"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The source commit's subject line"
+      },
+      "paused": {
+        "type": "boolean",
+        "description": "True if operation paused due to conflicts (when abortOnConflict=false)"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
+      },
+      "conflictingFiles": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of files with conflicts when paused"
+      },
+      "stashNotRestored": {
+        "type": "boolean",
+        "description": "True if auto-stash could not be restored cleanly"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 60
+}

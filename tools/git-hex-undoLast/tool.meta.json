@@ -1,0 +1,63 @@
+{
+  "name": "git-hex-undoLast",
+  "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
+  "icons": [
+    {
+      "src": "../../assets/icons/undo-last.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Allow undo even if new commits exist after the backup (those commits will be lost) and allow overwriting untracked files that collide with tracked paths in the backup state"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "headBefore", "headAfter"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the undo"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the undo (the restored state)"
+      },
+      "undoneOperation": {
+        "type": "string",
+        "description": "Name of the operation that was undone (or \"unknown\")"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "The backup ref that was restored"
+      },
+      "commitsUndone": {
+        "type": "integer",
+        "description": "Number of commits that were undone"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was undone"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

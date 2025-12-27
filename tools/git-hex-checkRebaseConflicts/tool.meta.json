@@ -1,0 +1,71 @@
+{
+  "name": "git-hex-checkRebaseConflicts",
+  "description": "Check if a rebase would conflict without modifying the repository",
+  "icons": [
+    {
+      "src": "../../assets/icons/check-rebase-conflicts.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "maxCommits": {
+        "type": "integer",
+        "description": "Maximum commits to check (default 100)",
+        "default": 100,
+        "minimum": 1
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": [
+      "success",
+      "wouldConflict",
+      "confidence",
+      "commits",
+      "limitExceeded",
+      "totalCommits",
+      "checkedCommits",
+      "summary"
+    ],
+    "properties": {
+      "success": { "type": "boolean" },
+      "wouldConflict": { "type": "boolean" },
+      "confidence": { "type": "string", "enum": ["estimate", "unknown"] },
+      "commits": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["hash", "subject", "prediction"],
+          "properties": {
+            "hash": { "type": "string" },
+            "subject": { "type": "string" },
+            "prediction": { "type": "string", "enum": ["clean", "conflict", "unknown"] }
+          }
+        }
+      },
+      "limitExceeded": { "type": "boolean" },
+      "totalCommits": { "type": "integer" },
+      "checkedCommits": { "type": "integer" },
+      "summary": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 180
+}

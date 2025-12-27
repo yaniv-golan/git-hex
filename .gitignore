@@ -1,0 +1,22 @@
+# mcp-bash registry cache
+.registry/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Internal planning notes (local-only; never committed)
+docs/internal/
+
+# Local-only IDE config
+git-hex.code-workspace
+.cursor/rules/
+.claude/*
+.claude/*.local.md
+.claude/*.local.json
+
+# Local dev wrapper (uses sibling mcp-bash checkout)
+git-hex-local.sh

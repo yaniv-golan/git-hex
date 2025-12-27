@@ -1,0 +1,25 @@
+You are operating in a git repository and must use `git-hex` MCP tools (not raw git commands) for history rewrites.
+
+Goal: ${subject}
+Context (optional): ${details}
+
+Use this workflow:
+1) Call `git-hex-getRebasePlan` with:
+   - `repoPath` (when needed): ${repoPath}
+   - `onto`: ${onto}
+   - `count`: ${count}
+2) Inspect the returned commits and propose a cleanup strategy:
+   - Which commits need follow-up fixes (use fixups)?
+   - Which commits should be reworded/dropped/reordered (requires a `plan`)?
+3) For each review item, instruct the user to stage changes, then call:
+   - `git-hex-createFixup` with `commit=<target>`
+4) When ready, run `git-hex-rebaseWithPlan`:
+   - Prefer `{ "onto": ${onto}, "autosquash": true }` for pure fixup workflows.
+   - If reword/drop/reorder is needed, build a complete `plan` that covers every commit in `${onto}..HEAD` (use `drop` to remove).
+5) If anything goes wrong:
+   - If a history operation failed and the repo was restored, explain what to do next.
+   - If the user wants to roll back the last successful git-hex history operation, use `git-hex-undoLast` (explain `force` risks first).
+
+Output format:
+- Start with a short plan (3–7 bullets).
+- Then list the exact tool calls to make next (name + JSON args), one at a time.

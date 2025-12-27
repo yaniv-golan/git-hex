@@ -1,0 +1,14 @@
+{
+  "name": "git-hex-marketplace",
+  "description": "Marketplace entry for the git-hex plugin.",
+  "owner": {
+    "name": "Yaniv Golan"
+  },
+  "plugins": [
+    {
+      "name": "git-hex",
+      "description": "Git history rewrite and conflict-resolution tools (MCP) with curated skills.",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "git-hex-cherry-pick-head",
+  "title": "CHERRY_PICK_HEAD",
+  "uriTemplate": "file://{+repoPath}/.git/CHERRY_PICK_HEAD",
+  "description": "Read CHERRY_PICK_HEAD when a cherry-pick is in progress. Expand repoPath to the absolute repo path (RFC 6570, e.g., /Users/me/repo).",
+  "mimeType": "text/plain",
+  "annotations": {"audience": ["user", "assistant"]}
+}

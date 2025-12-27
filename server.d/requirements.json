@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "framework": {
+    "name": "mcp-bash",
+    "minVersion": "0.8.3"
+  },
+  "dependencies": [
+    { "name": "bash", "minVersion": "3.2.0" },
+    { "name": "git", "minVersion": "2.20.0", "recommendedVersion": "2.33.0" },
+    { "name": "jq", "or": ["jq", "gojq"] }
+  ],
+  "fixHints": {
+    "install": "./git-hex.sh install"
+  }
+}

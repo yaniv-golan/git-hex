@@ -1,0 +1,77 @@
+{
+  "name": "git-hex-amendLastCommit",
+  "description": "Amend the last commit with staged changes and/or a new message",
+  "icons": [
+    {
+      "src": "../../assets/icons/amend-last-commit.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (defaults to single configured root)"
+      },
+      "message": {
+        "type": "string",
+        "description": "New commit message (optional - keeps original if not provided)"
+      },
+      "addAll": {
+        "type": "boolean",
+        "description": "Stage all tracked modified files before amending (default: false)"
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Automatically stash unstaged changes before amending (uses --keep-index to preserve staged changes)",
+        "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "headBefore", "headAfter", "backupRef", "summary", "commitMessage", "stashNotRestored"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "Whether the operation was successful"
+      },
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the operation"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The commit's subject line (first line of commit message)"
+      },
+      "stashNotRestored": {
+        "type": "boolean",
+        "description": "True if auto-stash could not be restored cleanly"
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

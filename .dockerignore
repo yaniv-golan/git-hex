@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+
+# Development files
+.github
+docs/internal
+prompts
+
+# Test infrastructure
+test
+
+# IDE and OS files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build artifacts
+*.log
+

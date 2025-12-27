@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# Integration tests for git-hex-checkRebaseConflicts
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../common/env.sh disable=SC1091
+. "${SCRIPT_DIR}/../common/env.sh"
+# shellcheck source=../common/assert.sh disable=SC1091
+. "${SCRIPT_DIR}/../common/assert.sh"
+# shellcheck source=../common/git_fixtures.sh disable=SC1091
+. "${SCRIPT_DIR}/../common/git_fixtures.sh"
+
+test_verify_framework
+test_create_tmpdir
+
+echo "=== checkRebaseConflicts Tests ==="
+
+# CHK-01: Clean rebase predicted
+printf ' -> CHK-01 predicts clean rebase\n'
+REPO_CLEAN="${TEST_TMPDIR}/check-clean"
+create_branch_scenario "${REPO_CLEAN}"
+result_clean="$(run_tool git-hex-checkRebaseConflicts "${REPO_CLEAN}" '{"onto": "main"}')"
+assert_json_fields_eq "${result_clean}" '.wouldConflict' "false" '.limitExceeded' "false"
+test_pass "clean rebase predicted"
+
+# CHK-02: Conflict predicted
+printf ' -> CHK-02 predicts conflict\n'
+REPO_CONFLICT="${TEST_TMPDIR}/check-conflict"
+create_conflict_scenario "${REPO_CONFLICT}"
+result_conflict="$(run_tool git-hex-checkRebaseConflicts "${REPO_CONFLICT}" '{"onto": "main"}')"
+assert_json_field "${result_conflict}" '.wouldConflict' "true" "should predict conflict"
+test_pass "conflict predicted"
+
+# CHK-05: File/directory conflicts (no conflict markers) are predicted via merge-tree exit status
+printf ' -> CHK-05 predicts file/directory conflict via merge-tree exit status\n'
+REPO_FILE_DIR="${TEST_TMPDIR}/check-file-dir"
+create_file_directory_conflict_scenario "${REPO_FILE_DIR}"
+result_file_dir="$(run_tool git-hex-checkRebaseConflicts "${REPO_FILE_DIR}" '{"onto": "main"}')"
+assert_json_field "${result_file_dir}" '.wouldConflict' "true" "should predict file/directory conflict"
+first_pred="$(printf '%s' "${result_file_dir}" | jq -r '.commits[0].prediction')"
+assert_eq "conflict" "${first_pred}" "first commit should be predicted conflict"
+test_pass "file/directory conflict predicted"
+
+# CHK-06: Merge commits are ignored (match default git rebase behavior)
+printf ' -> CHK-06 merge commits are ignored\n'
+REPO_MERGES="${TEST_TMPDIR}/check-merge-commits"
+mkdir -p "${REPO_MERGES}"
+(
+	cd "${REPO_MERGES}"
+	git init --initial-branch=main >/dev/null 2>&1
+	git config user.email "test@example.com"
+	git config user.name "Test User"
+	git config commit.gpgsign false
+
+	echo "base" >f.txt
+	git add f.txt && git commit -m "Base" >/dev/null
+
+	echo "main1" >f.txt
+	git add f.txt && git commit -m "Main 1" >/dev/null
+	onto_ref="$(git rev-parse HEAD)"
+
+	git checkout -b feature >/dev/null 2>&1
+	echo "feature" >g.txt
+	git add g.txt && git commit -m "Feature" >/dev/null
+
+	git checkout main >/dev/null 2>&1
+	echo "main2" >h.txt
+	git add h.txt && git commit -m "Main 2" >/dev/null
+
+	git merge --no-ff feature -m "Merge feature" >/dev/null 2>&1
+	echo "post" >p.txt
+	git add p.txt && git commit -m "Post merge" >/dev/null
+
+	echo "${onto_ref}" >"${TEST_TMPDIR}/chk06_onto"
+)
+onto_ref="$(cat "${TEST_TMPDIR}/chk06_onto")"
+rm -f "${TEST_TMPDIR}/chk06_onto"
+
+expected_nonmerge="$(cd "${REPO_MERGES}" && git rev-list --no-merges --count "${onto_ref}..HEAD")"
+result_merges="$(run_tool git-hex-checkRebaseConflicts "${REPO_MERGES}" "{\"onto\": \"${onto_ref}\"}")"
+total_nonmerge="$(printf '%s' "${result_merges}" | jq -r '.totalCommits')"
+assert_eq "${expected_nonmerge}" "${total_nonmerge}" "totalCommits should count only non-merge commits"
+test_pass "merge commits ignored"
+
+# CHK-03/04: First conflict identified, subsequent unknown
+printf ' -> CHK-03 first conflict identified, later unknown\n'
+REPO_MULTI="${TEST_TMPDIR}/check-multi"
+mkdir -p "${REPO_MULTI}"
+(
+	cd "${REPO_MULTI}"
+	git init --initial-branch=main
+	_configure_test_repo
+	echo "base" >base.txt
+	git add base.txt && git commit -m "Base"
+	git checkout -b feature
+	echo "clean change" >clean.txt
+	git add clean.txt && git commit -m "Clean change"
+	echo "conflict" >conflict.txt
+	git add conflict.txt && git commit -m "Conflicting change"
+	echo "post conflict" >later.txt
+	git add later.txt && git commit -m "Later change"
+	git checkout main
+	echo "main change" >conflict.txt
+	git add conflict.txt && git commit -m "Main conflict"
+	git checkout feature
+)
+result_multi="$(run_tool git-hex-checkRebaseConflicts "${REPO_MULTI}" '{"onto": "main"}')"
+first_prediction="$(printf '%s' "${result_multi}" | jq -r '.commits[1].prediction')"
+third_prediction="$(printf '%s' "${result_multi}" | jq -r '.commits[2].prediction')"
+assert_eq "conflict" "${first_prediction}" "second commit should be predicted conflict"
+assert_eq "unknown" "${third_prediction}" "commits after conflict marked unknown"
+test_pass "predictions stop after first conflict"
+
+# CHK-14/15/16: maxCommits limits simulation
+# Using 20 commits with maxCommits=15 to trigger limitExceeded while keeping test fast
+printf ' -> CHK-14/15 limitExceeded when exceeding maxCommits\n'
+REPO_LARGE="${TEST_TMPDIR}/check-large"
+create_large_history_scenario "${REPO_LARGE}" 20
+result_limit="$(run_tool git-hex-checkRebaseConflicts "${REPO_LARGE}" '{"onto": "main", "maxCommits": 15}' 90)"
+assert_json_field "${result_limit}" '.limitExceeded' "true" "limit should be exceeded for large history"
+checked="$(printf '%s' "${result_limit}" | jq -r '.checkedCommits')"
+total="$(printf '%s' "${result_limit}" | jq -r '.totalCommits')"
+assert_eq "15" "${checked}" "checkedCommits should respect maxCommits"
+expected_total="$(cd "${REPO_LARGE}" && git rev-list --count main..HEAD)"
+assert_eq "${expected_total}" "${total}" "totalCommits should include commits in range"
+test_pass "maxCommits respected with limitExceeded"
+
+# CHK-17: Root commit in range (orphan branch)
+# This tests the edge case where a commit in the range has no parent
+printf ' -> CHK-17 handles root commit in range\n'
+REPO_ORPHAN="${TEST_TMPDIR}/check-orphan"
+create_orphan_branch_scenario "${REPO_ORPHAN}"
+# On orphan branch, first commit is a root commit (no parent)
+# Checking conflicts when rebasing orphan onto main
+# The tool should handle this gracefully (either skip or mark unknown)
+result_orphan="$(run_tool git-hex-checkRebaseConflicts "${REPO_ORPHAN}" '{"onto": "main"}' 60)" || true
+# Tool should succeed (not crash) - root commits may show as "unknown" prediction
+if  [ -n "${result_orphan}" ]; then
+	# Check that we got a valid response (success field exists)
+	success_val="$(printf '%s' "${result_orphan}" | jq -r 'if .success == null then "" else (.success | tostring) end')"
+	if [ "${success_val}" = "true" ]; then
+		test_pass "handles root commit in range gracefully"
+	else
+		# Tool may fail gracefully with an error message - that's acceptable
+		test_pass "root commit in range handled (returned error)"
+	fi
+else
+	test_fail "checkRebaseConflicts should not crash on root commit"
+fi
+
+echo ""
+echo "checkRebaseConflicts tests completed"

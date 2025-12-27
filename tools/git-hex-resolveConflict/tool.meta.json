@@ -1,0 +1,46 @@
+{
+  "name": "git-hex-resolveConflict",
+  "description": "Mark a conflicting file as resolved. Works for modified files and delete conflicts.",
+  "icons": [
+    {
+      "src": "../../assets/icons/resolve-conflict.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "file": {
+        "type": "string",
+        "description": "Path to the conflicting file (POSIX, repo-relative only; absolute, drive-letter, or traversal paths are rejected)"
+      },
+      "resolution": {
+        "type": "string",
+        "enum": ["keep", "delete"],
+        "description": "For delete conflicts: 'keep' to keep the file, 'delete' to accept deletion",
+        "default": "keep"
+      }
+    },
+    "required": ["file"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "file", "remainingConflicts", "summary"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "file": { "type": "string" },
+      "remainingConflicts": { "type": "integer" },
+      "summary": { "type": "string" }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

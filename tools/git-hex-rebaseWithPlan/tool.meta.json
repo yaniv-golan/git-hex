@@ -1,0 +1,105 @@
+{
+  "name": "git-hex-rebaseWithPlan",
+  "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword)",
+  "icons": [
+    {
+      "src": "../../assets/icons/rebase-with-plan.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "plan": {
+        "type": "array",
+        "description": "Ordered list of actions for each commit",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["pick", "reword", "squash", "fixup", "drop"],
+              "description": "Rebase action for this commit"
+            },
+            "commit": {
+              "type": "string",
+              "description": "Commit hash (short or full)"
+            },
+            "message": {
+              "type": "string",
+              "description": "New commit message. Required for reword. Must be single-line (no TAB or newline)."
+            }
+          },
+          "required": ["action", "commit"]
+        }
+      },
+      "abortOnConflict": {
+        "type": "boolean",
+        "description": "Abort and restore on conflict (default: true)",
+        "default": true
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Auto-stash uncommitted changes (uses native --autostash)",
+        "default": false
+      },
+      "autosquash": {
+        "type": "boolean",
+        "description": "Automatically squash fixup! and squash! commits (default: true)",
+        "default": true
+      },
+      "requireComplete": {
+        "type": "boolean",
+        "description": "If true, plan must include all commits in range. If false, unmentioned commits default to 'pick'.",
+        "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing during rebase (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "headBefore", "headAfter", "summary"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "headBefore": { "type": "string" },
+      "headAfter": { "type": "string" },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "commitsRebased": {
+        "type": "integer",
+        "description": "Number of commits rebased when successful"
+      },
+      "summary": { "type": "string" },
+      "paused": { "type": "boolean" },
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
+      },
+      "conflictingFiles": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 120
+}

@@ -1,0 +1,87 @@
+{
+  "name": "git-hex-splitCommit",
+  "description": "Split a commit into multiple commits by file. Each file from the original commit is assigned to exactly one new commit.",
+  "icons": [
+    {
+      "src": "../../assets/icons/split-commit.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (defaults to single root)"
+      },
+      "commit": {
+        "type": "string",
+        "description": "Commit to split (must be ancestor of HEAD)"
+      },
+      "splits": {
+        "type": "array",
+        "description": "How to split the commit. Each split becomes a new commit.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Files to include in this commit"
+            },
+            "message": {
+              "type": "string",
+              "description": "Commit message for this split. Must be single-line (no TAB/newline)."
+            }
+          },
+          "required": ["files", "message"]
+        },
+        "minItems": 2
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Automatically stash and restore uncommitted changes",
+        "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
+      }
+    },
+    "required": ["commit", "splits"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "originalCommit", "newCommits", "backupRef", "rebasePaused", "stashNotRestored", "summary"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "originalCommit": { "type": "string" },
+      "newCommits": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["hash", "message", "files"],
+          "properties": {
+            "hash": { "type": "string" },
+            "message": { "type": "string" },
+            "files": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "backupRef": { "type": "string" },
+      "rebasePaused": { "type": "boolean" },
+      "stashNotRestored": { "type": "boolean" },
+      "summary": { "type": "string" }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 180
+}

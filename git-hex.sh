@@ -99,7 +99,9 @@ get_mcp_bash_version() {
 }
 
 # Handle `install` as an alias for `doctor --fix`
+GIT_HEX_INSTALL_CMD="false"
 if [ "${1:-}" = "install" ]; then
+	GIT_HEX_INSTALL_CMD="true"
 	shift
 	set -- "doctor" "--fix" "$@"
 fi
@@ -162,6 +164,13 @@ if [ -x "${framework_bin}" ]; then
 	if [ -n "${framework_found_version}" ] && ! version_ge "${framework_found_version}" "${REQUIRED_MCPBASH_MIN_VERSION}"; then
 		framework_too_old="true"
 	fi
+fi
+
+# Early exit for `install` when framework is already OK
+if [ "${GIT_HEX_INSTALL_CMD}" = "true" ] && [ "${framework_exists}" = "true" ] && [ "${framework_too_old}" != "true" ]; then
+	printf '\342\234\223 MCP Bash Framework v%s ready\n' "${framework_found_version:-unknown}"
+	printf '  Run ./git-hex.sh doctor for details\n'
+	exit 0
 fi
 
 os_name="$(uname -s 2>/dev/null || printf '')"
@@ -531,6 +540,12 @@ if [ "${framework_exists}" != "true" ] || [ "${framework_too_old}" = "true" ]; t
 	# Create a convenience symlink matching the installer behavior
 	if [ "${GIT_HEX_DOCTOR_MODE}" != "true" ] || [ "${GIT_HEX_DOCTOR_FIX_MODE}" = "true" ]; then
 		ensure_launcher
+	fi
+	# Success message for install command
+	if [ "${GIT_HEX_INSTALL_CMD}" = "true" ]; then
+		printf '\342\234\223 MCP Bash Framework v%s installed\n' "${FRAMEWORK_VERSION}"
+		printf '  Run ./git-hex.sh doctor for details\n'
+		exit 0
 	fi
 fi
 

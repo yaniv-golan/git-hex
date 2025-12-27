@@ -1,0 +1,64 @@
+{
+  "name": "git-hex-continueOperation",
+  "description": "Continue a paused rebase/merge/cherry-pick after resolving all conflicts. When to use: after using resolveConflict for EVERY conflicting file. Do NOT use if conflicts remain - use getConflictStatus to check, then resolveConflict for each file first. May pause again if additional commits have conflicts.",
+  "icons": [
+    {
+      "src": "../../assets/icons/continue-operation.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": ["operationType", "completed", "paused", "conflictingFiles", "summary"],
+        "properties": {
+          "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
+          "completed": { "type": "boolean" },
+          "paused": { "type": "boolean" },
+          "conflictingFiles": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "error": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "message": { "type": "string" },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

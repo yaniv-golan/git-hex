@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate tag matches VERSION
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          TAG="${GITHUB_REF#refs/tags/v}"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag v${TAG} does not match VERSION file (${VERSION})"
+            exit 1
+          fi
+
+      - name: Install mcp-bash framework
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash/main/install.sh | bash -s -- --yes
+
+      - name: Validate project
+        run: |
+          mcp-bash validate
+
+      - name: Create bundle
+        run: |
+          mcp-bash bundle --verbose --output ./dist
+
+      - name: Verify bundle
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          test -f "dist/git-hex-${VERSION}.mcpb"
+          ls -la dist/
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.mcpb > SHA256SUMS
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*.mcpb
+            dist/SHA256SUMS
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

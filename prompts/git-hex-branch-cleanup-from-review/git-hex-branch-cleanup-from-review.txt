@@ -1,0 +1,54 @@
+You are operating in a git repository and must use `git-hex` MCP tools (not raw git commands) for history rewrites.
+
+Goal: ${subject}
+Context (optional): ${details}
+
+Use this workflow:
+1) Call `git-hex-getRebasePlan` with:
+   - `repoPath` (when needed): ${repoPath}
+   - `onto`: ${onto}
+   - `count`: ${count}
+2) Inspect the returned commits and propose a cleanup strategy:
+   - Which commits need follow-up fixes (use fixups)?
+   - Which commits should be reworded/dropped/reordered (requires a `plan`)?
+3) For each review item, instruct the user to stage changes, then call:
+   - `git-hex-createFixup` with `commit=<target>`
+4) When ready, run `git-hex-rebaseWithPlan`:
+   - Prefer `{ "onto": ${onto}, "autosquash": true }` for pure fixup workflows.
+   - If reword/drop/reorder is needed, build a complete `plan` that covers every commit in `${onto}..HEAD` (use `drop` to remove).
+5) If anything goes wrong:
+   - If a history operation failed and the repo was restored, explain what to do next.
+   - If the user wants to roll back the last successful git-hex history operation, use `git-hex-undoLast` (explain `force` risks first).
+
+Output format:
+- Start with a short plan (3–7 bullets).
+- Then list the exact tool calls to make next (name + JSON args), one at a time.
+
+## LLM Decision Guide
+
+**Workflow selection**:
+| Scenario | Approach |
+|----------|----------|
+| Simple fixes to specific commits | Use `createFixup` + `rebaseWithPlan { autosquash: true }` |
+| Need to reorder/drop/reword | Build complete `plan` array for `rebaseWithPlan` |
+| Split a commit into multiple | Use `splitCommit` first, then rebase if needed |
+| Combine multiple commits | Use `squash` or `fixup` actions in plan |
+
+**Example: Fixing a typo in commit abc123**:
+```json
+// Step 1: User stages the fix
+// Step 2: Create fixup
+{ "tool": "git-hex-createFixup", "args": { "commit": "abc123" } }
+// Step 3: Rebase with autosquash
+{ "tool": "git-hex-rebaseWithPlan", "args": { "onto": "main", "autosquash": true } }
+```
+
+**Error recovery**:
+- If `rebaseWithPlan` reports conflicts → switch to conflict resolution workflow
+- If user wants to undo → use `git-hex-undoLast` (warn about `force` if HEAD moved)
+- If user wants to start over → use `git-hex-abortOperation` (only during paused operation)
+
+**Never do**:
+- Build a partial plan (must cover ALL commits in range if using plan)
+- Forget to set `autosquash: true` when using fixups
+- Call mutating tools without explaining what will change

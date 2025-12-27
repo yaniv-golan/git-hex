@@ -1,0 +1,136 @@
+{
+  "name": "git-hex-rebaseWithPlan",
+  "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword). Use to clean up feature branch history before merge. Use checkRebaseConflicts first if conflicts are likely. Do NOT use on shared/pushed branches without coordination.",
+  "icons": [
+    {
+      "src": "../../assets/icons/rebase-with-plan.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "plan": {
+        "type": "array",
+        "description": "Ordered list of actions for each commit",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["pick", "reword", "squash", "fixup", "drop"],
+              "description": "Rebase action for this commit"
+            },
+            "commit": {
+              "type": "string",
+              "description": "Commit hash (short or full)"
+            },
+            "message": {
+              "type": "string",
+              "description": "New commit message. Required for reword. Must be single-line (no TAB or newline)."
+            }
+          },
+          "required": ["action", "commit"]
+        }
+      },
+      "abortOnConflict": {
+        "type": "boolean",
+        "description": "Abort and restore on conflict (default: true)",
+        "default": true
+      },
+      "autoStash": {
+        "type": "boolean",
+        "description": "Auto-stash uncommitted changes (uses native --autostash)",
+        "default": false
+      },
+      "autosquash": {
+        "type": "boolean",
+        "description": "Automatically squash fixup! and squash! commits (default: true)",
+        "default": true
+      },
+      "requireComplete": {
+        "type": "boolean",
+        "description": "If true, plan must include all commits in range. If false, unmentioned commits default to 'pick'.",
+        "default": false
+      },
+      "signCommits": {
+        "type": "boolean",
+        "description": "If true, allow commit signing during rebase (may prompt/hang if pinentry is required). Default false to avoid non-interactive hangs.",
+        "default": false
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": ["headBefore", "headAfter", "summary"],
+        "properties": {
+          "headBefore": { "type": "string" },
+          "headAfter": { "type": "string" },
+          "backupRef": {
+            "type": "string",
+            "description": "Backup ref created for undoLast"
+          },
+          "commitsRebased": {
+            "type": "integer",
+            "description": "Number of commits rebased when successful"
+          },
+          "summary": { "type": "string" },
+          "paused": { "type": "boolean" },
+          "reason": {
+            "type": "string",
+            "description": "Reason when paused (e.g., conflict)"
+          },
+          "conflictingFiles": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Actionable suggestions for resolving the error"
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 120,
+  "timeoutHint": "For large rebases, split into smaller batches (5-10 commits at a time). Use getRebasePlan to understand the scope first."
+}

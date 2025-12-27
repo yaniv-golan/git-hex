@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebase Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #1a1d21;
+      --bg-secondary: #22262b;
+      --bg-tertiary: #2a2f36;
+      --bg-elevated: #32383f;
+      --text-primary: #f0f2f5;
+      --text-secondary: #a0a8b3;
+      --text-muted: #6b7280;
+      --border: #3a4049;
+      --accent-primary: #6366f1;
+      --accent-primary-light: rgba(99, 102, 241, 0.15);
+      --accent-cyan: #22d3ee;
+      --accent-cyan-light: rgba(34, 211, 238, 0.15);
+      --accent-emerald: #34d399;
+      --accent-emerald-light: rgba(52, 211, 153, 0.15);
+      --accent-orange: #fb923c;
+      --accent-pink: #f472b6;
+      --timeline-line: #3a4049;
+      --font-sans: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --radius-lg: 16px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 32px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 40px;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .title-group h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    /* Branch info card */
+    .branch-card {
+      background: linear-gradient(135deg, var(--accent-primary-light), var(--accent-cyan-light));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      min-width: 260px;
+    }
+
+    .branch-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .branch-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .branch-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .branch-icon.source {
+      background: var(--accent-primary);
+    }
+
+    .branch-icon.target {
+      background: var(--accent-cyan);
+    }
+
+    .branch-info {
+      flex: 1;
+    }
+
+    .branch-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .branch-name {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .arrow-down {
+      display: flex;
+      justify-content: center;
+      padding: 4px 0;
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    /* Commits section */
+    .commits-section {
+      position: relative;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .commit-count {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .timeline-line {
+      position: absolute;
+      left: 15px;
+      top: 24px;
+      bottom: 24px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent-primary), var(--accent-cyan), var(--accent-emerald));
+      border-radius: 1px;
+    }
+
+    .commit-item {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .commit-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .commit-node {
+      position: absolute;
+      left: -40px;
+      top: 20px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-secondary);
+      border: 3px solid var(--accent-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-primary);
+      z-index: 1;
+      transition: all 0.2s ease;
+    }
+
+    .commit-item:hover .commit-node {
+      background: var(--accent-primary);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .commit-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .commit-item:hover .commit-card {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-primary);
+      transform: translateX(4px);
+    }
+
+    .commit-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .commit-hash {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-cyan);
+      background: var(--accent-cyan-light);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+    }
+
+    .commit-date {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .commit-subject {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .commit-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .author-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: white;
+    }
+
+    /* Onto target indicator */
+    .onto-indicator {
+      position: relative;
+      margin-top: 24px;
+      padding: 16px 20px;
+      padding-left: 56px;
+      background: var(--accent-emerald-light);
+      border: 1px dashed var(--accent-emerald);
+      border-radius: var(--radius);
+    }
+
+    .onto-node {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      background: var(--accent-emerald);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+
+    .onto-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent-emerald);
+      margin-bottom: 4px;
+    }
+
+    .onto-ref {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* Summary footer */
+    .summary-footer {
+      margin-top: 32px;
+      padding: 20px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* Loading state */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      gap: 24px;
+    }
+
+    .timeline-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .loader-node {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      animation: nodeWave 1.5s ease-in-out infinite;
+    }
+
+    .loader-node:nth-child(2) {
+      animation-delay: 0.2s;
+      background: var(--accent-cyan);
+    }
+
+    .loader-node:nth-child(3) {
+      animation-delay: 0.4s;
+      background: var(--accent-emerald);
+    }
+
+    @keyframes nodeWave {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.5; }
+    }
+
+    .loading-text {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-top: 16px;
+    }
+
+    /* Plan ID badge */
+    .plan-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-tertiary);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="loading-state">
+      <div class="timeline-loader">
+        <div class="loader-node"></div>
+        <div class="loader-node"></div>
+        <div class="loader-node"></div>
+      </div>
+      <div class="loading-text">Loading rebase plan...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    const appContainer = document.getElementById('app');
+
+    // Get author initials
+    function getInitials(author) {
+      const parts = (author || 'Unknown').split(/[\s@<>]+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return (parts[0] || 'U').substring(0, 2).toUpperCase();
+    }
+
+    // Format date
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch {
+        return dateStr;
+      }
+    }
+
+    // Build commit item
+    function buildCommitItem(commit, index) {
+      const item = document.createElement('div');
+      item.className = 'commit-item';
+
+      const node = document.createElement('div');
+      node.className = 'commit-node';
+      node.textContent = index + 1;
+
+      const card = document.createElement('div');
+      card.className = 'commit-card';
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'commit-header';
+
+      const hash = document.createElement('span');
+      hash.className = 'commit-hash';
+      hash.textContent = commit.shortHash || commit.hash.substring(0, 7);
+
+      const date = document.createElement('span');
+      date.className = 'commit-date';
+      date.textContent = formatDate(commit.date);
+
+      header.appendChild(hash);
+      header.appendChild(date);
+
+      // Subject
+      const subject = document.createElement('div');
+      subject.className = 'commit-subject';
+      subject.textContent = commit.subject;
+
+      // Author
+      const authorDiv = document.createElement('div');
+      authorDiv.className = 'commit-author';
+
+      const avatar = document.createElement('span');
+      avatar.className = 'author-avatar';
+      avatar.textContent = getInitials(commit.author);
+
+      authorDiv.appendChild(avatar);
+      authorDiv.appendChild(document.createTextNode(commit.author || 'Unknown'));
+
+      card.appendChild(header);
+      card.appendChild(subject);
+      card.appendChild(authorDiv);
+      item.appendChild(node);
+      item.appendChild(card);
+
+      return item;
+    }
+
+    // Render the full UI
+    function render(data) {
+      const result = data.result || data;
+      appContainer.replaceChildren();
+
+      const commits = result.commits || [];
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'header';
+
+      const headerContent = document.createElement('div');
+      headerContent.className = 'header-content';
+
+      // Title group
+      const titleGroup = document.createElement('div');
+      titleGroup.className = 'title-group';
+
+      const h1 = document.createElement('h1');
+      h1.textContent = 'Rebase Plan';
+
+      const subtitle = document.createElement('p');
+      subtitle.className = 'subtitle';
+      subtitle.textContent = `${commits.length} commits ready to rebase`;
+
+      if (result.plan_id) {
+        const planId = document.createElement('span');
+        planId.className = 'plan-id';
+        planId.textContent = `Plan: ${result.plan_id}`;
+        subtitle.appendChild(document.createTextNode(' '));
+        subtitle.appendChild(planId);
+      }
+
+      titleGroup.appendChild(h1);
+      titleGroup.appendChild(subtitle);
+
+      // Branch card
+      const branchCard = document.createElement('div');
+      branchCard.className = 'branch-card';
+
+      // Source branch
+      const sourceRow = document.createElement('div');
+      sourceRow.className = 'branch-row';
+
+      const sourceIcon = document.createElement('div');
+      sourceIcon.className = 'branch-icon source';
+      sourceIcon.textContent = '\u{1F333}';
+
+      const sourceInfo = document.createElement('div');
+      sourceInfo.className = 'branch-info';
+
+      const sourceLabel = document.createElement('div');
+      sourceLabel.className = 'branch-label';
+      sourceLabel.textContent = 'Current Branch';
+
+      const sourceName = document.createElement('div');
+      sourceName.className = 'branch-name';
+      sourceName.textContent = result.branch || 'HEAD';
+
+      sourceInfo.appendChild(sourceLabel);
+      sourceInfo.appendChild(sourceName);
+      sourceRow.appendChild(sourceIcon);
+      sourceRow.appendChild(sourceInfo);
+
+      // Arrow
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow-down';
+      arrow.textContent = '\u2193';
+
+      // Target branch
+      const targetRow = document.createElement('div');
+      targetRow.className = 'branch-row';
+
+      const targetIcon = document.createElement('div');
+      targetIcon.className = 'branch-icon target';
+      targetIcon.textContent = '\u{1F3AF}';
+
+      const targetInfo = document.createElement('div');
+      targetInfo.className = 'branch-info';
+
+      const targetLabel = document.createElement('div');
+      targetLabel.className = 'branch-label';
+      targetLabel.textContent = 'Rebase Onto';
+
+      const targetName = document.createElement('div');
+      targetName.className = 'branch-name';
+      targetName.textContent = result.onto || 'unknown';
+
+      targetInfo.appendChild(targetLabel);
+      targetInfo.appendChild(targetName);
+      targetRow.appendChild(targetIcon);
+      targetRow.appendChild(targetInfo);
+
+      branchCard.appendChild(sourceRow);
+      branchCard.appendChild(arrow);
+      branchCard.appendChild(targetRow);
+
+      headerContent.appendChild(titleGroup);
+      headerContent.appendChild(branchCard);
+      header.appendChild(headerContent);
+
+      // Commits section
+      const commitsSection = document.createElement('div');
+      commitsSection.className = 'commits-section';
+
+      const sectionHeader = document.createElement('div');
+      sectionHeader.className = 'section-header';
+
+      const sectionTitle = document.createElement('h2');
+      sectionTitle.className = 'section-title';
+      sectionTitle.textContent = 'Commits to Rebase';
+
+      const commitCount = document.createElement('span');
+      commitCount.className = 'commit-count';
+      commitCount.textContent = `${commits.length} commit${commits.length !== 1 ? 's' : ''}`;
+
+      sectionHeader.appendChild(sectionTitle);
+      sectionHeader.appendChild(commitCount);
+
+      // Timeline
+      const timeline = document.createElement('div');
+      timeline.className = 'timeline';
+
+      const timelineLine = document.createElement('div');
+      timelineLine.className = 'timeline-line';
+      timeline.appendChild(timelineLine);
+
+      commits.forEach((commit, i) => {
+        timeline.appendChild(buildCommitItem(commit, i));
+      });
+
+      // Onto indicator
+      const ontoIndicator = document.createElement('div');
+      ontoIndicator.className = 'onto-indicator';
+
+      const ontoNode = document.createElement('div');
+      ontoNode.className = 'onto-node';
+      ontoNode.textContent = '\u2193';
+
+      const ontoLabel = document.createElement('div');
+      ontoLabel.className = 'onto-label';
+      ontoLabel.textContent = 'Rebase Target';
+
+      const ontoRef = document.createElement('div');
+      ontoRef.className = 'onto-ref';
+      ontoRef.textContent = result.onto || 'HEAD';
+
+      ontoIndicator.appendChild(ontoNode);
+      ontoIndicator.appendChild(ontoLabel);
+      ontoIndicator.appendChild(ontoRef);
+
+      commitsSection.appendChild(sectionHeader);
+      commitsSection.appendChild(timeline);
+      commitsSection.appendChild(ontoIndicator);
+
+      // Summary
+      if (result.summary) {
+        const summaryFooter = document.createElement('div');
+        summaryFooter.className = 'summary-footer';
+        summaryFooter.textContent = result.summary;
+        commitsSection.appendChild(summaryFooter);
+      }
+
+      appContainer.appendChild(header);
+      appContainer.appendChild(commitsSection);
+    }
+
+    // Show loading
+    function showLoading(message) {
+      appContainer.replaceChildren();
+      const loadingState = document.createElement('div');
+      loadingState.className = 'loading-state';
+
+      const loader = document.createElement('div');
+      loader.className = 'timeline-loader';
+      for (let i = 0; i < 3; i++) {
+        const node = document.createElement('div');
+        node.className = 'loader-node';
+        loader.appendChild(node);
+      }
+
+      const text = document.createElement('div');
+      text.className = 'loading-text';
+      text.textContent = message;
+
+      loadingState.appendChild(loader);
+      loadingState.appendChild(text);
+      appContainer.appendChild(loadingState);
+    }
+
+    // Load SDK
+    let App;
+    try {
+      const module = await import('https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm');
+      App = module.App;
+    } catch (e) {
+      showLoading(`Failed to load SDK: ${e.message}`);
+      throw e;
+    }
+
+    const mcpApp = new App({ name: "Rebase Plan", version: "1.0.0" });
+
+    mcpApp.onerror = (error) => {
+      showLoading(`Error: ${error.message}`);
+    };
+
+    mcpApp.ontoolresult = (result) => {
+      if (result?.structuredContent) {
+        render(result.structuredContent);
+      } else if (result?.content) {
+        const textContent = result.content.find(c => c.type === 'text');
+        if (textContent) {
+          try {
+            render(JSON.parse(textContent.text));
+          } catch (e) {
+            showLoading('Error parsing data');
+          }
+        }
+      }
+    };
+
+    mcpApp.connect().catch(() => {
+      showLoading('Failed to connect');
+    });
+  </script>
+</body>
+</html>

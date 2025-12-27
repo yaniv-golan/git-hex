@@ -1,0 +1,76 @@
+{
+  "name": "git-hex-resolveConflict",
+  "description": "Mark a conflicting file as resolved after manually fixing it. When to use: after editing a file to remove conflict markers, then call continueOperation. For delete conflicts, specify resolution='keep' or 'delete'. Do NOT use if conflict markers are still present in the file - edit the file first to resolve all <<<<<<< / ======= / >>>>>>> markers.",
+  "icons": [
+    {
+      "src": "../../assets/icons/resolve-conflict.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "file": {
+        "type": "string",
+        "description": "Path to the conflicting file (POSIX, repo-relative only; absolute, drive-letter, or traversal paths are rejected)"
+      },
+      "resolution": {
+        "type": "string",
+        "enum": ["keep", "delete"],
+        "description": "For delete conflicts: 'keep' to keep the file, 'delete' to accept deletion",
+        "default": "keep"
+      }
+    },
+    "required": ["file"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": ["file", "remainingConflicts", "summary"],
+        "properties": {
+          "file": { "type": "string" },
+          "remainingConflicts": { "type": "integer" },
+          "summary": { "type": "string" }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Actionable suggestions for resolving the error"
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

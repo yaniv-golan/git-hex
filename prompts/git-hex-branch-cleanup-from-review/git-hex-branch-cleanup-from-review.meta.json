@@ -1,0 +1,35 @@
+{
+  "name": "git-hex-branch-cleanup-from-review",
+  "description": "Turn code-review feedback into fixup commits and an autosquash rebase using git-hex tools",
+  "role": "user",
+  "arguments": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Absolute path to the target git repository (required when multiple roots are configured)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto (e.g., main)",
+        "default": "main"
+      },
+      "count": {
+        "type": "integer",
+        "description": "How many commits from HEAD to include when planning",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 20
+      },
+      "subject": {
+        "type": "string",
+        "description": "Short description of the cleanup goal (e.g., \"address review comments and produce clean history\")"
+      },
+      "details": {
+        "type": "string",
+        "description": "Optional context: review notes, constraints, commit/grouping preferences, etc."
+      }
+    }
+  }
+}

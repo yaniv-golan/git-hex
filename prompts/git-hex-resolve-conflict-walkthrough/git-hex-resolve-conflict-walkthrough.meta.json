@@ -1,0 +1,35 @@
+{
+  "name": "git-hex-resolve-conflict-walkthrough",
+  "description": "Guide resolving a paused rebase/merge/cherry-pick using git-hex conflict tools",
+  "role": "user",
+  "arguments": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Absolute path to the target git repository (required when multiple roots are configured)"
+      },
+      "subject": {
+        "type": "string",
+        "description": "Optional: what you were trying to do when conflicts happened"
+      },
+      "details": {
+        "type": "string",
+        "description": "Optional context: any constraints, preferred resolutions, etc."
+      },
+      "includeContent": {
+        "type": "boolean",
+        "description": "If true, include base/ours/theirs snippets in conflict status (can be large)",
+        "default": false
+      },
+      "maxContentSize": {
+        "type": "integer",
+        "description": "Max bytes per content field when includeContent=true",
+        "minimum": 0,
+        "maximum": 100000,
+        "default": 2000
+      }
+    }
+  }
+}

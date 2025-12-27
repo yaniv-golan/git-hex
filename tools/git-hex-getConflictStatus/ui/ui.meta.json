@@ -1,0 +1,13 @@
+{
+  "description": "Three-pane conflict diff viewer showing base, ours, and theirs versions",
+  "meta": {
+    "csp": {
+      "connectDomains": ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      "resourceDomains": ["https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      "frameDomains": [],
+      "baseUriDomains": []
+    },
+    "permissions": {},
+    "prefersBorder": true
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "name": "git-hex-undoLast",
+  "description": "Undo the last git-hex operation by resetting to the backup ref. Use immediately after a git-hex operation goes wrong. Do NOT use if new commits were added after the backup - those would be lost. REQUIRES: clean working tree.",
+  "icons": [
+    {
+      "src": "../../assets/icons/undo-last.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "force": {
+        "type": "boolean",
+        "description": "Allow undo even if new commits exist after the backup (those commits will be lost) and allow overwriting untracked files that collide with tracked paths in the backup state"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": ["headBefore", "headAfter"],
+        "properties": {
+          "headBefore": {
+            "type": "string",
+            "description": "HEAD commit hash before the undo"
+          },
+          "headAfter": {
+            "type": "string",
+            "description": "HEAD commit hash after the undo (the restored state)"
+          },
+          "undoneOperation": {
+            "type": "string",
+            "description": "Name of the operation that was undone (or \"unknown\")"
+          },
+          "backupRef": {
+            "type": "string",
+            "description": "The backup ref that was restored"
+          },
+          "commitsUndone": {
+            "type": "integer",
+            "description": "Number of commits that were undone"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Human-readable explanation of what was undone"
+          }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Actionable suggestions for resolving the error"
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

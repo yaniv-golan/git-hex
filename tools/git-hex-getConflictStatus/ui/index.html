@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conflict Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --bg-code: #0d1b2a;
+      --text-primary: #edf2f4;
+      --text-secondary: #8d99ae;
+      --text-muted: #6c757d;
+      --border: #2a3f5f;
+      --accent-red: #ef476f;
+      --accent-red-bg: rgba(239, 71, 111, 0.12);
+      --accent-green: #06d6a0;
+      --accent-green-bg: rgba(6, 214, 160, 0.12);
+      --accent-amber: #ffd166;
+      --accent-amber-bg: rgba(255, 209, 102, 0.12);
+      --accent-blue: #118ab2;
+      --accent-cyan: #26c6da;
+      --font-sans: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'Fira Code', 'SF Mono', monospace;
+      --radius: 8px;
+      --radius-sm: 4px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.conflict {
+      background: var(--accent-red-bg);
+      color: var(--accent-red);
+      border: 1px solid color-mix(in srgb, var(--accent-red) 40%, transparent);
+    }
+
+    .status-badge.conflict .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-red);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .status-badge.clean {
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      border: 1px solid color-mix(in srgb, var(--accent-green) 40%, transparent);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .operation-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .operation-type {
+      font-family: var(--font-mono);
+      background: var(--bg-tertiary);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      color: var(--accent-cyan);
+      font-size: 12px;
+    }
+
+    .progress-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress-bar {
+      width: 80px;
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+      border-radius: 2px;
+    }
+
+    /* Main content */
+    .main-content {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* File tabs */
+    .file-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 12px 16px 0;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .file-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: var(--radius) var(--radius) 0 0;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .file-tab:hover {
+      background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+      color: var(--text-primary);
+    }
+
+    .file-tab.active {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .file-tab-icon {
+      font-size: 12px;
+    }
+
+    .file-tab-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: var(--accent-amber-bg);
+      color: var(--accent-amber);
+    }
+
+    /* View tabs */
+    .view-tabs {
+      display: flex;
+      padding: 12px 16px;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg-tertiary) 30%, transparent);
+    }
+
+    .view-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius);
+      transition: all 0.15s ease;
+    }
+
+    .view-tab:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .view-tab.active {
+      background: var(--bg-tertiary);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .view-tab.base.active { border-color: var(--text-muted); color: var(--text-secondary); }
+    .view-tab.ours.active { border-color: var(--accent-green); color: var(--accent-green); }
+    .view-tab.theirs.active { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+    .view-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .view-dot.base { background: var(--text-muted); }
+    .view-dot.ours { background: var(--accent-green); }
+    .view-dot.theirs { background: var(--accent-blue); }
+
+    /* Code viewer */
+    .code-viewer {
+      max-height: 500px;
+      overflow: auto;
+      background: var(--bg-code);
+    }
+
+    .code-lines {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .code-line {
+      display: flex;
+      min-height: 22px;
+    }
+
+    .line-number {
+      min-width: 48px;
+      padding: 0 12px;
+      text-align: right;
+      color: var(--text-muted);
+      background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+      border-right: 1px solid var(--border);
+      user-select: none;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+
+    .line-content {
+      flex: 1;
+      padding: 0 16px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    .line-content::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    /* Line highlighting for diff context */
+    .code-line.added { background: var(--accent-green-bg); }
+    .code-line.added .line-number { background: color-mix(in srgb, var(--accent-green) 15%, var(--bg-secondary)); }
+    .code-line.removed { background: var(--accent-red-bg); }
+    .code-line.removed .line-number { background: color-mix(in srgb, var(--accent-red) 15%, var(--bg-secondary)); }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: var(--accent-green-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Loading state */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      gap: 16px;
+    }
+
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--bg-tertiary);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* Binary notice */
+    .binary-notice {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-code); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Analyzing conflict status...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    const appContainer = document.getElementById('app');
+
+    function formatConflictType(type) {
+      const labels = {
+        'both_modified': 'Both Modified',
+        'deleted_by_us': 'Deleted by Us',
+        'deleted_by_them': 'Deleted by Them',
+        'added_by_both': 'Added by Both'
+      };
+      return labels[type] || type;
+    }
+
+    function buildCodeLines(content) {
+      const container = document.createElement('div');
+      container.className = 'code-lines';
+
+      if (!content) {
+        const notice = document.createElement('div');
+        notice.className = 'binary-notice';
+        notice.textContent = 'No content available';
+        return notice;
+      }
+
+      const lines = content.split('\n');
+      lines.forEach((line, i) => {
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'code-line';
+
+        const lineNum = document.createElement('div');
+        lineNum.className = 'line-number';
+        lineNum.textContent = i + 1;
+
+        const lineContent = document.createElement('div');
+        lineContent.className = 'line-content';
+        lineContent.textContent = line || ' ';
+
+        lineDiv.appendChild(lineNum);
+        lineDiv.appendChild(lineContent);
+        container.appendChild(lineDiv);
+      });
+
+      return container;
+    }
+
+    function render(data) {
+      const result = data.result || data;
+      appContainer.replaceChildren();
+
+      // No conflict state
+      if (!result.inConflict) {
+        const header = document.createElement('div');
+        header.className = 'header';
+
+        const badge = document.createElement('div');
+        badge.className = 'status-badge clean';
+        badge.textContent = '\u2713 No Conflicts';
+        header.appendChild(badge);
+
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+
+        const emptyIcon = document.createElement('div');
+        emptyIcon.className = 'empty-icon';
+        emptyIcon.textContent = '\u2705';
+
+        const emptyTitle = document.createElement('div');
+        emptyTitle.className = 'empty-title';
+        emptyTitle.textContent = 'Repository is clean';
+
+        const emptyDesc = document.createElement('div');
+        emptyDesc.className = 'empty-description';
+        emptyDesc.textContent = 'No rebase, merge, or cherry-pick in progress.';
+
+        emptyState.appendChild(emptyIcon);
+        emptyState.appendChild(emptyTitle);
+        emptyState.appendChild(emptyDesc);
+
+        appContainer.appendChild(header);
+        appContainer.appendChild(emptyState);
+        return;
+      }
+
+      const files = result.conflictingFiles || [];
+      let activeFileIndex = 0;
+      let activeView = 'ours'; // Default to "ours" view
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'header';
+
+      const headerLeft = document.createElement('div');
+      headerLeft.className = 'header-left';
+
+      const badge = document.createElement('div');
+      badge.className = 'status-badge conflict';
+      const pulseDot = document.createElement('span');
+      pulseDot.className = 'pulse-dot';
+      badge.appendChild(pulseDot);
+      badge.appendChild(document.createTextNode('Conflicts Detected'));
+
+      const opInfo = document.createElement('div');
+      opInfo.className = 'operation-info';
+
+      const opType = document.createElement('span');
+      opType.className = 'operation-type';
+      opType.textContent = result.conflictType || 'unknown';
+      opInfo.appendChild(opType);
+
+      if (result.currentStep && result.totalSteps) {
+        const progressInd = document.createElement('div');
+        progressInd.className = 'progress-indicator';
+
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-bar';
+        const progressFill = document.createElement('div');
+        progressFill.className = 'progress-fill';
+        progressFill.style.width = `${(result.currentStep / result.totalSteps) * 100}%`;
+        progressBar.appendChild(progressFill);
+        progressInd.appendChild(progressBar);
+
+        const stepText = document.createElement('span');
+        stepText.textContent = `Step ${result.currentStep} of ${result.totalSteps}`;
+        progressInd.appendChild(stepText);
+        opInfo.appendChild(progressInd);
+      }
+
+      headerLeft.appendChild(badge);
+      headerLeft.appendChild(opInfo);
+      header.appendChild(headerLeft);
+
+      // Main content
+      const mainContent = document.createElement('div');
+      mainContent.className = 'main-content';
+
+      // File tabs
+      const fileTabs = document.createElement('div');
+      fileTabs.className = 'file-tabs';
+
+      // View tabs container
+      const viewTabs = document.createElement('div');
+      viewTabs.className = 'view-tabs';
+
+      // Code viewer
+      const codeViewer = document.createElement('div');
+      codeViewer.className = 'code-viewer';
+
+      // Update view
+      function updateView() {
+        const file = files[activeFileIndex];
+
+        // Update file tabs
+        fileTabs.querySelectorAll('.file-tab').forEach((tab, i) => {
+          tab.classList.toggle('active', i === activeFileIndex);
+        });
+
+        // Update view tabs
+        viewTabs.querySelectorAll('.view-tab').forEach(tab => {
+          tab.classList.toggle('active', tab.dataset.view === activeView);
+        });
+
+        // Update code viewer
+        codeViewer.replaceChildren();
+        let content;
+        if (activeView === 'base') content = file.base;
+        else if (activeView === 'ours') content = file.ours;
+        else content = file.theirs;
+
+        if (file.isBinary) {
+          const notice = document.createElement('div');
+          notice.className = 'binary-notice';
+          notice.textContent = 'Binary file cannot be displayed';
+          codeViewer.appendChild(notice);
+        } else {
+          codeViewer.appendChild(buildCodeLines(content));
+        }
+      }
+
+      // Build file tabs
+      files.forEach((file, i) => {
+        const tab = document.createElement('button');
+        tab.className = 'file-tab' + (i === 0 ? ' active' : '');
+
+        const icon = document.createElement('span');
+        icon.className = 'file-tab-icon';
+        icon.textContent = '\uD83D\uDCC4';
+
+        const name = document.createElement('span');
+        name.textContent = file.path.split('/').pop();
+
+        const typeBadge = document.createElement('span');
+        typeBadge.className = 'file-tab-badge';
+        typeBadge.textContent = formatConflictType(file.conflictType).split(' ')[0];
+
+        tab.appendChild(icon);
+        tab.appendChild(name);
+        tab.appendChild(typeBadge);
+
+        tab.addEventListener('click', () => {
+          activeFileIndex = i;
+          updateView();
+        });
+
+        fileTabs.appendChild(tab);
+      });
+
+      // Build view tabs
+      const views = [
+        { id: 'base', label: 'Base', desc: 'Common Ancestor' },
+        { id: 'ours', label: 'Ours', desc: 'Current Branch' },
+        { id: 'theirs', label: 'Theirs', desc: 'Incoming' }
+      ];
+
+      views.forEach(v => {
+        const tab = document.createElement('button');
+        tab.className = `view-tab ${v.id}` + (v.id === activeView ? ' active' : '');
+        tab.dataset.view = v.id;
+
+        const dot = document.createElement('span');
+        dot.className = `view-dot ${v.id}`;
+
+        const label = document.createElement('span');
+        label.textContent = v.label;
+
+        tab.appendChild(dot);
+        tab.appendChild(label);
+
+        tab.addEventListener('click', () => {
+          activeView = v.id;
+          updateView();
+        });
+
+        viewTabs.appendChild(tab);
+      });
+
+      mainContent.appendChild(fileTabs);
+      mainContent.appendChild(viewTabs);
+      mainContent.appendChild(codeViewer);
+
+      appContainer.appendChild(header);
+      appContainer.appendChild(mainContent);
+
+      // Initial render
+      updateView();
+    }
+
+    function showLoading(message) {
+      appContainer.replaceChildren();
+      const loadingState = document.createElement('div');
+      loadingState.className = 'loading-state';
+
+      const spinner = document.createElement('div');
+      spinner.className = 'loading-spinner';
+
+      const text = document.createElement('div');
+      text.className = 'loading-text';
+      text.textContent = message;
+
+      loadingState.appendChild(spinner);
+      loadingState.appendChild(text);
+      appContainer.appendChild(loadingState);
+    }
+
+    // Load MCP Apps SDK
+    let App;
+    try {
+      const module = await import('https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm');
+      App = module.App;
+    } catch (e) {
+      showLoading(`Failed to load SDK: ${e.message}`);
+      throw e;
+    }
+
+    const mcpApp = new App({ name: "Conflict Status", version: "1.0.0" });
+
+    mcpApp.onerror = (error) => {
+      showLoading(`Error: ${error.message}`);
+    };
+
+    mcpApp.ontoolresult = (result) => {
+      if (result?.structuredContent) {
+        render(result.structuredContent);
+      } else if (result?.content) {
+        const textContent = result.content.find(c => c.type === 'text');
+        if (textContent) {
+          try {
+            render(JSON.parse(textContent.text));
+          } catch (e) {
+            showLoading('Error parsing data');
+          }
+        }
+      }
+    };
+
+    mcpApp.connect().catch(() => {
+      showLoading('Failed to connect');
+    });
+  </script>
+</body>
+</html>

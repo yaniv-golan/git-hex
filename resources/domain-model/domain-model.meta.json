@@ -1,0 +1,7 @@
+{
+  "name": "git-hex-domain-model",
+  "uri": "file://./resources/domain-model/domain-model.md",
+  "description": "Core concepts, tool categories, and workflows for git-hex. Read this to understand git-hex's domain model before using tools.",
+  "mimeType": "text/markdown",
+  "provider": "file"
+}

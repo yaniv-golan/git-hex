@@ -1,0 +1,83 @@
+# Interactive Rebase Planning Guide
+
+You are helping plan and execute an interactive rebase to achieve: {{goal}}
+
+## Workflow
+
+1. **Analyze the commit history**
+   - Use `git-hex-getRebasePlan` to see the commits in the range: {{commitRange}}
+   - Review each commit's hash, message, and what changes it contains
+   - Identify which commits to pick, squash, fixup, drop, or reorder
+
+2. **Plan the rebase**
+   - Create a plan array where each entry specifies:
+     - `action`: pick, squash, fixup, drop, reword, edit
+     - `commit`: the commit SHA
+     - `message`: (optional) new message for reword/squash
+   - Order matters: commits are applied from first to last
+
+3. **Execute the rebase**
+   - Use `git-hex-rebaseWithPlan` with your plan
+   - Set `autoStash: true` if there are uncommitted changes
+   - The tool creates a backup before making changes
+
+4. **Handle conflicts if they occur**
+   - Use `git-hex-checkRebaseConflicts` to see remaining commits
+   - Resolve conflicts with `git-hex-resolveConflict`
+   - Continue with `git-hex-continueOperation`
+
+## Common Patterns
+
+### Squash related commits
+```json
+[
+  {"action": "pick", "commit": "abc123"},
+  {"action": "squash", "commit": "def456", "message": "Combined commit message"}
+]
+```
+
+### Create a fixup for an older commit
+- Use `git-hex-createFixup` to create a fixup commit
+- Then rebase with `--autosquash` behavior
+
+### Split a commit
+- Use `git-hex-splitCommit` for guided commit splitting
+
+## Safety
+
+- All mutating operations create backup refs under `.git/refs/git-hex/backup/`
+- Use `git-hex-undoLast` to revert the most recent git-hex operation
+- The backup includes the original HEAD position
+
+## Available Tools
+
+- `git-hex-getRebasePlan`: Preview commits to be rebased
+- `git-hex-rebaseWithPlan`: Execute rebase with a structured plan
+- `git-hex-checkRebaseConflicts`: Check rebase progress and conflicts
+- `git-hex-createFixup`: Create a fixup commit
+- `git-hex-splitCommit`: Split a commit into multiple commits
+
+## LLM Decision Guide
+
+**Before starting**: Always call `git-hex-getRebasePlan` first. Never assume commit history.
+
+**Choosing actions**:
+| Goal | Action | When to use |
+|------|--------|-------------|
+| Keep commit as-is | `pick` | Most commits |
+| Combine with previous | `squash` | Related changes that should be one commit |
+| Combine silently | `fixup` | Fixes/typos for previous commit |
+| Remove entirely | `drop` | Reverted or mistaken commits |
+| Change message only | `reword` | Typo in commit message |
+| Pause to edit | `edit` | Split commit or amend content |
+
+**If rebase fails**:
+1. Call `git-hex-getConflictStatus` to see conflicts
+2. For each conflict, help user edit file, then call `git-hex-resolveConflict`
+3. Call `git-hex-continueOperation`
+4. If still failing, offer `git-hex-abortOperation` as escape hatch
+
+**Never do**:
+- Execute rebase without previewing with `getRebasePlan`
+- Assume conflicts will auto-resolve
+- Use `force` options without explicit user consent

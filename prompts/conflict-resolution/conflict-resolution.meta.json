@@ -1,0 +1,16 @@
+{
+  "name": "git-hex-conflict-resolution",
+  "description": "Step-by-step guidance for resolving git conflicts during rebase, merge, or cherry-pick operations",
+  "arguments": [
+    {
+      "name": "operation",
+      "description": "The git operation type (rebase, merge, cherry-pick)",
+      "required": false
+    },
+    {
+      "name": "conflictCount",
+      "description": "Number of files with conflicts",
+      "required": false
+    }
+  ]
+}

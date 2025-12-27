@@ -1,0 +1,42 @@
+{
+  "name": "git-hex-abortOperation",
+  "description": "Abort a paused rebase/merge/cherry-pick and restore original state. When to use: when you cannot or do not want to resolve conflicts, or when you want to try a different approach. Do NOT use if you want to preserve partial progress - this discards ALL changes made during the operation. Use undoLast instead if the operation already completed.",
+  "icons": [
+    {
+      "src": "../../assets/icons/abort-operation.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success", "result"],
+    "properties": {
+      "success": { "type": "boolean" },
+      "result": {
+        "type": "object",
+        "required": ["operationType", "summary"],
+        "properties": {
+          "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
+          "operationSucceeded": { "type": "boolean" },
+          "error": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

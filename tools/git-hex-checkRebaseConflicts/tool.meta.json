@@ -1,0 +1,101 @@
+{
+  "name": "git-hex-checkRebaseConflicts",
+  "description": "Check if a rebase would conflict without modifying the repository. Use BEFORE rebaseWithPlan when unsure about conflicts. Requires Git 2.38+. Do NOT use for simple rebases onto a recently-merged base - just run the rebase.",
+  "icons": [
+    {
+      "src": "../../assets/icons/check-rebase-conflicts.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto"
+      },
+      "maxCommits": {
+        "type": "integer",
+        "description": "Maximum commits to check (default 100)",
+        "default": 100,
+        "minimum": 1
+      }
+    },
+    "required": ["onto"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": [
+          "wouldConflict",
+          "confidence",
+          "commits",
+          "limitExceeded",
+          "totalCommits",
+          "checkedCommits",
+          "summary"
+        ],
+        "properties": {
+          "wouldConflict": { "type": "boolean" },
+          "confidence": { "type": "string", "enum": ["estimate", "unknown"] },
+          "commits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["hash", "subject", "prediction"],
+              "properties": {
+                "hash": { "type": "string" },
+                "subject": { "type": "string" },
+                "prediction": { "type": "string", "enum": ["clean", "conflict", "unknown"] }
+              }
+            }
+          },
+          "limitExceeded": { "type": "boolean" },
+          "totalCommits": { "type": "integer" },
+          "checkedCommits": { "type": "integer" },
+          "summary": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Actionable suggestions for resolving the error"
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 180,
+  "timeoutHint": "Reduce maxCommits (e.g., 20-50) for faster checks. Large ranges with many conflicts are slower to analyze."
+}

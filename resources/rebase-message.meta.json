@@ -1,0 +1,8 @@
+{
+  "name": "git-hex-rebase-message",
+  "title": "Git rebase message (rebase-merge)",
+  "uriTemplate": "file://{+repoPath}/.git/rebase-merge/message",
+  "description": "Read the rebase message file (commit message being edited) when a rebase is paused. Expand repoPath to the absolute repo path (RFC 6570, e.g., /Users/me/repo).",
+  "mimeType": "text/plain",
+  "annotations": {"audience": ["user", "assistant"]}
+}

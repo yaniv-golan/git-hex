@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rebase Conflict Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #fafbfc;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f3f4f6;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --border: #e5e7eb;
+      --border-light: #f3f4f6;
+      --accent-green: #10b981;
+      --accent-green-light: #d1fae5;
+      --accent-green-dark: #047857;
+      --accent-amber: #f59e0b;
+      --accent-amber-light: #fef3c7;
+      --accent-amber-dark: #b45309;
+      --accent-red: #ef4444;
+      --accent-red-light: #fee2e2;
+      --accent-red-dark: #b91c1c;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #dbeafe;
+      --font-sans: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --radius: 12px;
+      --radius-sm: 6px;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 32px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header section */
+    .header {
+      margin-bottom: 32px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .title-section h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .title-section .subtitle {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    /* Prediction badge */
+    .prediction-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 15px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .prediction-badge.clean {
+      background: var(--accent-green);
+      color: white;
+    }
+
+    .prediction-badge.conflict {
+      background: var(--accent-red);
+      color: white;
+    }
+
+    .prediction-badge.unknown {
+      background: var(--accent-amber);
+      color: white;
+    }
+
+    .prediction-icon {
+      font-size: 20px;
+    }
+
+    /* Stats cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .stat-value.green { color: var(--accent-green); }
+    .stat-value.amber { color: var(--accent-amber); }
+    .stat-value.red { color: var(--accent-red); }
+    .stat-value.blue { color: var(--accent-blue); }
+
+    /* Confidence meter */
+    .confidence-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 24px;
+      border: 1px solid var(--border);
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .confidence-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .confidence-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .confidence-value {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+
+    .confidence-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .confidence-fill.estimate {
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+      width: 75%;
+    }
+
+    .confidence-fill.unknown {
+      background: var(--accent-amber);
+      width: 25%;
+    }
+
+    .limit-warning {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: var(--accent-amber-light);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--accent-amber-dark);
+    }
+
+    .limit-warning-icon {
+      font-size: 16px;
+    }
+
+    /* Commits section */
+    .commits-section {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .commits-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .commits-list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .commit-row {
+      display: grid;
+      grid-template-columns: 48px 100px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-light);
+      transition: background 0.15s ease;
+    }
+
+    .commit-row:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .commit-row:last-child {
+      border-bottom: none;
+    }
+
+    .commit-number {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-tertiary);
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .commit-hash {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent-blue);
+      background: var(--accent-blue-light);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-weight: 500;
+    }
+
+    .commit-subject {
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .commit-prediction {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .commit-prediction.clean {
+      background: var(--accent-green-light);
+      color: var(--accent-green-dark);
+    }
+
+    .commit-prediction.conflict {
+      background: var(--accent-red-light);
+      color: var(--accent-red-dark);
+    }
+
+    .commit-prediction.unknown {
+      background: var(--accent-amber-light);
+      color: var(--accent-amber-dark);
+    }
+
+    .prediction-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .prediction-dot.clean { background: var(--accent-green); }
+    .prediction-dot.conflict { background: var(--accent-red); }
+    .prediction-dot.unknown { background: var(--accent-amber); }
+
+    /* Loading state */
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      gap: 24px;
+    }
+
+    .scanner-animation {
+      position: relative;
+      width: 120px;
+      height: 120px;
+    }
+
+    .scanner-ring {
+      position: absolute;
+      inset: 0;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .scanner-ring:nth-child(2) {
+      inset: 15px;
+      animation-duration: 1.5s;
+      animation-direction: reverse;
+      border-top-color: var(--accent-green);
+    }
+
+    .scanner-ring:nth-child(3) {
+      inset: 30px;
+      animation-duration: 2s;
+      border-top-color: var(--accent-amber);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 16px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Summary text */
+    .summary-text {
+      padding: 20px 24px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="loading-state">
+      <div class="scanner-animation">
+        <div class="scanner-ring"></div>
+        <div class="scanner-ring"></div>
+        <div class="scanner-ring"></div>
+      </div>
+      <div class="loading-text">Scanning commits for potential conflicts...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    const appContainer = document.getElementById('app');
+
+    // Create text element safely
+    function createText(tag, text, className) {
+      const el = document.createElement(tag);
+      el.textContent = text || '';
+      if (className) el.className = className;
+      return el;
+    }
+
+    // Get prediction counts
+    function countPredictions(commits) {
+      const counts = { clean: 0, conflict: 0, unknown: 0 };
+      commits.forEach(c => {
+        if (counts[c.prediction] !== undefined) counts[c.prediction]++;
+      });
+      return counts;
+    }
+
+    // Build stat card
+    function buildStatCard(label, value, colorClass) {
+      const card = document.createElement('div');
+      card.className = 'stat-card';
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'stat-label';
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement('div');
+      valueEl.className = `stat-value ${colorClass}`;
+      valueEl.textContent = value;
+
+      card.appendChild(labelEl);
+      card.appendChild(valueEl);
+      return card;
+    }
+
+    // Build commit row
+    function buildCommitRow(commit, index) {
+      const row = document.createElement('div');
+      row.className = 'commit-row';
+
+      const num = document.createElement('div');
+      num.className = 'commit-number';
+      num.textContent = index + 1;
+
+      const hash = document.createElement('div');
+      hash.className = 'commit-hash';
+      hash.textContent = commit.hash.substring(0, 7);
+
+      const subject = document.createElement('div');
+      subject.className = 'commit-subject';
+      subject.textContent = commit.subject;
+      subject.title = commit.subject;
+
+      const prediction = document.createElement('div');
+      prediction.className = `commit-prediction ${commit.prediction}`;
+
+      const dot = document.createElement('span');
+      dot.className = `prediction-dot ${commit.prediction}`;
+      prediction.appendChild(dot);
+
+      const predText = document.createElement('span');
+      predText.textContent = commit.prediction;
+      prediction.appendChild(predText);
+
+      row.appendChild(num);
+      row.appendChild(hash);
+      row.appendChild(subject);
+      row.appendChild(prediction);
+
+      return row;
+    }
+
+    // Render the full UI
+    function render(data) {
+      const result = data.result || data;
+      appContainer.replaceChildren();
+
+      const commits = result.commits || [];
+      const counts = countPredictions(commits);
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'header';
+
+      const headerTop = document.createElement('div');
+      headerTop.className = 'header-top';
+
+      const titleSection = document.createElement('div');
+      titleSection.className = 'title-section';
+
+      const h1 = document.createElement('h1');
+      h1.textContent = 'Rebase Conflict Analysis';
+
+      const subtitle = document.createElement('p');
+      subtitle.className = 'subtitle';
+      subtitle.textContent = `Analyzed ${result.checkedCommits || commits.length} of ${result.totalCommits || commits.length} commits`;
+
+      titleSection.appendChild(h1);
+      titleSection.appendChild(subtitle);
+
+      // Prediction badge
+      const badgeClass = result.wouldConflict ? 'conflict' : (result.confidence === 'unknown' ? 'unknown' : 'clean');
+      const badgeIcon = result.wouldConflict ? '\u26A0\uFE0F' : (result.confidence === 'unknown' ? '\u2753' : '\u2705');
+      const badgeText = result.wouldConflict ? 'Conflicts Predicted' : (result.confidence === 'unknown' ? 'Unknown' : 'Likely Clean');
+
+      const badge = document.createElement('div');
+      badge.className = `prediction-badge ${badgeClass}`;
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'prediction-icon';
+      iconSpan.textContent = badgeIcon;
+
+      badge.appendChild(iconSpan);
+      badge.appendChild(document.createTextNode(badgeText));
+
+      headerTop.appendChild(titleSection);
+      headerTop.appendChild(badge);
+      header.appendChild(headerTop);
+
+      // Stats grid
+      const statsGrid = document.createElement('div');
+      statsGrid.className = 'stats-grid';
+
+      statsGrid.appendChild(buildStatCard('Total Commits', commits.length, 'blue'));
+      statsGrid.appendChild(buildStatCard('Clean', counts.clean, 'green'));
+      statsGrid.appendChild(buildStatCard('Conflict', counts.conflict, 'red'));
+      statsGrid.appendChild(buildStatCard('Unknown', counts.unknown, 'amber'));
+
+      // Confidence section
+      const confidenceSection = document.createElement('div');
+      confidenceSection.className = 'confidence-section';
+
+      const confidenceHeader = document.createElement('div');
+      confidenceHeader.className = 'confidence-header';
+
+      const confidenceLabel = document.createElement('span');
+      confidenceLabel.className = 'confidence-label';
+      confidenceLabel.textContent = 'Analysis Confidence';
+
+      const confidenceValue = document.createElement('span');
+      confidenceValue.className = 'confidence-value';
+      confidenceValue.textContent = result.confidence || 'estimate';
+
+      confidenceHeader.appendChild(confidenceLabel);
+      confidenceHeader.appendChild(confidenceValue);
+
+      const confidenceBar = document.createElement('div');
+      confidenceBar.className = 'confidence-bar';
+
+      const confidenceFill = document.createElement('div');
+      confidenceFill.className = `confidence-fill ${result.confidence || 'estimate'}`;
+
+      confidenceBar.appendChild(confidenceFill);
+      confidenceSection.appendChild(confidenceHeader);
+      confidenceSection.appendChild(confidenceBar);
+
+      if (result.limitExceeded) {
+        const limitWarning = document.createElement('div');
+        limitWarning.className = 'limit-warning';
+
+        const warningIcon = document.createElement('span');
+        warningIcon.className = 'limit-warning-icon';
+        warningIcon.textContent = '\u26A0\uFE0F';
+
+        limitWarning.appendChild(warningIcon);
+        limitWarning.appendChild(document.createTextNode(
+          `Limit exceeded: Only checked ${result.checkedCommits} of ${result.totalCommits} commits. Increase maxCommits for full analysis.`
+        ));
+
+        confidenceSection.appendChild(limitWarning);
+      }
+
+      // Commits section
+      const commitsSection = document.createElement('div');
+      commitsSection.className = 'commits-section';
+
+      const commitsHeader = document.createElement('div');
+      commitsHeader.className = 'commits-header';
+      commitsHeader.textContent = 'Commit Analysis';
+
+      const commitsList = document.createElement('div');
+      commitsList.className = 'commits-list';
+
+      commits.forEach((commit, i) => {
+        commitsList.appendChild(buildCommitRow(commit, i));
+      });
+
+      const summaryText = document.createElement('div');
+      summaryText.className = 'summary-text';
+      summaryText.textContent = result.summary || '';
+
+      commitsSection.appendChild(commitsHeader);
+      commitsSection.appendChild(commitsList);
+      if (result.summary) {
+        commitsSection.appendChild(summaryText);
+      }
+
+      // Assemble
+      appContainer.appendChild(header);
+      appContainer.appendChild(statsGrid);
+      appContainer.appendChild(confidenceSection);
+      appContainer.appendChild(commitsSection);
+    }
+
+    // Show loading
+    function showLoading(message) {
+      appContainer.replaceChildren();
+      const loadingState = document.createElement('div');
+      loadingState.className = 'loading-state';
+
+      const scanner = document.createElement('div');
+      scanner.className = 'scanner-animation';
+      for (let i = 0; i < 3; i++) {
+        const ring = document.createElement('div');
+        ring.className = 'scanner-ring';
+        scanner.appendChild(ring);
+      }
+
+      const text = document.createElement('div');
+      text.className = 'loading-text';
+      text.textContent = message;
+
+      loadingState.appendChild(scanner);
+      loadingState.appendChild(text);
+      appContainer.appendChild(loadingState);
+    }
+
+    // Load SDK
+    let App;
+    try {
+      const module = await import('https://cdn.jsdelivr.net/npm/@modelcontextprotocol/ext-apps/+esm');
+      App = module.App;
+    } catch (e) {
+      showLoading(`Failed to load SDK: ${e.message}`);
+      throw e;
+    }
+
+    const mcpApp = new App({ name: "Conflict Check", version: "1.0.0" });
+
+    mcpApp.onerror = (error) => {
+      showLoading(`Error: ${error.message}`);
+    };
+
+    mcpApp.ontoolresult = (result) => {
+      if (result?.structuredContent) {
+        render(result.structuredContent);
+      } else if (result?.content) {
+        const textContent = result.content.find(c => c.type === 'text');
+        if (textContent) {
+          try {
+            render(JSON.parse(textContent.text));
+          } catch (e) {
+            showLoading('Error parsing data');
+          }
+        }
+      }
+    };
+
+    mcpApp.connect().catch(() => {
+      showLoading('Failed to connect');
+    });
+  </script>
+</body>
+</html>

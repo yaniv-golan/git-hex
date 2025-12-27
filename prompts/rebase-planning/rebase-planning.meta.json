@@ -1,0 +1,16 @@
+{
+  "name": "git-hex-rebase-planning",
+  "description": "Guide for planning and executing an interactive rebase with git-hex tools",
+  "arguments": [
+    {
+      "name": "goal",
+      "description": "What the user wants to achieve (e.g., squash commits, reorder, edit)",
+      "required": false
+    },
+    {
+      "name": "commitRange",
+      "description": "The range of commits to consider (e.g., HEAD~5, main..feature)",
+      "required": false
+    }
+  ]
+}

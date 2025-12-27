@@ -1,0 +1,101 @@
+{
+  "name": "git-hex-getRebasePlan",
+  "description": "Get structured rebase plan for last N commits. Use this BEFORE rebaseWithPlan to preview commits that will be rebased. Returns commit hashes, messages, authors, and dates. Do NOT use if you just want commit history - use git log instead.",
+  "icons": [
+    {
+      "src": "../../assets/icons/get-rebase-plan.svg"
+    }
+  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repoPath": {
+        "type": "string",
+        "description": "Path to the git repository (optional; defaults to the single configured root if omitted)"
+      },
+      "count": {
+        "type": "integer",
+        "description": "Number of commits to include in plan (default 10, max 200)"
+      },
+      "onto": {
+        "type": "string",
+        "description": "Base ref to rebase onto (default: upstream if set, otherwise HEAD~count clamped to history; uses empty tree for single-commit repos)"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "required": ["success"],
+    "properties": {
+      "success": {
+        "type": "boolean",
+        "description": "True if operation succeeded, false if error"
+      },
+      "result": {
+        "type": "object",
+        "description": "Result data (present when success=true)",
+        "required": ["plan_id", "commits", "onto", "branch", "summary"],
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "description": "Unique identifier for this rebase plan"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Current branch name"
+          },
+          "onto": {
+            "type": "string",
+            "description": "Base ref the rebase would be onto"
+          },
+          "commits": {
+            "type": "array",
+            "description": "List of commits in rebase order (oldest first)",
+            "items": {
+              "type": "object",
+              "required": ["hash", "shortHash", "subject", "author", "date"],
+              "properties": {
+                "hash": { "type": "string" },
+                "shortHash": { "type": "string" },
+                "subject": { "type": "string" },
+                "author": { "type": "string" },
+                "date": { "type": "string" }
+              }
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "Human-readable explanation of what was found"
+          }
+        }
+      },
+      "error": {
+        "type": "object",
+        "description": "Error details (present when success=false)",
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message"
+          },
+          "suggestions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Actionable suggestions for resolving the error"
+          }
+        }
+      }
+    }
+  },
+  "annotations": {
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
+  },
+  "timeoutSecs": 30
+}

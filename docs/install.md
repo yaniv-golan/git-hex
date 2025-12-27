@@ -43,13 +43,11 @@ Create `.cursor/mcp.json` in your project directory:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/Users/YOUR_USERNAME/git-hex/git-hex-env.sh"
+      "command": "~/git-hex/git-hex.sh"
     }
   }
 }
 ```
-
-**Important:** Use `git-hex-env.sh` (not `git-hex.sh`). The `-env` launcher handles shell profile sourcing that GUI apps like Cursor need.
 
 Then restart Cursor to load the MCP server.
 
@@ -61,7 +59,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/Users/YOUR_USERNAME/git-hex/git-hex-env.sh"
+      "command": "~/git-hex/git-hex.sh"
     }
   }
 }
@@ -77,11 +75,13 @@ Add to your Windsurf MCP configuration (see Windsurf docs for location):
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/Users/YOUR_USERNAME/git-hex/git-hex-env.sh"
+      "command": "~/git-hex/git-hex.sh"
     }
   }
 }
 ```
+
+> **Tip:** If you see "command not found" errors for `git` or `jq`, use `git-hex-env.sh` instead—it sources your shell profile to pick up PATH settings.
 
 ### Step 4: Verify MCP connection
 

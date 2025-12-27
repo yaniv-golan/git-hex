@@ -52,8 +52,8 @@ serverInfo.icons[0] - expected object, received string
 **Common causes:**
 
 1. **PATH not available in GUI apps**
-   - GUI apps don't source your shell profile
-   - Use `git-hex-env.sh` (not `git-hex.sh`) which handles this
+   - GUI apps may not source your shell profile
+   - Try `git-hex-env.sh` which sources your profile before starting
 
 2. **macOS quarantine**
    ```bash
@@ -149,13 +149,13 @@ Check `.cursor/mcp.json` in your project:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/git-hex/git-hex-env.sh"
+      "command": "/path/to/git-hex/git-hex.sh"
     }
   }
 }
 ```
 
-**Important:** Use `git-hex-env.sh` (not `git-hex.sh`) for Cursor. The `-env` launcher handles shell profile sourcing for GUI apps.
+> **Tip:** If you see "command not found" errors, try `git-hex-env.sh` instead—it sources your shell profile.
 
 ### Test before opening Cursor
 
@@ -183,13 +183,15 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "git-hex": {
-      "command": "/path/to/git-hex/git-hex-env.sh"
+      "command": "/path/to/git-hex/git-hex.sh"
     }
   }
 }
 ```
 
 Then restart Claude Desktop.
+
+> **Tip:** If you see "command not found" errors, try `git-hex-env.sh` instead.
 
 ---
 

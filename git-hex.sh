@@ -469,15 +469,15 @@ install_from_verified_archive() {
 	return 0
 }
 
-# Auto-install framework if missing, unless disabled
+# Require framework to be pre-installed (via ./git-hex.sh install)
 if [ "${framework_exists}" != "true" ] || [ "${framework_too_old}" = "true" ]; then
-	if [ "${GIT_HEX_AUTO_INSTALL_FRAMEWORK:-true}" != "true" ]; then
-		echo "mcp-bash framework not found at ${FRAMEWORK_DIR}. Set MCPBASH_HOME to an existing install or enable auto-install (GIT_HEX_AUTO_INSTALL_FRAMEWORK=true)." >&2
-		exit 1
-	fi
-	if [ "${GIT_HEX_DOCTOR_MODE}" = "true" ] && [ "${doctor_requested_fix}" != "true" ]; then
-		# Read-only doctor is handled above; this is a safety net.
-		print_doctor_missing_framework
+	# Only install when explicitly requested via `install` or `doctor --fix`
+	if [ "${GIT_HEX_DOCTOR_MODE}" != "true" ] || [ "${doctor_requested_fix}" != "true" ]; then
+		if [ "${framework_too_old}" = "true" ]; then
+			print_doctor_framework_too_old
+		else
+			print_doctor_missing_framework
+		fi
 		exit 1
 	fi
 	echo "Installing mcp-bash framework ${FRAMEWORK_VERSION} into ${FRAMEWORK_DIR}..." >&2

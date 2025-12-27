@@ -32,7 +32,7 @@ Initial public release.
 - Automatic abort on conflicts (configurable via `abortOnConflict`)
 - MCP roots enforcement for path security
 - Read-only mode (`GIT_HEX_READ_ONLY=1`)
-- Auto-install of pinned MCP Bash Framework
+- Pinned MCP Bash Framework (install via `./git-hex.sh install`)
 - Docker support
 - Claude Code plugin with Skills for branch cleanup, conflict resolution, and PR workflows
 

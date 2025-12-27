@@ -79,8 +79,8 @@ elif command -v mcp-bash >/dev/null 2>&1; then
 fi
 
 if [ -z "${MCP_BASH}" ]; then
-	printf 'Error: mcp-bash not found in PATH or ~/.local/bin\n' >&2
-	printf "Install (recommended, verified): set GIT_HEX_MCPBASH_SHA256 to the expected checksum for v0.8.3, then run ./git-hex.sh (it will download + verify the GitHub tag archive).\n" >&2
+	printf 'mcp-bash framework not found.\n' >&2
+	printf 'See: https://github.com/yaniv-golan/git-hex/blob/main/docs/install.md\n' >&2
 	exit 1
 fi
 

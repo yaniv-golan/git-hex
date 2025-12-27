@@ -72,13 +72,14 @@ serverInfo.icons[0] - expected object, received string
 
 **Symptom:**
 ```
-Error: mcp-bash not found
+ERROR: MCP Bash Framework not found at ...
 ```
 
 **Fix:**
 ```bash
 ./git-hex.sh install
 ```
+Then restart your MCP client.
 
 ### Framework version too old
 

@@ -65,6 +65,8 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 **Cursor / Claude Desktop / Windsurf (MCP config):**
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
+cd ~/git-hex
+./git-hex.sh install
 ```
 Then add to your MCP settings:
 ```json
@@ -79,7 +81,7 @@ Then add to your MCP settings:
 
 Windows (Git Bash): see [`docs/clients.md#windows-git-bash`](docs/clients.md#windows-git-bash)
 
-The pinned MCP Bash Framework auto-installs on first run (unless disabled); you still need `git` and `jq`/`gojq`. See [`docs/install.md`](docs/install.md).
+Prerequisites: `git` and `jq`/`gojq`. See [`docs/install.md`](docs/install.md).
 
 ### Verify it works
 
@@ -94,7 +96,6 @@ When connected, your AI can use tools like `git-hex-getRebasePlan` to answer.
 
 - Diagnostics (no persistent changes): `./git-hex.sh doctor`
 - Install/repair prerequisites: `./git-hex.sh install`
-- On first run you may see framework installation output; this is normal.
 - macOS apps launched from Finder/Spotlight/Dock: use `git-hex-env.sh` (see [`docs/clients.md`](docs/clients.md))
 - Install/uninstall details: [`docs/install.md`](docs/install.md)
 - Allowed folders (“roots”) explanation: [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
@@ -203,8 +204,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see [`docs/safety.md`](docs/safety.md)) |
-| `GIT_HEX_AUTO_INSTALL_FRAMEWORK` | `true` | If `true`, `git-hex.sh` auto-installs the pinned MCP Bash Framework when missing. Set to `false` to require a preinstalled framework (or use `git-hex-env.sh`). |
-| `GIT_HEX_MCPBASH_SHA256` | unset | If set, `git-hex.sh` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
+| `GIT_HEX_MCPBASH_SHA256` | unset | If set, `./git-hex.sh install` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
 | `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Framework v0.7.0+: allowlisted tools may execute. The launchers set an explicit list of git-hex tool names by default (and narrow it in read-only mode). Override to `*` only for trusted environments. |
 

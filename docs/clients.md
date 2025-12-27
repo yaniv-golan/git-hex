@@ -63,7 +63,7 @@ Allowed folders guidance:
 
 ### Choose a launcher
 
-- `git-hex.sh` — default launcher. Auto-installs/pins the framework and sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
+- `git-hex.sh` — default launcher. Requires framework pre-installed via `./git-hex.sh install`. Sets `MCPBASH_PROJECT_ROOT`. Use for terminals/CLI.
 - `git-hex-env.sh` — login-aware launcher (sources your login profile first). Use for GUI clients that miss PATH/version managers (e.g., macOS Claude Desktop).
 
 ### macOS apps launched from Finder/Spotlight/Dock and PATH

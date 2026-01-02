@@ -7,7 +7,8 @@
 [![Security Policy](https://img.shields.io/badge/security-policy-blue)](SECURITY.md)
 [![Last Commit](https://img.shields.io/github/last-commit/yaniv-golan/git-hex)](https://github.com/yaniv-golan/git-hex/commits/main)
 [![Pure Bash](https://img.shields.io/badge/pure-bash-4EAA25?logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
-[![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-server-green?logo=modelcontextprotocol)](https://yaniv-golan.github.io/affinity-sdk/mcp/)
+[![MCP Bash Framework](https://img.shields.io/badge/MCP-MCP_Bash_Framework-green?logo=modelcontextprotocol)](https://github.com/yaniv-golan/mcp-bash-framework)
 
 **AI-assisted, non-interactive git refactoring via MCP** — a focused toolset for rebase & commit perfection, usable by agents or chat users directing the MCP tools.
 

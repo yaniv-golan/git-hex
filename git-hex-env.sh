@@ -18,22 +18,27 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 		SHELL_PROFILE="${GIT_HEX_ENV_PROFILE}"
 	else
 		user_shell="$(basename "${SHELL:-}" 2>/dev/null || echo "")"
+		SHELL_PROFILE_EXTRA=""
 		case "${user_shell}" in
 		zsh)
-			# Prefer profile files that typically contain PATH/version manager setup.
+			# Source both login (.zprofile) and interactive (.zshrc) profiles.
+			# Many tools like pyenv, nvm, rbenv are configured in .zshrc.
 			if [ -f "${HOME}/.zprofile" ]; then
 				SHELL_PROFILE="${HOME}/.zprofile"
-			elif [ -f "${HOME}/.zshrc" ]; then
-				SHELL_PROFILE="${HOME}/.zshrc"
+			fi
+			if [ -f "${HOME}/.zshrc" ]; then
+				SHELL_PROFILE_EXTRA="${HOME}/.zshrc"
 			fi
 			;;
 		bash)
+			# Source both login (.bash_profile) and interactive (.bashrc) profiles.
 			if [ -f "${HOME}/.bash_profile" ]; then
 				SHELL_PROFILE="${HOME}/.bash_profile"
-			elif [ -f "${HOME}/.bashrc" ]; then
-				SHELL_PROFILE="${HOME}/.bashrc"
 			elif [ -f "${HOME}/.profile" ]; then
 				SHELL_PROFILE="${HOME}/.profile"
+			fi
+			if [ -f "${HOME}/.bashrc" ]; then
+				SHELL_PROFILE_EXTRA="${HOME}/.bashrc"
 			fi
 			;;
 		*)
@@ -49,6 +54,7 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 		esac
 	fi
 
+	# Source primary profile
 	if [ -n "${SHELL_PROFILE}" ]; then
 		if [ "${GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT}" = "1" ]; then
 			# shellcheck source=/dev/null
@@ -56,6 +62,17 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 		else
 			# shellcheck source=/dev/null
 			. "${SHELL_PROFILE}"
+		fi
+	fi
+
+	# Source secondary profile (interactive shell config with version managers)
+	if [ -n "${SHELL_PROFILE_EXTRA:-}" ]; then
+		if [ "${GIT_HEX_ENV_SILENCE_PROFILE_OUTPUT}" = "1" ]; then
+			# shellcheck source=/dev/null
+			. "${SHELL_PROFILE_EXTRA}" >/dev/null 2>&1 || true
+		else
+			# shellcheck source=/dev/null
+			. "${SHELL_PROFILE_EXTRA}"
 		fi
 	fi
 fi

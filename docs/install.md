@@ -119,11 +119,11 @@ If `MCPBASH_HOME` is set, that install is treated as user-managed:
 Set a checksum to force a verified tarball install of the pinned framework version:
 
 ```bash
-export GIT_HEX_MCPBASH_SHA256="1052410873fec2bfbc42346a93c3a89aa38ff0e3eac7135475ec556e58cc85cd"
+export GIT_HEX_MCPBASH_SHA256="397ef7e2ea7e08823d4f3cc8b698bdee281f1668c5e02f5c5a4a6569310f10a2"
 ./git-hex.sh install
 ```
 
-By default, `git-hex.sh` downloads the GitHub tag archive for `FRAMEWORK_VERSION` (e.g., `https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.8.3.tar.gz`).
+By default, `git-hex.sh` downloads the GitHub tag archive for `FRAMEWORK_VERSION` (e.g., `https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.9.0.tar.gz`).
 
 Optional: override the archive URL used with `GIT_HEX_MCPBASH_ARCHIVE_URL` if you mirror artifacts or publish your own release assets.
 

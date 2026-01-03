@@ -1,0 +1,86 @@
+name: Bundle
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "tools/**"
+      - "lib/**"
+      - "server.d/**"
+      - "mcpb.conf"
+      - "VERSION"
+      - ".github/workflows/bundle.yml"
+  pull_request:
+    paths:
+      - "tools/**"
+      - "lib/**"
+      - "server.d/**"
+      - "mcpb.conf"
+      - "VERSION"
+      - ".github/workflows/bundle.yml"
+  workflow_dispatch:
+
+jobs:
+  bundle-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install mcp-bash framework
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash/main/install.sh | bash -s -- --yes
+
+      - name: Validate project
+        run: |
+          mcp-bash validate
+
+      - name: Create bundle
+        run: |
+          mcp-bash bundle --verbose --output ./dist
+
+      - name: Verify bundle created
+        run: |
+          ls -la dist/
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          test -f "dist/git-hex-${VERSION}.mcpb"
+
+      - name: Verify bundle structure
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          mkdir -p /tmp/bundle-test
+          unzip -d /tmp/bundle-test "dist/git-hex-${VERSION}.mcpb"
+          # Verify manifest
+          test -f /tmp/bundle-test/manifest.json
+          # Verify server directory
+          test -d /tmp/bundle-test/server
+          # Verify entry point
+          test -f /tmp/bundle-test/server/run-server.sh
+          test -x /tmp/bundle-test/server/run-server.sh
+          # Verify embedded framework
+          test -d /tmp/bundle-test/server/.mcp-bash
+          # Verify tools copied
+          test -d /tmp/bundle-test/server/tools
+          # Verify icon included
+          test -f /tmp/bundle-test/icon.svg
+
+      - name: Verify manifest content
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          jq -e '.manifest_version == "0.3"' /tmp/bundle-test/manifest.json
+          jq -e '.name == "git-hex"' /tmp/bundle-test/manifest.json
+          jq -e ".version == \"${VERSION}\"" /tmp/bundle-test/manifest.json
+          jq -e '.server.type == "binary"' /tmp/bundle-test/manifest.json
+          jq -e '.author.name' /tmp/bundle-test/manifest.json
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.os }}
+          path: dist/*.mcpb
+          retention-days: 7

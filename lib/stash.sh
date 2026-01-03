@@ -50,14 +50,14 @@ git_hex_auto_stash() {
 			stash_push_err=""
 			if ! stash_push_err="$(git -C "${repo_path}" stash push --keep-index -m "${message}" 2>&1)"; then
 				if [ -n "${stash_push_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
-					mcp_log_warn "git-hex" "$(printf '{"message":"Auto-stash failed (keep-index): %s"}' "${stash_push_err%%$'\n'*}")"
+					mcp_log_warn "git-hex" "Auto-stash failed (keep-index): ${stash_push_err%%$'\n'*}"
 				fi
 			fi
 		else
 			stash_push_err=""
 			if ! stash_push_err="$(git -C "${repo_path}" stash push -m "${message}" 2>&1)"; then
 				if [ -n "${stash_push_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
-					mcp_log_warn "git-hex" "$(printf '{"message":"Auto-stash failed: %s"}' "${stash_push_err%%$'\n'*}")"
+					mcp_log_warn "git-hex" "Auto-stash failed: ${stash_push_err%%$'\n'*}"
 				fi
 			fi
 		fi
@@ -163,17 +163,13 @@ git_hex_restore_stash() {
 				rm -f "${tmp_index}" 2>/dev/null || true
 
 				if [ "${stash_not_restored}" = "true" ] && command -v mcp_log_warn >/dev/null 2>&1; then
-					local log_payload
-					log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop --index %s manually."}' "${stash_name:-${stash_ref}}")"
-					mcp_log_warn "git-hex" "${log_payload}"
+					mcp_log_warn "git-hex" "Auto-stash could not be restored cleanly. Run: git stash pop --index ${stash_name:-${stash_ref}}"
 				fi
 			else
 				if ! git -C "${repo_path}" stash pop "${stash_name:-${stash_ref}}" >/dev/null 2>&1; then
 					stash_not_restored="true"
-					if command -v mcp_log >/dev/null 2>&1; then
-						local log_payload
-						log_payload="$(printf '{"message":"Auto-stash could not be restored cleanly. Run git stash pop %s manually."}' "${stash_name:-${stash_ref}}")"
-						mcp_log "warn" "git-hex" "${log_payload}"
+					if command -v mcp_log_warn >/dev/null 2>&1; then
+						mcp_log_warn "git-hex" "Auto-stash could not be restored cleanly. Run: git stash pop ${stash_name:-${stash_ref}}"
 					fi
 				fi
 			fi

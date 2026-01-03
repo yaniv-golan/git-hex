@@ -58,15 +58,13 @@ git_hex_create_backup() {
 					[ "${ref}" = "${last_ref}" ] && continue
 					per_ref_err=""
 					if ! per_ref_err="$(git -C "${repo_path}" update-ref -d "${ref}" 2>&1)"; then
-						if command -v mcp_log >/dev/null 2>&1; then
-							mcp_log "warn" "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${per_ref_err}")"
-						elif command -v mcp_log_warn >/dev/null 2>&1; then
-							mcp_log_warn "git-hex" "$(printf '{"message":"Failed to delete ref %s: %s"}' "${ref}" "${per_ref_err}")"
+						if command -v mcp_log_warn >/dev/null 2>&1; then
+							mcp_log_warn "git-hex" "Failed to delete ref ${ref}: ${per_ref_err}"
 						fi
 					fi
 				done <<<"${refs_to_delete}"
 				if [ -n "${delete_err}" ] && command -v mcp_log_warn >/dev/null 2>&1; then
-					mcp_log_warn "git-hex" "$(printf '{"message":"Batch delete of last refs failed; fell back to per-ref deletes: %s"}' "${delete_err}")"
+					mcp_log_warn "git-hex" "Batch delete of last refs failed; fell back to per-ref deletes: ${delete_err}"
 				fi
 			fi
 		fi

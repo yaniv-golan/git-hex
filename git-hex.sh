@@ -5,11 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Framework version pinning for reproducible installs
 # Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.8.3}"
-FRAMEWORK_VERSION_DEFAULT="v0.8.3"
-# Pinned commit for v0.8.3 installs (annotated tags have distinct object SHAs).
-FRAMEWORK_GIT_SHA_DEFAULT_V083="d9e2e08e516e6c75e89effdbae4da572cd3986f5"
-REQUIRED_MCPBASH_MIN_VERSION="0.8.3"
+FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.9.0}"
+FRAMEWORK_VERSION_DEFAULT="v0.9.0"
+# Pinned commit for v0.9.0 installs (annotated tags have distinct object SHAs).
+FRAMEWORK_GIT_SHA_DEFAULT_V090="e1304b612b629a9350d7a2cf100cf0f76b6a6f6e"
+REQUIRED_MCPBASH_MIN_VERSION="0.9.0"
 FRAMEWORK_DOCTOR_FIX_MIN_VERSION="0.8.1"
 
 # Wrapper mode flags (parsed for `doctor` only).
@@ -500,7 +500,7 @@ if [ "${framework_exists}" != "true" ] || [ "${framework_too_old}" = "true" ]; t
 	else
 		expected_git_sha="${GIT_HEX_MCPBASH_GIT_SHA:-}"
 		if [ -z "${expected_git_sha}" ] && [ "${FRAMEWORK_VERSION}" = "${FRAMEWORK_VERSION_DEFAULT}" ]; then
-			expected_git_sha="${FRAMEWORK_GIT_SHA_DEFAULT_V083}"
+			expected_git_sha="${FRAMEWORK_GIT_SHA_DEFAULT_V090}"
 		fi
 		if [ -z "${expected_git_sha}" ] && [ "${GIT_HEX_ALLOW_UNVERIFIED_FRAMEWORK:-}" != "true" ]; then
 			echo "Refusing to auto-install an unverified mcp-bash framework." >&2

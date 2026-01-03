@@ -1,0 +1,38 @@
+# Git Conflict Resolution Guide
+
+You are helping resolve git conflicts during a {{operation}} operation.
+
+## Workflow
+
+1. **Assess the situation**
+   - Use `git-hex-getConflictStatus` to see all conflicting files and their state
+   - Review which files have conflicts and their content types
+
+2. **For each conflicting file**
+   - Read the file to understand the conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`)
+   - Determine the correct resolution:
+     - **ours**: Keep the current branch version
+     - **theirs**: Keep the incoming changes
+     - **manual**: File needs manual editing (edit first, then use `manual`)
+
+3. **Resolve conflicts one at a time**
+   - Use `git-hex-resolveConflict` with the appropriate resolution strategy
+   - Verify each resolution before moving to the next file
+
+4. **Continue the operation**
+   - Once all conflicts are resolved, use `git-hex-continueOperation`
+   - If you need to abort instead, use `git-hex-abortOperation`
+
+## Best Practices
+
+- Always read conflicting files before choosing a resolution strategy
+- When in doubt, prefer `manual` resolution after editing
+- Keep the user informed about what changes you're making
+- If {{conflictCount}} is large, consider aborting and trying a different approach
+
+## Available Tools
+
+- `git-hex-getConflictStatus`: List all conflicts and their state
+- `git-hex-resolveConflict`: Resolve a single file conflict
+- `git-hex-continueOperation`: Continue after all conflicts resolved
+- `git-hex-abortOperation`: Abort and restore previous state

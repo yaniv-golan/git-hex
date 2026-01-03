@@ -187,7 +187,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 
 | Dependency | Version/Notes |
 |------------|---------------|
-| MCP Bash Framework (`mcp-bash`) | v0.8.3+ |
+| MCP Bash Framework (`mcp-bash`) | v0.9.0+ |
 | bash | 3.2+ |
 | jq or gojq | Required |
 | git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
@@ -479,6 +479,17 @@ Contributions welcome! Please ensure:
 - All tools pass `mcp-bash validate` (MCP Bash Framework CLI)
 - New tools follow the naming convention (`git-hex-toolName`)
 - Tests are included for new functionality
+
+## Distribution
+
+**Download the latest bundle** from [GitHub Releases](https://github.com/yaniv-golan/git-hex/releases) — look for `git-hex-<version>.mcpb`.
+
+Install by double-clicking the `.mcpb` file in Claude Desktop or other MCPB-compatible clients. The bundle includes the embedded framework, all tools, prompts, and resources.
+
+For development or custom builds:
+```bash
+make bundle  # Output: dist/git-hex-<version>.mcpb
+```
 
 ## Related Projects
 

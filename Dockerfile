@@ -2,9 +2,9 @@ FROM debian:bookworm-slim
 
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
-ARG FRAMEWORK_VERSION=v0.8.3
+ARG FRAMEWORK_VERSION=v0.9.0
 # SHA256 for the GitHub tag archive (https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/<version>.tar.gz)
-ARG FRAMEWORK_SHA256=1052410873fec2bfbc42346a93c3a89aa38ff0e3eac7135475ec556e58cc85cd
+ARG FRAMEWORK_SHA256=397ef7e2ea7e08823d4f3cc8b698bdee281f1668c5e02f5c5a4a6569310f10a2
 ENV XDG_DATA_HOME=/root/.local/share
 ENV PATH="/root/.local/bin:${PATH}"
 
@@ -27,7 +27,11 @@ RUN set -euo pipefail; \
         url="https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/${FRAMEWORK_VERSION}.tar.gz"; \
         echo "Downloading mcp-bash framework ${FRAMEWORK_VERSION}..." >&2; \
         curl -fsSL "${url}" -o "${tmp}"; \
-        echo "${FRAMEWORK_SHA256}  ${tmp}" | sha256sum -c - >/dev/null; \
+        if [ -n "${FRAMEWORK_SHA256}" ]; then \
+            echo "${FRAMEWORK_SHA256}  ${tmp}" | sha256sum -c - >/dev/null; \
+        else \
+            echo "Warning: No SHA256 provided, skipping verification" >&2; \
+        fi; \
         mkdir -p "${XDG_DATA_HOME}/mcp-bash"; \
         tar -xzf "${tmp}" -C "${XDG_DATA_HOME}/mcp-bash" --strip-components 1; \
         rm -f "${tmp}"; \

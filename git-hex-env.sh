@@ -6,7 +6,7 @@ set -euo pipefail
 # starting the server so tool discovery matches your Terminal setup.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_MCPBASH_MIN_VERSION="0.8.3"
+REQUIRED_MCPBASH_MIN_VERSION="0.9.0"
 SHELL_PROFILE=""
 
 if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then

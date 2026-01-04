@@ -62,7 +62,7 @@ EOF
 	printf '%s\n' "marker" >"${fw_dir}/MARKER.txt"
 }
 
-make_stub_framework_090() {
+make_stub_framework_091() {
 	local home_dir="$1"
 
 	local fw_dir="${home_dir}/.local/share/mcp-bash"
@@ -73,7 +73,7 @@ make_stub_framework_090() {
 set -euo pipefail
 case "${1:-}" in
 --version)
-  echo "mcp-bash 0.9.0"
+  echo "mcp-bash 0.9.1"
   ;;
 doctor)
   shift || true
@@ -177,7 +177,7 @@ test_doctor_delegates_for_082_plus() {
 		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
 		trap 'rm -rf "${home_dir}"' EXIT
 
-		make_stub_framework_090 "${home_dir}"
+		make_stub_framework_091 "${home_dir}"
 
 		capture_run_in_home "${home_dir}" doctor --dry-run
 		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.9.0"

@@ -5,10 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Framework version pinning for reproducible installs
 # Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.9.0}"
-FRAMEWORK_VERSION_DEFAULT="v0.9.0"
-# Pinned commit for v0.9.0 installs (annotated tags have distinct object SHAs).
-FRAMEWORK_GIT_SHA_DEFAULT_V090="e1304b612b629a9350d7a2cf100cf0f76b6a6f6e"
+FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.9.1}"
+FRAMEWORK_VERSION_DEFAULT="v0.9.1"
+# Pinned commit for v0.9.1 installs (annotated tags have distinct object SHAs).
+FRAMEWORK_GIT_SHA_DEFAULT="dbdd6d79493bb88685e2d4954bff7f544bdb2b54"
 REQUIRED_MCPBASH_MIN_VERSION="0.9.0"
 FRAMEWORK_DOCTOR_FIX_MIN_VERSION="0.8.1"
 
@@ -443,7 +443,17 @@ install_from_verified_archive() {
 	fi
 
 	if [ "${sha_actual}" != "${sha_expected}" ]; then
-		echo "Checksum mismatch for ${archive_url}. Expected ${sha_expected}, got ${sha_actual}" >&2
+		echo "ERROR: SHA256 checksum verification failed for: ${archive_url}" >&2
+		echo "" >&2
+		echo "This may indicate:" >&2
+		echo "  - Corrupted download (try again)" >&2
+		echo "  - Man-in-the-middle attack" >&2
+		echo "  - Version mismatch" >&2
+		echo "" >&2
+		echo "Expected: ${sha_expected}" >&2
+		echo "Got:      ${sha_actual}" >&2
+		echo "" >&2
+		echo "For manual verification, see: https://github.com/yaniv-golan/mcp-bash-framework/releases" >&2
 		rm -f "${tmp_archive}" || true
 		return 1
 	fi
@@ -500,7 +510,7 @@ if [ "${framework_exists}" != "true" ] || [ "${framework_too_old}" = "true" ]; t
 	else
 		expected_git_sha="${GIT_HEX_MCPBASH_GIT_SHA:-}"
 		if [ -z "${expected_git_sha}" ] && [ "${FRAMEWORK_VERSION}" = "${FRAMEWORK_VERSION_DEFAULT}" ]; then
-			expected_git_sha="${FRAMEWORK_GIT_SHA_DEFAULT_V090}"
+			expected_git_sha="${FRAMEWORK_GIT_SHA_DEFAULT}"
 		fi
 		if [ -z "${expected_git_sha}" ] && [ "${GIT_HEX_ALLOW_UNVERIFIED_FRAMEWORK:-}" != "true" ]; then
 			echo "Refusing to auto-install an unverified mcp-bash framework." >&2

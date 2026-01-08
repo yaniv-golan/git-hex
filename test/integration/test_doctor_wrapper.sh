@@ -73,7 +73,7 @@ make_stub_framework_092() {
 set -euo pipefail
 case "${1:-}" in
 --version)
-  echo "mcp-bash 0.9.5"
+  echo "mcp-bash 0.9.6"
   ;;
 doctor)
   shift || true
@@ -140,7 +140,7 @@ test_too_old_framework_read_only_does_not_delete() {
 
 		capture_run_in_home "${home_dir}" doctor
 		assert_eq "1" "${CAPTURE_STATUS}" "doctor should exit 1 when framework too old"
-		assert_contains "${CAPTURE_OUTPUT}" "requires v0.9.5+" "doctor should report minimum version requirement"
+		assert_contains "${CAPTURE_OUTPUT}" "requires v0.9.6+" "doctor should report minimum version requirement"
 
 		assert_file_exists "${home_dir}/.local/share/mcp-bash/MARKER.txt" "read-only doctor should not delete existing framework"
 		test_pass "doctor does not delete too-old framework without --fix"
@@ -180,12 +180,12 @@ test_doctor_delegates_for_092_plus() {
 		make_stub_framework_092 "${home_dir}"
 
 		capture_run_in_home "${home_dir}" doctor --dry-run
-		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.9.5"
+		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.9.6"
 		assert_contains "${CAPTURE_OUTPUT}" "framework doctor dry-run" "doctor --dry-run should be handled by framework"
 		if [[ "${CAPTURE_OUTPUT}" == *"Would install framework"* ]]; then
-			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.9.5"
+			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.9.6"
 		fi
-		test_pass "doctor delegates to framework for >=0.9.5"
+		test_pass "doctor delegates to framework for >=0.9.6"
 	)
 }
 

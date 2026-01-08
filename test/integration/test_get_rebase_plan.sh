@@ -26,7 +26,6 @@ create_test_repo "${REPO}" 5
 result="$(run_tool git-hex-getRebasePlan "${REPO}" '{"count": 3}')"
 
 # Verify JSON structure
-assert_json_field "${result}" '.success' "true" "should succeed"
 
 plan_id="$(echo "${result}" | jq -r '.plan_id')"
 assert_ne "" "${plan_id}" "plan_id should be present"
@@ -160,7 +159,6 @@ mkdir -p "${REPO4B}"
 )
 
 result="$(run_tool git-hex-getRebasePlan "${REPO4B}" '{"count": 2, "onto": "HEAD~1"}')"
-assert_json_field "${result}" '.success' "true" "should succeed"
 commits_count="$(printf '%s' "${result}" | jq -r '.commits | length')"
 assert_eq "1" "${commits_count}" "should return 1 commit"
 subject_us="$(printf '%s' "${result}" | jq -r '.commits[0].subject')"
@@ -180,7 +178,6 @@ create_test_repo "${REPO5}" 5
 result="$(run_tool git-hex-getRebasePlan "${REPO5}" '{"onto": "HEAD~2"}')"
 
 # Should succeed even in detached HEAD
-assert_json_field "${result}" '.success' "true" "should succeed in detached HEAD"
 
 # Branch should indicate detached state
 branch_val="$(printf '%s' "${result}" | jq -r '.branch')"
@@ -202,7 +199,6 @@ create_test_repo "${REPO6}" 3
 # onto=HEAD means empty range (no commits between HEAD and HEAD)
 result="$(run_tool git-hex-getRebasePlan "${REPO6}" '{"onto": "HEAD"}')"
 
-assert_json_field "${result}" '.success' "true" "should succeed with empty range"
 commits_empty="$(printf '%s' "${result}" | jq -r '.commits | length')"
 assert_eq "0" "${commits_empty}" "should return 0 commits when onto=HEAD"
 

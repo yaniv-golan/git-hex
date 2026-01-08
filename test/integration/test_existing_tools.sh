@@ -30,8 +30,7 @@ printf ' -> FIX-02 createFixup with staged changes succeeds\n'
 REPO_FIX_OK="${TEST_TMPDIR}/create-fixup-ok"
 create_staged_changes_repo "${REPO_FIX_OK}"
 target_commit="$(cd "${REPO_FIX_OK}" && git rev-parse HEAD)"
-result_fix="$(run_tool git-hex-createFixup "${REPO_FIX_OK}" "{\"commit\": \"${target_commit}\"}")"
-assert_json_field "${result_fix}" '.success' "true" "createFixup should succeed with staged changes"
+run_tool git-hex-createFixup "${REPO_FIX_OK}" "{\"commit\": \"${target_commit}\"}" >/dev/null
 test_pass "createFixup succeeds with staged changes"
 
 # AMD-01: Nothing to amend -> fail
@@ -48,16 +47,14 @@ fi
 printf ' -> AMD-02 amendLastCommit with staged changes succeeds\n'
 REPO_AMD_STAGE="${TEST_TMPDIR}/amend-stage"
 create_staged_changes_repo "${REPO_AMD_STAGE}"
-result_amend_stage="$(run_tool git-hex-amendLastCommit "${REPO_AMD_STAGE}" '{}')"
-assert_json_field "${result_amend_stage}" '.success' "true" "amendLastCommit should succeed with staged changes"
+run_tool git-hex-amendLastCommit "${REPO_AMD_STAGE}" '{}' >/dev/null
 test_pass "amendLastCommit amends staged changes"
 
 # AMD-03: Message only -> success
 printf ' -> AMD-03 amendLastCommit with message only succeeds\n'
 REPO_AMD_MSG="${TEST_TMPDIR}/amend-message"
 create_test_repo "${REPO_AMD_MSG}" 1
-result_amend_msg="$(run_tool git-hex-amendLastCommit "${REPO_AMD_MSG}" '{"message": "New message"}')"
-assert_json_field "${result_amend_msg}" '.success' "true" "amendLastCommit should succeed with new message"
+run_tool git-hex-amendLastCommit "${REPO_AMD_MSG}" '{"message": "New message"}' >/dev/null
 latest_msg="$(cd "${REPO_AMD_MSG}" && git log -1 --format='%s')"
 assert_eq "New message" "${latest_msg}" "commit message should be updated"
 test_pass "amendLastCommit updates message"
@@ -66,8 +63,7 @@ test_pass "amendLastCommit updates message"
 printf ' -> AMD-04 amendLastCommit with staged changes and message succeeds\n'
 REPO_AMD_BOTH="${TEST_TMPDIR}/amend-both"
 create_staged_changes_repo "${REPO_AMD_BOTH}"
-result_amend_both="$(run_tool git-hex-amendLastCommit "${REPO_AMD_BOTH}" '{"message": "Both"}')"
-assert_json_field "${result_amend_both}" '.success' "true" "amendLastCommit should succeed with staged changes and message"
+run_tool git-hex-amendLastCommit "${REPO_AMD_BOTH}" '{"message": "Both"}' >/dev/null
 latest_msg="$(cd "${REPO_AMD_BOTH}" && git log -1 --format='%s')"
 assert_eq "Both" "${latest_msg}" "commit message should update"
 test_pass "amendLastCommit handles staged + message"

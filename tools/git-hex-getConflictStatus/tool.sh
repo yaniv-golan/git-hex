@@ -73,7 +73,8 @@ elif   [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
 	conflicting_commit="$(<"${merge_head_path}")"
 else
-	mcp_emit_json '{"success": true, "inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
+	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	mcp_result_success '{"inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
 	exit 0
 fi
 
@@ -207,9 +208,9 @@ while  IFS= read -r -d '' file; do
 done  < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 
 if  [ "${have_conflicts}" != "true" ]; then
+	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success true \
+	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson inConflict true \
 		--arg conflictType "${conflict_type}" \
 		--argjson currentStep "${current_step}" \
@@ -217,15 +218,16 @@ if  [ "${have_conflicts}" != "true" ]; then
 		--arg conflictingCommit "${conflicting_commit}" \
 		--argjson conflictingFiles "[]" \
 		--arg summary "${conflict_type} paused - all conflicts resolved, ready to continue" \
-		'{success: $success, inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+		'{inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+	mcp_result_success "${result}"
 	exit 0
 fi
 
 file_count="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
 
+# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 # shellcheck disable=SC2016
-mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success true \
+result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson inConflict true \
 	--arg conflictType "${conflict_type}" \
 	--argjson currentStep "${current_step}" \
@@ -233,4 +235,5 @@ mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg conflictingCommit "${conflicting_commit}" \
 	--argjson conflictingFiles "${files_json}" \
 	--arg summary "${conflict_type} paused with ${file_count} conflicting file(s)" \
-	'{success: $success, inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+	'{inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
+mcp_result_success "${result}"

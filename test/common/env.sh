@@ -165,7 +165,11 @@ run_tool() {
 		printf '[run_tool %s] raw_output: %s\n' "${tool_name}" "${raw_output}" >&2
 	fi
 
-	echo "${structured}"
+	# Unwrap mcp_result_success envelope: if response has {success: true, result: {...}},
+	# extract just the .result portion for test assertions (mcp-bash 0.9.2+ envelope format)
+	local unwrapped
+	unwrapped="$(printf '%s' "${structured}" | jq -c 'if type == "object" and has("success") and has("result") then .result else . end' 2>/dev/null || echo "${structured}")"
+	echo "${unwrapped}"
 }
 
 # Run a tool expecting it to fail

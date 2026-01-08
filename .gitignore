@@ -1,6 +1,9 @@
 # mcp-bash registry cache
 .registry/
 
+# Debug mode toggle (mcp-bash 0.9.5+)
+server.d/.debug
+
 # Logs
 *.log
 

@@ -342,22 +342,22 @@ fi
 # Build output JSON - if jq fails, fall back to manual construction
 # shellcheck disable=SC2016
 output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success true \
 	--arg originalCommit "${full_commit}" \
 	--argjson newCommits "${new_commits_json}" \
 	--arg backupRef "${backup_ref}" \
 	--argjson rebasePaused "${rebase_paused}" \
 	--argjson stashNotRestored "${stash_not_restored}" \
 	--arg summary "${summary}" \
-	'{success: $success, originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}' 2>/dev/null || true)"
+	'{originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}' 2>/dev/null || true)"
 
 if [ -z "${output_json}" ]; then
-	# jq failed - construct JSON manually
+	# jq failed - construct JSON manually (mcp_result_success will add success envelope)
 	printf 'WARNING: jq output construction failed, using manual fallback\n' >&2
 	original_esc="$(mcp_json_escape "${full_commit}")"
 	backup_esc="$(mcp_json_escape "${backup_ref}")"
 	summary_esc="$(mcp_json_escape "${summary}")"
-	output_json="{\"success\":true,\"originalCommit\":${original_esc},\"newCommits\":${new_commits_json},\"backupRef\":${backup_esc},\"rebasePaused\":${rebase_paused},\"stashNotRestored\":${stash_not_restored},\"summary\":${summary_esc}}"
+	output_json="{\"originalCommit\":${original_esc},\"newCommits\":${new_commits_json},\"backupRef\":${backup_esc},\"rebasePaused\":${rebase_paused},\"stashNotRestored\":${stash_not_restored},\"summary\":${summary_esc}}"
 fi
 
-mcp_emit_json "${output_json}"
+# mcp_result_success wraps in {success: true, result: ...} envelope
+mcp_result_success "${output_json}"

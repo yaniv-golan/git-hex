@@ -85,13 +85,14 @@ actual_commits="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD" 2>/de
 actual_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 
 if [ -z "${actual_commits}" ]; then
+	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success true \
+	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg headBefore "$(git -C "${repo_path}" rev-parse HEAD)" \
 		--arg headAfter "$(git -C "${repo_path}" rev-parse HEAD)" \
 		--arg summary "Nothing to rebase - HEAD is already at ${onto}" \
-		'{success: $success, headBefore: $headBefore, headAfter: $headAfter, summary: $summary}')"
+		'{headBefore: $headBefore, headAfter: $headAfter, summary: $summary}')"
+	mcp_result_success "${result}"
 	exit 0
 fi
 
@@ -334,16 +335,17 @@ if [ "${rebase_status}" -eq 0 ]; then
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
+	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success true \
+	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson paused false \
 		--arg headBefore "${head_before}" \
 		--arg headAfter "${head_after}" \
 		--arg backupRef "${backup_ref}" \
 		--argjson commitsRebased "${actual_count}" \
 		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}.${detached_head_warning}" \
-		'{success: $success, paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
+		'{paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
+	mcp_result_success "${result}"
 	exit 0
 else
 	rebase_merge_dir="$(git -C "${repo_path}" rev-parse --git-path rebase-merge 2>/dev/null || true)"
@@ -365,9 +367,9 @@ else
 		if [ "${abort_on_conflict}" = "false" ]; then
 			conflicting_json="$(git_hex_get_conflicting_files_json "${repo_path}")"
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD)"
+			# Rebase paused - semantic failure indicated by 'paused: true' in result
 			# shellcheck disable=SC2016
-			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-				--argjson success false \
+			result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson paused true \
 				--arg reason "conflict" \
 				--arg headBefore "${head_before}" \
@@ -375,7 +377,8 @@ else
 				--arg backupRef "${backup_ref}" \
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details.${detached_head_warning}" \
-				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+				'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+			mcp_result_success "${result}"
 			exit 0
 		else
 			git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
@@ -390,9 +393,9 @@ else
 		if [ -z "${error_hint}" ]; then
 			error_hint="Rebase stopped"
 		fi
+		# Rebase paused - semantic failure indicated by 'paused: true' in result
 		# shellcheck disable=SC2016
-		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-			--argjson success false \
+		result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--argjson paused true \
 			--arg reason "stopped" \
 			--arg headBefore "${head_before}" \
@@ -400,7 +403,8 @@ else
 			--arg backupRef "${backup_ref}" \
 			--argjson conflictingFiles "[]" \
 			--arg summary "Rebase paused (non-conflict stop): ${error_hint}.${detached_head_warning}" \
-			'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+			'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
+		mcp_result_success "${result}"
 		exit 0
 	elif grep -qi "nothing to do" <<<"${rebase_output}"; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true

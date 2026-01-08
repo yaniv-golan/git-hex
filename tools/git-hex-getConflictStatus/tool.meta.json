@@ -27,37 +27,43 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "inConflict", "summary"],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "inConflict": { "type": "boolean" },
-      "conflictType": { "type": "string", "enum": ["rebase", "merge", "cherry-pick", "revert", "none"], "description": "rebase, merge, cherry-pick, revert, or none" },
-      "currentStep": { "type": "integer" },
-      "totalSteps": { "type": "integer" },
-      "conflictingCommit": { "type": "string" },
-      "conflictingFiles": {
-        "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["path", "conflictType"],
-            "properties": {
-              "path": { "type": "string" },
-            "conflictType": {
-              "type": "string",
-              "enum": ["both_modified", "deleted_by_us", "deleted_by_them", "added_by_both", "deleted_by_both", "unknown"],
-              "description": "Type of conflict for this file"
-            },
-              "isBinary": { "type": "boolean" },
-              "base": { "type": "string" },
-              "ours": { "type": "string" },
-              "theirs": { "type": "string" },
-              "workingCopy": { "type": "string" },
-              "truncated": { "type": "boolean", "description": "True if any returned content was truncated to maxContentSize" },
-              "note": { "type": "string", "description": "Optional note (e.g., binary content omitted)" }
+      "result": {
+        "type": "object",
+        "required": ["inConflict", "summary"],
+        "properties": {
+          "inConflict": { "type": "boolean" },
+          "conflictType": { "type": "string", "enum": ["rebase", "merge", "cherry-pick", "revert", "none"], "description": "rebase, merge, cherry-pick, revert, or none" },
+          "currentStep": { "type": "integer" },
+          "totalSteps": { "type": "integer" },
+          "conflictingCommit": { "type": "string" },
+          "conflictingFiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "conflictType"],
+              "properties": {
+                "path": { "type": "string" },
+                "conflictType": {
+                  "type": "string",
+                  "enum": ["both_modified", "deleted_by_us", "deleted_by_them", "added_by_both", "deleted_by_both", "unknown"],
+                  "description": "Type of conflict for this file"
+                },
+                "isBinary": { "type": "boolean" },
+                "base": { "type": "string" },
+                "ours": { "type": "string" },
+                "theirs": { "type": "string" },
+                "workingCopy": { "type": "string" },
+                "truncated": { "type": "boolean", "description": "True if any returned content was truncated to maxContentSize" },
+                "note": { "type": "string", "description": "Optional note (e.g., binary content omitted)" }
+              }
             }
-          }
-        },
-      "summary": { "type": "string" }
+          },
+          "summary": { "type": "string" }
+        }
+      }
     }
   },
   "annotations": {

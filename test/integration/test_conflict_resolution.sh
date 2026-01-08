@@ -159,8 +159,7 @@ REPO_ABORT="${TEST_TMPDIR}/conflict-abort"
 create_conflict_scenario "${REPO_ABORT}"
 head_before="$(cd "${REPO_ABORT}" && git rev-parse --short HEAD)"
 (cd "${REPO_ABORT}" && git rebase main >/dev/null 2>&1) || true
-abort_result="$(run_tool git-hex-abortOperation "${REPO_ABORT}" '{}')"
-assert_json_field "${abort_result}" '.success' "true" "abortOperation should succeed"
+run_tool git-hex-abortOperation "${REPO_ABORT}" '{}' >/dev/null
 head_after="$(cd "${REPO_ABORT}" && git rev-parse --short HEAD)"
 assert_eq "${head_before}" "${head_after}" "HEAD should be restored after abort"
 status_clean="$(cd "${REPO_ABORT}" && git status --porcelain)"
@@ -189,9 +188,9 @@ REPO_NO_OP="${TEST_TMPDIR}/abort-no-op"
 create_test_repo  "${REPO_NO_OP}" 2
 # Ensure no operation is in progress
 abort_no_op="$( run_tool git-hex-abortOperation "${REPO_NO_OP}" '{}')" || true
-# Should return success=false with an error message
-success_val="$( printf '%s' "${abort_no_op}" | jq -r 'if .success == null then "" else (.success | tostring) end')"
-if  [ "${success_val}" = "false" ]; then
+# Should return operationSucceeded=false with an error message (envelope success is always true for non-error responses)
+op_succeeded="$( printf '%s' "${abort_no_op}" | jq -r 'if .operationSucceeded == null then "" else (.operationSucceeded | tostring) end')"
+if  [ "${op_succeeded}" = "false" ]; then
 	# Check for operationType field (audit found this was missing)
 	op_type="$(printf '%s' "${abort_no_op}" | jq -r '.operationType // "missing"')"
 	if [ "${op_type}" = "missing" ] || [ "${op_type}" = "null" ]; then
@@ -199,7 +198,7 @@ if  [ "${success_val}" = "false" ]; then
 	fi
 	test_pass "abortOperation returns error when no operation in progress"
 else
-	test_fail "abortOperation should return success=false when no operation"
+	test_fail "abortOperation should return operationSucceeded=false when no operation"
 fi
 
 echo ""

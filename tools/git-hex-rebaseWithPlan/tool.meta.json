@@ -70,28 +70,34 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "headBefore", "headAfter", "summary"],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "headBefore": { "type": "string" },
-      "headAfter": { "type": "string" },
-      "backupRef": {
-        "type": "string",
-        "description": "Backup ref created for undoLast"
-      },
-      "commitsRebased": {
-        "type": "integer",
-        "description": "Number of commits rebased when successful"
-      },
-      "summary": { "type": "string" },
-      "paused": { "type": "boolean" },
-      "reason": {
-        "type": "string",
-        "description": "Reason when paused (e.g., conflict)"
-      },
-      "conflictingFiles": {
-        "type": "array",
-        "items": { "type": "string" }
+      "result": {
+        "type": "object",
+        "required": ["headBefore", "headAfter", "summary"],
+        "properties": {
+          "headBefore": { "type": "string" },
+          "headAfter": { "type": "string" },
+          "backupRef": {
+            "type": "string",
+            "description": "Backup ref created for undoLast"
+          },
+          "commitsRebased": {
+            "type": "integer",
+            "description": "Number of commits rebased when successful"
+          },
+          "summary": { "type": "string" },
+          "paused": { "type": "boolean" },
+          "reason": {
+            "type": "string",
+            "description": "Reason when paused (e.g., conflict)"
+          },
+          "conflictingFiles": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
       }
     }
   },

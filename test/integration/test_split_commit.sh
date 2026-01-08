@@ -37,8 +37,7 @@ args="$(
 }
 JSON
 )"
-result="$(run_tool git-hex-splitCommit "${REPO_SPLIT}" "${args}" 120)"
-assert_json_field "${result}" '.success' "true" "splitCommit should succeed"
+run_tool git-hex-splitCommit "${REPO_SPLIT}" "${args}" 120 >/dev/null
 new_messages="$(cd "${REPO_SPLIT}" && git log -3 --format='%s' | paste -sd ',' -)"
 assert_contains "${new_messages}" "First part" "new commits should include first split message"
 assert_contains "${new_messages}" "Second part" "new commits should include second split message"
@@ -79,8 +78,7 @@ args_nl="$(jq -n --arg c "${target_commit_nl}" --arg f "${nl_name}" '{
     {files: ["normal.txt"], message: "Normal file"}
   ]
 }')"
-result_nl="$(run_tool git-hex-splitCommit "${REPO_SPLIT_NL}" "${args_nl}" 120)"
-assert_json_field "${result_nl}" '.success' "true" "splitCommit should support newline filenames"
+run_tool git-hex-splitCommit "${REPO_SPLIT_NL}" "${args_nl}" 120 >/dev/null
 test_pass "splitCommit supports newline filename"
 
 # SPLIT-10: File not in original commit should fail
@@ -272,8 +270,7 @@ args_autostash="$(
 }
 JSON
 )"
-result_autostash="$(run_tool git-hex-splitCommit "${REPO_AUTOSTASH}" "${args_autostash}" 120)"
-assert_json_field "${result_autostash}" '.success' "true" "splitCommit should succeed with autoStash"
+run_tool git-hex-splitCommit "${REPO_AUTOSTASH}" "${args_autostash}" 120 >/dev/null
 if ! (cd "${REPO_AUTOSTASH}" && git diff --quiet -- after.txt); then
 	test_pass "dirty change restored after split"
 else

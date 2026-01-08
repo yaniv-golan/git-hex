@@ -25,42 +25,45 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "plan_id", "commits", "onto", "branch", "summary"],
+    "required": ["success", "result"],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "Whether the operation was successful"
-      },
-      "plan_id": {
-        "type": "string",
-        "description": "Unique identifier for this rebase plan"
-      },
-      "branch": {
-        "type": "string",
-        "description": "Current branch name"
-      },
-      "onto": {
-        "type": "string",
-        "description": "Base ref the rebase would be onto"
-      },
-      "commits": {
-        "type": "array",
-        "description": "List of commits in rebase order (oldest first)",
-        "items": {
-          "type": "object",
-          "required": ["hash", "shortHash", "subject", "author", "date"],
-          "properties": {
-            "hash": { "type": "string" },
-            "shortHash": { "type": "string" },
-            "subject": { "type": "string" },
-            "author": { "type": "string" },
-            "date": { "type": "string" }
+      "success": { "type": "boolean" },
+      "result": {
+        "type": "object",
+        "required": ["plan_id", "commits", "onto", "branch", "summary"],
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "description": "Unique identifier for this rebase plan"
+          },
+          "branch": {
+            "type": "string",
+            "description": "Current branch name"
+          },
+          "onto": {
+            "type": "string",
+            "description": "Base ref the rebase would be onto"
+          },
+          "commits": {
+            "type": "array",
+            "description": "List of commits in rebase order (oldest first)",
+            "items": {
+              "type": "object",
+              "required": ["hash", "shortHash", "subject", "author", "date"],
+              "properties": {
+                "hash": { "type": "string" },
+                "shortHash": { "type": "string" },
+                "subject": { "type": "string" },
+                "author": { "type": "string" },
+                "date": { "type": "string" }
+              }
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "Human-readable explanation of what was found"
           }
         }
-      },
-      "summary": {
-        "type": "string",
-        "description": "Human-readable explanation of what was found"
       }
     }
   },

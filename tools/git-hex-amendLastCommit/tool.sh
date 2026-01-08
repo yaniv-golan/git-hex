@@ -98,13 +98,14 @@ commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 # Record post-operation state for undo safety checks
 git_hex_record_last_head "${repo_path}" "${head_after}"
 
+# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 # shellcheck disable=SC2016
-mcp_emit_json  "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success true \
+result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg headBefore "${head_before}" \
 	--arg headAfter "${head_after}" \
 	--arg backupRef "${backup_ref}" \
 	--arg summary "Amended commit with new hash ${head_after:0:7}" \
 	--arg commitMessage "${commit_message}" \
 	--argjson stashNotRestored "${stash_not_restored}" \
-	'{success: $success, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+	'{headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+mcp_result_success "${result}"

@@ -6,7 +6,29 @@ set -euo pipefail
 # starting the server so tool discovery matches your Terminal setup.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REQUIRED_MCPBASH_MIN_VERSION="0.9.0"
+
+# Source framework version from lockfile (single source of truth)
+# shellcheck source=mcp-bash.lock
+source "${SCRIPT_DIR}/mcp-bash.lock"
+REQUIRED_MCPBASH_MIN_VERSION="${MCPBASH_VERSION}"
+
+# ==============================================================================
+# Debug Mode
+# ==============================================================================
+# Enable debug mode via:
+#   1. GIT_HEX_DEBUG=1 environment variable
+#   2. server.d/.debug file (mcp-bash 0.9.5+ native detection)
+#
+# Quick enable:  touch server.d/.debug
+# Quick disable: rm server.d/.debug
+
+if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
+	export MCPBASH_LOG_LEVEL="${MCPBASH_LOG_LEVEL:-debug}"
+fi
+
+# Cache version at startup (for debug banner)
+GIT_HEX_VERSION=$(cat "${SCRIPT_DIR}/VERSION" 2>/dev/null || echo "unknown")
+
 SHELL_PROFILE=""
 
 if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
@@ -147,6 +169,13 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	else
 		export MCPBASH_TOOL_ALLOWLIST="${GIT_HEX_TOOL_ALLOWLIST_ALL}"
 	fi
+fi
+
+# Print debug banner if debug mode enabled
+if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
+	echo "[git-hex:${GIT_HEX_VERSION}] Debug mode enabled (via git-hex-env.sh)" >&2
+	echo "[git-hex:${GIT_HEX_VERSION}] Versions: git-hex=${GIT_HEX_VERSION} mcp-bash=v${MCPBASH_VERSION}" >&2
+	echo "[git-hex:${GIT_HEX_VERSION}] Process: pid=$$ started=$(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)" >&2
 fi
 
 exec "${MCP_BASH}" "$@"

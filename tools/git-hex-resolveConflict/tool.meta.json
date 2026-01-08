@@ -28,12 +28,18 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "file", "remainingConflicts", "summary"],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "file": { "type": "string" },
-      "remainingConflicts": { "type": "integer" },
-      "summary": { "type": "string" }
+      "result": {
+        "type": "object",
+        "required": ["file", "remainingConflicts", "summary"],
+        "properties": {
+          "file": { "type": "string" },
+          "remainingConflicts": { "type": "integer" },
+          "summary": { "type": "string" }
+        }
+      }
     }
   },
   "annotations": {

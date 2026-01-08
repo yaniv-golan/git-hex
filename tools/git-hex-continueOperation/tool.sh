@@ -32,15 +32,15 @@ fi
 if  [ "${operation}" != "rebase" ] && [ "${operation}" != "cherry-pick" ] && [ "${operation}" != "merge" ]; then
 	# Keep this tool narrowly scoped; other sequencer states (e.g., revert) are detected to prevent incorrect behavior.
 	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success false \
+	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg operationType "${operation}" \
 		--argjson completed false \
 		--argjson paused false \
 		--argjson conflictingFiles "[]" \
 		--arg error "Continue is only supported for rebase, cherry-pick, or merge" \
 		--arg summary "Cannot continue ${operation}" \
-		'{success: $success, operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary, error: $error}')"
+		'{operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary, error: $error}')"
+	mcp_result_success "${result}"
 	exit 0
 fi
 
@@ -157,14 +157,16 @@ if [ "${completed}" = "true" ] && [ "${status}" = "true" ]; then
 	fi
 fi
 
+# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Use 'completed' field to indicate operation outcome (success/failure is in envelope)
 # shellcheck disable=SC2016
-mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success "${status}" \
+result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg operationType "${operation}" \
 	--argjson completed "${completed}" \
 	--argjson paused "${paused}" \
 	--argjson conflictingFiles "${conflicting_json}" \
 	--arg error "${error_msg}" \
 	--arg summary "${summary}" \
-	'{success: $success, operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary}
+	'{operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary}
 	| if ($error | length) > 0 then . + {error: $error} else . end')"
+mcp_result_success "${result}"

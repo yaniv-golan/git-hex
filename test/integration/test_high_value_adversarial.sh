@@ -40,7 +40,6 @@ WORKTREE_DIR="${TEST_TMPDIR}/worktree-dir"
 )
 target_hash="$(cd "${WORKTREE_DIR}" && git rev-parse HEAD)"
 wt_result="$(run_tool git-hex-createFixup "${WORKTREE_DIR}" "{\"commit\":\"${target_hash}\"}")"
-assert_json_field "${wt_result}" '.success' "true" "createFixup should succeed in worktree"
 wt_backup_ref="$(printf '%s' "${wt_result}" | jq -r '.backupRef // empty')"
 assert_contains "${wt_backup_ref}" "git-hex/backup/" "backupRef should be returned in worktree"
 test_pass "worktree repoPath works"

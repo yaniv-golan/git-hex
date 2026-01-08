@@ -28,37 +28,42 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": [
-      "success",
-      "wouldConflict",
-      "confidence",
-      "commits",
-      "limitExceeded",
-      "totalCommits",
-      "checkedCommits",
-      "summary"
-    ],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "wouldConflict": { "type": "boolean" },
-      "confidence": { "type": "string", "enum": ["estimate", "unknown"] },
-      "commits": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": ["hash", "subject", "prediction"],
-          "properties": {
-            "hash": { "type": "string" },
-            "subject": { "type": "string" },
-            "prediction": { "type": "string", "enum": ["clean", "conflict", "unknown"] }
-          }
+      "result": {
+        "type": "object",
+        "required": [
+          "wouldConflict",
+          "confidence",
+          "commits",
+          "limitExceeded",
+          "totalCommits",
+          "checkedCommits",
+          "summary"
+        ],
+        "properties": {
+          "wouldConflict": { "type": "boolean" },
+          "confidence": { "type": "string", "enum": ["estimate", "unknown"] },
+          "commits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["hash", "subject", "prediction"],
+              "properties": {
+                "hash": { "type": "string" },
+                "subject": { "type": "string" },
+                "prediction": { "type": "string", "enum": ["clean", "conflict", "unknown"] }
+              }
+            }
+          },
+          "limitExceeded": { "type": "boolean" },
+          "totalCommits": { "type": "integer" },
+          "checkedCommits": { "type": "integer" },
+          "summary": { "type": "string" },
+          "note": { "type": "string" }
         }
-      },
-      "limitExceeded": { "type": "boolean" },
-      "totalCommits": { "type": "integer" },
-      "checkedCommits": { "type": "integer" },
-      "summary": { "type": "string" },
-      "note": { "type": "string" }
+      }
     }
   },
   "annotations": {

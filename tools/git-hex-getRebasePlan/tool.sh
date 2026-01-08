@@ -109,14 +109,13 @@ if [ "${branch}" = "(detached HEAD)" ]; then
 	summary="${summary}. Warning: detached HEAD; rebasing may rewrite commits without an easy branch reference."
 fi
 
-# Build and emit result
+# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success true \
 	--arg plan_id "${plan_id}" \
 	--arg branch "${branch}" \
 	--arg onto "${onto_display}" \
 	--argjson commits "${commits_json}" \
 	--arg summary "${summary}" \
-	'{success: $success, plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits, summary: $summary}')"
-mcp_emit_json "${result}"
+	'{plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits, summary: $summary}')"
+mcp_result_success "${result}"

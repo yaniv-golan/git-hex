@@ -25,7 +25,9 @@ rebase_msg_dir_marker="${git_dir}/git-hex-rebase-msg-dir"
 operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 
 if  [ -z "${operation}" ]; then
-	mcp_emit_json '{"success": false, "operationType": "none", "error": "No rebase/merge/cherry-pick in progress", "summary": "Nothing to abort"}'
+	# No operation in progress - return success: false in result data to indicate semantic failure
+	result='{"operationSucceeded": false, "operationType": "none", "error": "No rebase/merge/cherry-pick in progress", "summary": "Nothing to abort"}'
+	mcp_result_success "${result}"
 	exit 0
 fi
 
@@ -37,20 +39,23 @@ elif  [ "${operation}" = "cherry-pick" ]; then
 elif  [ "${operation}" = "merge" ]; then
 	git -C "${repo_path}" merge --abort >/dev/null 2>&1 || true
 else
+	# Unsupported operation - return operationSucceeded: false in result data
 	# shellcheck disable=SC2016
-	mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-		--argjson success false \
+	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
+		--argjson operationSucceeded false \
 		--arg operationType "${operation}" \
 		--arg error "Abort is only supported for rebase, cherry-pick, or merge" \
 		--arg summary "Nothing aborted" \
-		'{success: $success, operationType: $operationType, error: $error, summary: $summary}')"
+		'{operationSucceeded: $operationSucceeded, operationType: $operationType, error: $error, summary: $summary}')"
+	mcp_result_success "${result}"
 	exit 0
 fi
 
 summary="${operation} aborted, restored to original state"
+# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 # shellcheck disable=SC2016
-mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-	--argjson success true \
+result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg operationType "${operation}" \
 	--arg summary "${summary}" \
-	'{success: $success, operationType: $operationType, summary: $summary}')"
+	'{operationType: $operationType, summary: $summary}')"
+mcp_result_success "${result}"

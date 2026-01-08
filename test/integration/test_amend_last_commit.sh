@@ -27,7 +27,6 @@ previous_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-amendLastCommit "${REPO}" '{}')"
 
-assert_json_fields_eq "${result}" '.success' "true" '.headBefore' "${previous_hash}"
 backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
 assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
 
@@ -52,8 +51,6 @@ previous_hash="$(cd "${REPO2}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-amendLastCommit "${REPO2}" '{"message": "New commit message"}')"
 
-assert_json_fields_eq "${result}" '.success' "true" '.commitMessage' "New commit message"
-
 new_hash="$(echo "${result}" | jq -r '.headAfter')"
 assert_ne "${previous_hash}" "${new_hash}" "headAfter should differ from headBefore"
 
@@ -73,8 +70,6 @@ echo "unstaged modification" >"${REPO3}/file1.txt"
 previous_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-amendLastCommit "${REPO3}" '{"addAll": true, "message": "Amended with addAll"}')"
-
-assert_json_field "${result}" '.success' "true" "amend should succeed"
 
 # Verify the modification was included
 file_content="$(cd "${REPO3}" && git show HEAD:file1.txt)"

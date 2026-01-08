@@ -153,10 +153,10 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 
+	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
 	if [ "${no_commit}" = "true" ]; then
 		# shellcheck disable=SC2016
-		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-			--argjson success true \
+		result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--arg headBefore "${head_before}" \
 			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
@@ -164,11 +164,10 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 			--arg summary "Changes from ${source_hash:0:7} applied but not committed (staged)" \
 			--arg commitMessage "${source_subject}" \
 			--argjson stashNotRestored "${stash_not_restored}" \
-			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+			'{headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
 	else
 		# shellcheck disable=SC2016
-		mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-			--argjson success true \
+		result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 			--arg headBefore "${head_before}" \
 			--arg headAfter "${head_after}" \
 			--arg sourceCommit "${source_hash}" \
@@ -176,8 +175,9 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 			--arg summary "Cherry-picked ${source_hash:0:7} as new commit ${head_after:0:7}" \
 			--arg commitMessage "${source_subject}" \
 			--argjson stashNotRestored "${stash_not_restored}" \
-			'{success: $success, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
+			'{headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
 	fi
+	mcp_result_success "${result}"
 else
 	# Cherry-pick failed - cleanup will abort
 	# Provide more specific error context
@@ -187,9 +187,9 @@ else
 			trap - EXIT
 			head_after_pause="$(git -C "${repo_path}" rev-parse HEAD 2>/dev/null || echo "")"
 			conflicting_json="$(git_hex_get_conflicting_files_json "${repo_path}")"
+			# Cherry-pick paused - semantic failure indicated by 'paused: true' in result
 			# shellcheck disable=SC2016
-			mcp_emit_json "$("${MCPBASH_JSON_TOOL_BIN}" -n \
-				--argjson success false \
+			result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 				--argjson paused true \
 				--arg reason "conflict" \
 				--arg headBefore "${head_before}" \
@@ -200,7 +200,8 @@ else
 				--argjson conflictingFiles "${conflicting_json}" \
 				--argjson stashNotRestored false \
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
-				'{success: $success, paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, commitMessage: $commitMessage, conflictingFiles: $conflictingFiles, stashNotRestored: $stashNotRestored, summary: $summary}')"
+				'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, commitMessage: $commitMessage, conflictingFiles: $conflictingFiles, stashNotRestored: $stashNotRestored, summary: $summary}')"
+			mcp_result_success "${result}"
 		else
 			git_dir="$(git_hex_get_git_dir "${repo_path}")"
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"

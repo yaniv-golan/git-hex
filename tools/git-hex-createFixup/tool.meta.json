@@ -31,35 +31,38 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "headBefore", "headAfter", "backupRef", "targetCommit", "summary", "commitMessage"],
+    "required": ["success", "result"],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "Whether the operation was successful"
-      },
-      "headBefore": {
-        "type": "string",
-        "description": "HEAD commit hash before the operation"
-      },
-      "headAfter": {
-        "type": "string",
-        "description": "HEAD commit hash after the operation"
-      },
-      "backupRef": {
-        "type": "string",
-        "description": "Backup ref created for undoLast"
-      },
-      "targetCommit": {
-        "type": "string",
-        "description": "Hash of the commit this fixup targets"
-      },
-      "summary": {
-        "type": "string",
-        "description": "Human-readable explanation of what was done"
-      },
-      "commitMessage": {
-        "type": "string",
-        "description": "The commit's subject line (first line of commit message)"
+      "success": { "type": "boolean" },
+      "result": {
+        "type": "object",
+        "required": ["headBefore", "headAfter", "backupRef", "targetCommit", "summary", "commitMessage"],
+        "properties": {
+          "headBefore": {
+            "type": "string",
+            "description": "HEAD commit hash before the operation"
+          },
+          "headAfter": {
+            "type": "string",
+            "description": "HEAD commit hash after the operation"
+          },
+          "backupRef": {
+            "type": "string",
+            "description": "Backup ref created for undoLast"
+          },
+          "targetCommit": {
+            "type": "string",
+            "description": "Hash of the commit this fixup targets"
+          },
+          "summary": {
+            "type": "string",
+            "description": "Human-readable explanation of what was done"
+          },
+          "commitMessage": {
+            "type": "string",
+            "description": "The commit's subject line (first line of commit message)"
+          }
+        }
       }
     }
   },

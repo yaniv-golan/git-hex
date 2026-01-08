@@ -27,7 +27,6 @@ target_hash="$(cd "${REPO}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-createFixup "${REPO}" "{\"commit\": \"${target_hash}\"}")"
 
-assert_json_field "${result}" '.success' "true" "fixup should succeed"
 assert_json_field "${result}" '.targetCommit' "${target_hash}" "target commit should match"
 backup_ref="$(printf '%s' "${result}" | jq -r '.backupRef // empty')"
 assert_contains "${backup_ref}" "git-hex/backup/" "backupRef should be returned"
@@ -65,8 +64,6 @@ create_staged_changes_repo "${REPO3}"
 target_hash="$(cd "${REPO3}" && git rev-parse HEAD)"
 
 result="$(run_tool git-hex-createFixup "${REPO3}" "{\"commit\": \"${target_hash}\", \"message\": \"Additional context\"}")"
-
-assert_json_field "${result}" '.success' "true" "fixup should succeed"
 
 # Verify the commit body contains the extra message
 full_message="$(cd "${REPO3}" && git log -1 --format='%B' HEAD)"

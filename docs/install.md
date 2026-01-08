@@ -116,14 +116,25 @@ If `MCPBASH_HOME` is set, that install is treated as user-managed:
 
 ## Verified framework install (recommended for CI / supply-chain conscious setups)
 
-Set a checksum to force a verified tarball install of the pinned framework version:
+The framework version is pinned in `mcp-bash.lock`, which includes:
+- `MCPBASH_VERSION` - semantic version (e.g., `0.9.5`)
+- `MCPBASH_COMMIT` - exact git commit SHA for verification
+- `MCPBASH_SHA256` - tarball checksum for verified installs
+
+By default, `./git-hex.sh install` uses the SHA256 checksum from the lockfile for verified installs:
 
 ```bash
-export GIT_HEX_MCPBASH_SHA256="53612355b4fdf9bbd150926c8fa96f3ad9e79f7ba945dfdb3fd02d19e0b86d12"
 ./git-hex.sh install
 ```
 
-By default, `git-hex.sh` downloads the GitHub tag archive for `FRAMEWORK_VERSION` (e.g., `https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.9.1.tar.gz`).
+To override the lockfile values (e.g., testing a new version):
+
+```bash
+export GIT_HEX_MCPBASH_SHA256="<sha256-of-tarball>"
+./git-hex.sh install
+```
+
+The installer downloads the GitHub tag archive (e.g., `https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.9.5.tar.gz`).
 
 Optional: override the archive URL used with `GIT_HEX_MCPBASH_ARCHIVE_URL` if you mirror artifacts or publish your own release assets.
 

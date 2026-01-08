@@ -52,29 +52,35 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "originalCommit", "newCommits", "backupRef", "rebasePaused", "stashNotRestored", "summary"],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "originalCommit": { "type": "string" },
-      "newCommits": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": ["hash", "message", "files"],
-          "properties": {
-            "hash": { "type": "string" },
-            "message": { "type": "string" },
-            "files": {
-              "type": "array",
-              "items": { "type": "string" }
+      "result": {
+        "type": "object",
+        "required": ["originalCommit", "newCommits", "backupRef", "rebasePaused", "stashNotRestored", "summary"],
+        "properties": {
+          "originalCommit": { "type": "string" },
+          "newCommits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["hash", "message", "files"],
+              "properties": {
+                "hash": { "type": "string" },
+                "message": { "type": "string" },
+                "files": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
             }
-          }
+          },
+          "backupRef": { "type": "string" },
+          "rebasePaused": { "type": "boolean" },
+          "stashNotRestored": { "type": "boolean" },
+          "summary": { "type": "string" }
         }
-      },
-      "backupRef": { "type": "string" },
-      "rebasePaused": { "type": "boolean" },
-      "stashNotRestored": { "type": "boolean" },
-      "summary": { "type": "string" }
+      }
     }
   },
   "annotations": {

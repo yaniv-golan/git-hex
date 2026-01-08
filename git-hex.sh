@@ -3,13 +3,33 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Source framework version from lockfile (single source of truth)
+# shellcheck source=mcp-bash.lock
+source "${SCRIPT_DIR}/mcp-bash.lock"
+
+# ==============================================================================
+# Debug Mode
+# ==============================================================================
+# Enable debug mode via:
+#   1. GIT_HEX_DEBUG=1 environment variable
+#   2. server.d/.debug file (mcp-bash 0.9.5+ native detection)
+#
+# Quick enable:  touch server.d/.debug
+# Quick disable: rm server.d/.debug
+
+if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
+	export MCPBASH_LOG_LEVEL="${MCPBASH_LOG_LEVEL:-debug}"
+fi
+
+# Cache version at startup (for debug banner)
+GIT_HEX_VERSION=$(cat "${SCRIPT_DIR}/VERSION" 2>/dev/null || echo "unknown")
+
 # Framework version pinning for reproducible installs
-# Update this when upgrading to a new framework version
-FRAMEWORK_VERSION="${MCPBASH_VERSION:-v0.9.1}"
-FRAMEWORK_VERSION_DEFAULT="v0.9.1"
-# Pinned commit for v0.9.1 installs (annotated tags have distinct object SHAs).
-FRAMEWORK_GIT_SHA_DEFAULT="dbdd6d79493bb88685e2d4954bff7f544bdb2b54"
-REQUIRED_MCPBASH_MIN_VERSION="0.9.0"
+FRAMEWORK_VERSION="${MCPBASH_VERSION_OVERRIDE:-v${MCPBASH_VERSION}}"
+FRAMEWORK_VERSION_DEFAULT="v${MCPBASH_VERSION}"
+FRAMEWORK_GIT_SHA_DEFAULT="${MCPBASH_COMMIT}"
+FRAMEWORK_SHA256_DEFAULT="${MCPBASH_SHA256:-}"
+REQUIRED_MCPBASH_MIN_VERSION="${MCPBASH_VERSION}"
 FRAMEWORK_DOCTOR_FIX_MIN_VERSION="0.8.1"
 
 # Wrapper mode flags (parsed for `doctor` only).
@@ -502,8 +522,10 @@ if [ "${framework_exists}" != "true" ] || [ "${framework_too_old}" = "true" ]; t
 	echo "Installing mcp-bash framework ${FRAMEWORK_VERSION} into ${FRAMEWORK_DIR}..." >&2
 	ensure_safe_target_dir "${FRAMEWORK_DIR}"
 	mkdir -p "${FRAMEWORK_DIR%/*}"
-	if [ -n "${GIT_HEX_MCPBASH_SHA256:-}" ]; then
-		install_from_verified_archive "${FRAMEWORK_VERSION}" "${FRAMEWORK_DIR}" "${GIT_HEX_MCPBASH_SHA256}" "${GIT_HEX_MCPBASH_ARCHIVE_URL:-}" || {
+	# Use explicit SHA256 override, or fall back to lockfile default
+	sha256_to_use="${GIT_HEX_MCPBASH_SHA256:-${FRAMEWORK_SHA256_DEFAULT}}"
+	if [ -n "${sha256_to_use}" ]; then
+		install_from_verified_archive "${FRAMEWORK_VERSION}" "${FRAMEWORK_DIR}" "${sha256_to_use}" "${GIT_HEX_MCPBASH_ARCHIVE_URL:-}" || {
 			echo "Verified archive install failed; aborting." >&2
 			exit 1
 		}
@@ -578,6 +600,13 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	else
 		export MCPBASH_TOOL_ALLOWLIST="${GIT_HEX_TOOL_ALLOWLIST_ALL}"
 	fi
+fi
+
+# Print debug banner if debug mode enabled
+if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
+	echo "[git-hex:${GIT_HEX_VERSION}] Debug mode enabled" >&2
+	echo "[git-hex:${GIT_HEX_VERSION}] Versions: git-hex=${GIT_HEX_VERSION} mcp-bash=v${MCPBASH_VERSION}" >&2
+	echo "[git-hex:${GIT_HEX_VERSION}] Process: pid=$$ started=$(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)" >&2
 fi
 
 exec "${FRAMEWORK_DIR}/bin/mcp-bash" "$@"

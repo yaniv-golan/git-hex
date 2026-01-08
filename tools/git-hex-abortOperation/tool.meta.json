@@ -17,12 +17,19 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "operationType", "summary"],
+    "required": ["success", "result"],
     "properties": {
       "success": { "type": "boolean" },
-      "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
-      "error": { "type": "string" },
-      "summary": { "type": "string" }
+      "result": {
+        "type": "object",
+        "required": ["operationType", "summary"],
+        "properties": {
+          "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
+          "operationSucceeded": { "type": "boolean" },
+          "error": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      }
     }
   },
   "annotations": {

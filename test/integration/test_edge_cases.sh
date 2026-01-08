@@ -92,7 +92,6 @@ assert_json_field "${dash_status}" '.inConflict' "true" "repo should be in confl
 dash_file_type="$(printf '%s' "${dash_status}" | jq -r '.conflictingFiles[] | select(.path=="-dash.txt") | .conflictType')"
 assert_eq "deleted_by_us" "${dash_file_type}" "should detect delete/modify conflict on -dash.txt"
 resolve_dash="$(run_tool git-hex-resolveConflict "${REPO_DASH}" '{"file":"-dash.txt","resolution":"keep"}')"
-assert_json_field "${resolve_dash}" '.success' "true" "resolveConflict should succeed for -dash.txt"
 remaining_dash="$(printf '%s' "${resolve_dash}" | jq -r '.remainingConflicts')"
 assert_eq "0" "${remaining_dash}" "should have no remaining conflicts after resolving -dash.txt"
 test_pass "leading-dash filename handled"

@@ -24,7 +24,8 @@ for msg in "${messages[@]}"; do # bash32-safe: messages hardcoded non-empty abov
 	encoded_msg="$(printf '%s' "${msg}" | jq -Rs '.')"
 	plan="[ {\"action\": \"reword\", \"commit\": \"${target_commit}\", \"message\": ${encoded_msg} } ]"
 	result="$(run_tool git-hex-rebaseWithPlan "${REPO_SEC_MSG}" "{\"onto\": \"HEAD~1\", \"plan\": ${plan}, \"requireComplete\": true}")"
-	assert_json_field "${result}" '.success' "true" "reword should succeed with special chars"
+	# run_tool unwraps {success: true, result: ...} envelope, so check actual result fields
+	assert_json_field "${result}" '.commitsRebased' "1" "reword should succeed with special chars"
 	latest_msg="$(cd "${REPO_SEC_MSG}" && git log -1 --format='%s')"
 	assert_eq "${msg}" "${latest_msg}" "message should be preserved literally"
 done

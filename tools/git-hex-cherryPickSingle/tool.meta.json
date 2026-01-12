@@ -1,6 +1,6 @@
 {
   "name": "git-hex-cherryPickSingle",
-  "description": "Cherry-pick a single commit with configurable merge strategy. Requires a clean working tree unless autoStash=true. Aborts cleanly on conflict.",
+  "description": "Cherry-pick a single commit with configurable merge strategy. Use to copy a specific commit to another branch. Do NOT use for commit ranges - use rebaseWithPlan instead. Requires clean working tree unless autoStash=true.",
   "icons": [
     {
       "src": "../../assets/icons/cherry-pick-single.svg"

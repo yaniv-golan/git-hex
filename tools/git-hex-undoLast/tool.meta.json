@@ -1,6 +1,6 @@
 {
   "name": "git-hex-undoLast",
-  "description": "Undo the last git-hex operation by resetting to the backup ref created before the operation. REQUIRES: clean working tree (no uncommitted changes).",
+  "description": "Undo the last git-hex operation by resetting to the backup ref. Use immediately after a git-hex operation goes wrong. Do NOT use if new commits were added after the backup - those would be lost. REQUIRES: clean working tree.",
   "icons": [
     {
       "src": "../../assets/icons/undo-last.svg"

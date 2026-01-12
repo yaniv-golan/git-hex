@@ -5,6 +5,9 @@ set -euo pipefail
 
 git_hex_require_repo() {
 	local repo_path="$1"
+	if command -v mcp_log_debug >/dev/null 2>&1; then
+		mcp_log_debug "git-hex" "Validating git repository at ${repo_path}"
+	fi
 	if ! git -C "${repo_path}" rev-parse --git-dir >/dev/null 2>&1; then
 		mcp_fail_invalid_args "Not a git repository at ${repo_path}"
 	fi
@@ -26,6 +29,10 @@ git_hex_get_git_dir() {
 
 git_hex_get_in_progress_operation_from_git_dir() {
 	local git_dir="$1"
+
+	if command -v mcp_log_debug >/dev/null 2>&1; then
+		mcp_log_debug "git-hex" "Checking for in-progress operations in ${git_dir}"
+	fi
 
 	if [ -d "${git_dir}/rebase-merge" ] || [ -d "${git_dir}/rebase-apply" ]; then
 		printf 'rebase\n'
@@ -169,6 +176,10 @@ _git_hex_repo_relative_path_error_reason() {
 
 git_hex_require_safe_repo_relative_path() {
 	local path="$1"
+
+	if command -v mcp_log_debug >/dev/null 2>&1; then
+		mcp_log_debug "git-hex" "Validating repo-relative path: ${path}"
+	fi
 
 	reason="$(_git_hex_repo_relative_path_error_reason "${path}")"
 	case "${reason}" in

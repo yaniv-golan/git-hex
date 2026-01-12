@@ -40,9 +40,16 @@ git_hex_auto_stash() {
 	local repo_path="$1"
 	local mode="${2:-normal}"
 
+	if command -v mcp_log_debug >/dev/null 2>&1; then
+		mcp_log_debug "git-hex" "Checking if auto-stash needed (mode=${mode})"
+	fi
+
 	local should_stash
 	should_stash="$(git_hex_should_stash "${repo_path}" "${mode}")"
 	if [ "${should_stash}" = "true" ]; then
+		if command -v mcp_log_debug >/dev/null 2>&1; then
+			mcp_log_debug "git-hex" "Creating auto-stash for uncommitted changes"
+		fi
 		local message
 		message="git-hex auto-stash $(_git_hex_stash_unique_token)"
 		if [ "${mode}" = "keep-index" ]; then
@@ -92,6 +99,10 @@ git_hex_restore_stash() {
 	local repo_path="$1"
 	local stash_created="${2:-false}"
 	local stash_not_restored="false"
+
+	if command -v mcp_log_debug >/dev/null 2>&1; then
+		mcp_log_debug "git-hex" "Attempting to restore stash: ${stash_created}"
+	fi
 
 	if [[ "${stash_created}" == stash:* ]]; then
 		local payload="${stash_created#stash:}"

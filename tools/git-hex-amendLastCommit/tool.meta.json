@@ -1,6 +1,6 @@
 {
   "name": "git-hex-amendLastCommit",
-  "description": "Amend the last commit with staged changes and/or a new message",
+  "description": "Amend the last commit with staged changes and/or a new message. Use for quick fixes to HEAD only. Do NOT use if the commit was already pushed to a shared branch - use createFixup + rebase instead.",
   "icons": [
     {
       "src": "../../assets/icons/amend-last-commit.svg"

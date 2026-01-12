@@ -36,3 +36,34 @@ You are helping resolve git conflicts during a {{operation}} operation.
 - `git-hex-resolveConflict`: Resolve a single file conflict
 - `git-hex-continueOperation`: Continue after all conflicts resolved
 - `git-hex-abortOperation`: Abort and restore previous state
+
+## LLM Decision Guide
+
+**Conflict types and resolutions**:
+| Conflict Type | Meaning | Typical Resolution |
+|--------------|---------|-------------------|
+| `both_modified` | Both branches changed same lines | Edit file to merge changes, then `resolveConflict` |
+| `deleted_by_us` | We deleted, they modified | `resolution: "keep"` to restore, or `"delete"` to confirm deletion |
+| `deleted_by_them` | They deleted, we modified | `resolution: "keep"` to keep our version, or `"delete"` to accept deletion |
+| `added_by_both` | Both branches added same file | Edit to merge content, then `resolveConflict` |
+
+**Step-by-step resolution**:
+1. Call `git-hex-getConflictStatus` with `includeContent: true` to see file contents
+2. For each conflict:
+   - Show user the `base`, `ours`, and `theirs` versions
+   - Help them decide what the merged result should be
+   - If content conflict: user edits file to remove markers, then call `resolveConflict`
+   - If delete conflict: call `resolveConflict` with `resolution: "keep"` or `"delete"`
+3. After all files resolved, call `continueOperation`
+4. If new conflicts appear (multi-commit rebase), repeat from step 1
+
+**When to suggest abort**:
+- User is overwhelmed by number of conflicts
+- Conflicts are in generated or vendored files
+- User wants to try a different rebase strategy
+- The rebase is changing too much history
+
+**Never do**:
+- Call `continueOperation` while conflicts remain (will fail)
+- Assume what resolution user wants for content conflicts
+- Silently choose `delete` for delete conflicts without asking

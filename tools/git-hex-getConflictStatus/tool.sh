@@ -19,6 +19,7 @@ max_content="$(mcp_args_int '.maxContentSize' --default 10000 --min 0)"
 
 # Validate git repository
 git_hex_require_repo "${repo_path}"
+mcp_log_info "git-hex" "Checking conflict status"
 
 conflict_type=""
 current_step=0

@@ -1,6 +1,6 @@
 {
   "name": "git-hex-createFixup",
-  "description": "Create a fixup commit for a specified commit. REQUIRES: staged changes (run 'git add' first). The fixup will be auto-squashed during rebase.",
+  "description": "Create a fixup commit for a specified commit. Use with rebaseWithPlan autosquash=true to fold fixes into older commits. REQUIRES: staged changes (run 'git add' first). Do NOT use for unrelated changes - create a regular commit instead.",
   "icons": [
     {
       "src": "../../assets/icons/create-fixup.svg"

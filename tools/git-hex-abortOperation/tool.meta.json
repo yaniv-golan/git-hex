@@ -1,6 +1,6 @@
 {
   "name": "git-hex-abortOperation",
-  "description": "Abort a paused rebase/merge/cherry-pick and restore original state",
+  "description": "Abort a paused rebase/merge/cherry-pick and restore original state. When to use: when you cannot or do not want to resolve conflicts, or when you want to try a different approach. Do NOT use if you want to preserve partial progress - this discards ALL changes made during the operation. Use undoLast instead if the operation already completed.",
   "icons": [
     {
       "src": "../../assets/icons/abort-operation.svg"

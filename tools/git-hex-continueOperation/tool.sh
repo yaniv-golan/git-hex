@@ -21,6 +21,7 @@ repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 
 # Validate repo
 git_hex_require_repo "${repo_path}"
+mcp_log_info "git-hex" "Attempting to continue in-progress operation"
 
 operation=""
 git_dir="$(git_hex_get_git_dir "${repo_path}")"

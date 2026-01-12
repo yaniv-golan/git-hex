@@ -69,10 +69,10 @@ if  ! printf '%s' "${tmpl_line}" | jq -e '.result.resourceTemplates[].name | sel
 	test_fail "expected resourceTemplates to include git-hex-rebase-todo"
 fi
 
-# Validate resources/list returns a well-formed response (git-hex currently has none).
+# Validate resources/list returns a well-formed response (git-hex has domain-model resource).
 rlist_line="$( grep '"id":"rlist"' "${resp}" | head -n1)"
 rlist_total="$( printf '%s' "${rlist_line}" | jq -r '.result._meta["mcpbash/total"] // 0')"
-assert_eq  "0" "${rlist_total}" "expected 0 resources"
+assert_eq  "1" "${rlist_total}" "expected 1 resource (domain-model)"
 if  ! printf '%s' "${rlist_line}" | jq -e '.result.resources | type == "array"' >/dev/null; then
 	test_fail "expected resources to be an array"
 fi

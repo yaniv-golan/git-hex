@@ -1,6 +1,6 @@
 {
   "name": "git-hex-splitCommit",
-  "description": "Split a commit into multiple commits by file. Each file from the original commit is assigned to exactly one new commit.",
+  "description": "Split a commit into multiple commits by FILE. Each file goes to exactly one new commit. Use when a commit combines unrelated changes. Do NOT use for line-level splitting within a file - use git add -p manually instead.",
   "icons": [
     {
       "src": "../../assets/icons/split-commit.svg"

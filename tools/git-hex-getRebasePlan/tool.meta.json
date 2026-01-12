@@ -1,6 +1,6 @@
 {
   "name": "git-hex-getRebasePlan",
-  "description": "Get structured rebase plan for last N commits, showing commit details for interactive rebase planning",
+  "description": "Get structured rebase plan for last N commits. Use this BEFORE rebaseWithPlan to preview commits that will be rebased. Returns commit hashes, messages, authors, and dates. Do NOT use if you just want commit history - use git log instead.",
   "icons": [
     {
       "src": "../../assets/icons/get-rebase-plan.svg"

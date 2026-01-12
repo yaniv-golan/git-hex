@@ -1,5 +1,21 @@
 # Installation
 
+## MCPB Bundle (Single-File Distribution)
+
+For MCPB-compatible clients (Claude Desktop and others supporting the MCPB format):
+
+1. Download the latest `.mcpb` bundle from [GitHub Releases](https://github.com/yaniv-golan/git-hex/releases)
+2. Double-click the `.mcpb` file or drag it to your MCPB-compatible client
+3. The server will be automatically installed and configured
+
+To build the bundle yourself:
+```bash
+git clone https://github.com/yaniv-golan/git-hex.git
+cd git-hex
+make bundle
+# Creates git-hex-<version>.mcpb
+```
+
 ## Claude Code users
 
 Install directly from GitHub—no clone required:

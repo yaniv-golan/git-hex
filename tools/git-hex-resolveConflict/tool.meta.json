@@ -1,6 +1,6 @@
 {
   "name": "git-hex-resolveConflict",
-  "description": "Mark a conflicting file as resolved. Works for modified files and delete conflicts.",
+  "description": "Mark a conflicting file as resolved after manually fixing it. When to use: after editing a file to remove conflict markers, then call continueOperation. For delete conflicts, specify resolution='keep' or 'delete'. Do NOT use if conflict markers are still present in the file - edit the file first to resolve all <<<<<<< / ======= / >>>>>>> markers.",
   "icons": [
     {
       "src": "../../assets/icons/resolve-conflict.svg"

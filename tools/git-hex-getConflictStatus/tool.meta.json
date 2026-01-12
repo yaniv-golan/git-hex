@@ -1,6 +1,6 @@
 {
   "name": "git-hex-getConflictStatus",
-  "description": "Get detailed information about merge/rebase/cherry-pick conflicts in the repository",
+  "description": "Get detailed conflict information during rebase/merge/cherry-pick. When to use: after an operation pauses with conflicts to see which files need resolution, or to check if any operation is in progress before starting a new one. Set includeContent=true to see base/ours/theirs versions. Do NOT use to check for uncommitted changes - this only detects mid-operation conflict states.",
   "icons": [
     {
       "src": "../../assets/icons/get-conflict-status.svg"

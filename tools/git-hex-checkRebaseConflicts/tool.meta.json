@@ -1,6 +1,6 @@
 {
   "name": "git-hex-checkRebaseConflicts",
-  "description": "Check if a rebase would conflict without modifying the repository",
+  "description": "Check if a rebase would conflict without modifying the repository. Use BEFORE rebaseWithPlan when unsure about conflicts. Requires Git 2.38+. Do NOT use for simple rebases onto a recently-merged base - just run the rebase.",
   "icons": [
     {
       "src": "../../assets/icons/check-rebase-conflicts.svg"

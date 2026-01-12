@@ -23,6 +23,7 @@ git_hex_require_safe_repo_relative_path "${file}"
 
 # Validate repo
 git_hex_require_repo "${repo_path}"
+mcp_log_info "git-hex" "Resolving conflict for ${file} (resolution=${resolution})"
 
 # Directory guard
 if [ -d "${repo_path}/${file}" ]; then

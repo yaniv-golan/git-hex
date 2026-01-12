@@ -1,6 +1,6 @@
 {
   "name": "git-hex-rebaseWithPlan",
-  "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword)",
+  "description": "Perform an interactive rebase with a structured plan (reorder, squash, drop, reword). Use to clean up feature branch history before merge. Use checkRebaseConflicts first if conflicts are likely. Do NOT use on shared/pushed branches without coordination.",
   "icons": [
     {
       "src": "../../assets/icons/rebase-with-plan.svg"

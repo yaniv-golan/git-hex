@@ -18,6 +18,7 @@ source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 repo_path="$(mcp_require_path '.repoPath' --default-to-single-root)"
 
 git_hex_require_repo "${repo_path}"
+mcp_log_info "git-hex" "Checking for operation to abort"
 
 operation=""
 git_dir="$(git_hex_get_git_dir "${repo_path}")"
@@ -31,6 +32,7 @@ if  [ -z "${operation}" ]; then
 	exit 0
 fi
 
+mcp_log_info "git-hex" "Aborting ${operation} operation"
 if  [ "${operation}" = "rebase" ]; then
 	git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
 	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"

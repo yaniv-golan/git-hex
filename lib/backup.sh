@@ -39,6 +39,10 @@ git_hex_create_backup() {
 	# Create the backup ref pointing to current HEAD
 	git -C "${repo_path}" update-ref "${backup_ref}" "${head_hash}"
 
+	if command -v mcp_log_info >/dev/null 2>&1; then
+		mcp_log_info "git-hex" "Created backup ${backup_ref} at ${head_hash:0:7} before ${operation}"
+	fi
+
 	# Also update a "last" pointer that includes the operation name
 	# Format: refs/git-hex/last/<timestamp>_<operation>_<unique>
 	# Create the new "last" ref first so there is no window where no "last" ref exists.
@@ -228,6 +232,11 @@ git_hex_cleanup_backups() {
 		"${GIT_HEX_REF_PREFIX}/backup/" 2>/dev/null | tail -n +$((keep_count + 1)))"
 
 	if [ -n "${refs_to_delete}" ]; then
+		local delete_count
+		delete_count="$(printf '%s\n' "${refs_to_delete}" | wc -l | tr -d ' ')"
+		if command -v mcp_log_debug >/dev/null 2>&1; then
+			mcp_log_debug "git-hex" "Cleaning up ${delete_count} old backup refs (keeping ${keep_count})"
+		fi
 		delete_stdin="$(printf '%s\n' "${refs_to_delete}" | awk 'NF {print "delete " $0}')"
 		if [ -n "${delete_stdin}" ]; then
 			git -C "${repo_path}" update-ref --stdin 2>/dev/null <<<"${delete_stdin}" || true

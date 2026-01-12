@@ -1,7 +1,7 @@
 # mcp-bash.lock - Pin mcp-bash-framework version and commit
 # Source this file in bash scripts: source mcp-bash.lock
 # Update: git ls-remote https://github.com/yaniv-golan/mcp-bash-framework.git vX.Y.Z
-MCPBASH_VERSION=0.9.6
-MCPBASH_COMMIT=db9c568d50a7861131b25228ca7f2fd0d6b8cc39
-# SHA256 of v0.9.6 tarball (for verified installs)
-MCPBASH_SHA256=67779bc7ba5cb9df44a0cebc9b373b0f92d3f9925bc364c5e8a6c09f6d2b5738
+MCPBASH_VERSION=0.9.10
+MCPBASH_COMMIT=9f32f26e923434e62904c77465b85e10fed2c5ff
+# SHA256 of v0.9.10 tarball (for verified installs)
+MCPBASH_SHA256=08d1bc1a0763ea5e1b9bc0293c431da0c9b6cf89e6303c41add1ba6bd63bc6a4

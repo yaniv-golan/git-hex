@@ -1,6 +1,6 @@
 {
   "name": "git-hex-continueOperation",
-  "description": "Continue a paused rebase/merge/cherry-pick after resolving conflicts",
+  "description": "Continue a paused rebase/merge/cherry-pick after resolving all conflicts. When to use: after using resolveConflict for EVERY conflicting file. Do NOT use if conflicts remain - use getConflictStatus to check, then resolveConflict for each file first. May pause again if additional commits have conflicts.",
   "icons": [
     {
       "src": "../../assets/icons/continue-operation.svg"

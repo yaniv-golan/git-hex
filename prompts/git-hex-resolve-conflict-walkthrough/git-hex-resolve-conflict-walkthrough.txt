@@ -20,3 +20,45 @@ Workflow (repeat until clean):
 Output format:
 - State what operation is paused (if known) and how many files conflict.
 - Then give exactly one next tool call (name + JSON args).
+
+## LLM Decision Guide
+
+**Understanding conflict status response**:
+| Field | Meaning |
+|-------|---------|
+| `inConflict: true` | Operation paused, conflicts need resolution |
+| `inConflict: false` + operation in progress | All conflicts resolved, ready to continue |
+| `conflictType` | `rebase`, `merge`, `cherry-pick`, or `revert` |
+| `currentStep/totalSteps` | Progress through multi-commit operation |
+| `conflictingFiles[].conflictType` | Per-file conflict type (see below) |
+
+**Per-file conflict types**:
+- `both_modified`: Content conflict - user must edit file
+- `deleted_by_us`: We deleted, they modified - ask keep or delete
+- `deleted_by_them`: They deleted, we modified - ask keep or delete
+- `added_by_both`: Both added same file - user must merge content
+
+**Resolution workflow**:
+```
+getConflictStatus → (for each file) → resolveConflict → continueOperation
+                                                              ↓
+                                                     (if more conflicts)
+                                                              ↓
+                                                      getConflictStatus
+```
+
+**When to use `includeContent: true`**:
+- File is small enough to display (check size first)
+- User needs to see the three-way diff
+- Conflict is in code (not binary)
+
+**When to suggest abort**:
+- Too many conflicts (> 10 files)
+- Binary files in conflict
+- User seems frustrated or confused
+- Conflicts are in auto-generated files
+
+**Never do**:
+- Call `resolveConflict` on a file that still has `<<<<<<<` markers
+- Call `continueOperation` when `remainingConflicts > 0`
+- Choose resolution strategy without user input for content conflicts

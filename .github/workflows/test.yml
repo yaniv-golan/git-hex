@@ -100,6 +100,7 @@ jobs:
       - name: Install mcp-bash CLI
         run: |
           set -euo pipefail
+          unset MCPBASH_HOME
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
           echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 
@@ -253,6 +254,7 @@ jobs:
       - name: Install mcp-bash CLI
         run: |
           set -euo pipefail
+          unset MCPBASH_HOME
           curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
           echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 

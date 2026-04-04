@@ -32,14 +32,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install mcp-bash framework
+      - name: Set up vendored runtime
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
-          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
+          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Validate project
         run: |
-          mcp-bash validate
+          .mcp-bash/bin/mcp-bash validate
 
       - name: Create bundle
         run: |

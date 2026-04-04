@@ -24,13 +24,15 @@ jobs:
             exit 1
           fi
 
-      - name: Install mcp-bash framework
+      - name: Verify vendored runtime
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash/main/install.sh | bash -s -- --yes
+          set -euo pipefail
+          test -x .mcp-bash/bin/mcp-bash
+          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Validate project
         run: |
-          mcp-bash validate
+          .mcp-bash/bin/mcp-bash validate
 
       - name: Create bundle
         run: |
@@ -42,16 +44,29 @@ jobs:
           test -f "dist/git-hex-${VERSION}.mcpb"
           ls -la dist/
 
+      - name: Create release tarball
+        run: |
+          VERSION=$(cat VERSION | tr -d '[:space:]')
+          tar -czf "dist/git-hex-v${VERSION}.tar.gz" \
+            --exclude='.git' \
+            --exclude='dist' \
+            --exclude='test' \
+            --exclude='docs/internal' \
+            --exclude='docs/superpowers' \
+            --exclude='.DS_Store' \
+            .
+
       - name: Generate checksums
         run: |
           cd dist
-          sha256sum *.mcpb > SHA256SUMS
+          sha256sum *.mcpb *.tar.gz > SHA256SUMS
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             dist/*.mcpb
+            dist/*.tar.gz
             dist/SHA256SUMS
           generate_release_notes: true
           draft: false

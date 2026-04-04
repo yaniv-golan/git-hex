@@ -91,26 +91,12 @@ jobs:
             echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
           fi
 
-      - name: Install mcp-bash framework
+      - name: Verify vendored runtime
         run: |
           set -euo pipefail
-          # Source version from lockfile (single source of truth)
-          source mcp-bash.lock
-          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
-          rm -rf "$MCPBASH_HOME"
-          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
-          MCPBASH_REV="${MCPBASH_COMMIT}"
-          git init "$MCPBASH_HOME"
-          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
-          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
-          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
-          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
-          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
-            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
-            exit 1
-          fi
-          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
-          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
+          test -x .mcp-bash/bin/mcp-bash
+          echo "MCPBASH_HOME=${GITHUB_WORKSPACE}/.mcp-bash" >> "$GITHUB_ENV"
+          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |
@@ -129,7 +115,7 @@ jobs:
             exit 0
           fi
           win_gopath="$(cygpath -u "${GOPATH}")"
-          win_mcpbash="${HOME}/.local/share/mcp-bash/bin"
+          win_mcpbash="$(cygpath -u "${GITHUB_WORKSPACE}")/.mcp-bash/bin"
           trimmed="${win_mcpbash}:${win_gopath}/bin:/usr/bin:/mingw64/bin:/c/ProgramData/Chocolatey/bin"
           echo "PATH=${trimmed}" >> "$GITHUB_ENV"
           # Keep MSYS path conversion enabled for native tools (e.g., jq.exe reading files),
@@ -138,7 +124,7 @@ jobs:
 
       - name: Validate project
         run: |
-          "$MCPBASH_HOME/bin/mcp-bash" validate
+          .mcp-bash/bin/mcp-bash validate
 
       - name: Run schema checks
         run: ./test/schema/run.sh
@@ -253,26 +239,12 @@ jobs:
           echo "MCPBASH_LOG_DIR=${RUNNER_TEMP}/mcpbash-logs" >> "$GITHUB_ENV"
           echo "MCPBASH_PROJECT_ROOT=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
 
-      - name: Install mcp-bash framework
+      - name: Verify vendored runtime
         run: |
           set -euo pipefail
-          # Source version from lockfile (single source of truth)
-          source mcp-bash.lock
-          MCPBASH_HOME="$HOME/.local/share/mcp-bash"
-          rm -rf "$MCPBASH_HOME"
-          MCPBASH_REPO="https://github.com/yaniv-golan/mcp-bash-framework.git"
-          MCPBASH_REV="${MCPBASH_COMMIT}"
-          git init "$MCPBASH_HOME"
-          git -C "$MCPBASH_HOME" remote add origin "$MCPBASH_REPO"
-          git -C "$MCPBASH_HOME" fetch --depth 1 origin "$MCPBASH_REV"
-          git -C "$MCPBASH_HOME" checkout --detach FETCH_HEAD
-          actual_sha="$(git -C "$MCPBASH_HOME" rev-parse HEAD)"
-          if [ "$actual_sha" != "$MCPBASH_REV" ]; then
-            echo "ERROR: Unexpected mcp-bash-framework revision: $actual_sha (expected $MCPBASH_REV)" >&2
-            exit 1
-          fi
-          echo "MCPBASH_HOME=$MCPBASH_HOME" >> "$GITHUB_ENV"
-          echo "$MCPBASH_HOME/bin" >> "$GITHUB_PATH"
+          test -x .mcp-bash/bin/mcp-bash
+          echo "MCPBASH_HOME=${GITHUB_WORKSPACE}/.mcp-bash" >> "$GITHUB_ENV"
+          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |
@@ -280,7 +252,7 @@ jobs:
 
       - name: Validate project
         run: |
-          "$MCPBASH_HOME/bin/mcp-bash" validate
+          .mcp-bash/bin/mcp-bash validate
 
       - name: Run full test suite
         run: ./test/run.sh
@@ -302,8 +274,8 @@ jobs:
           retention-days: 7
       - name: Verify registry and tool availability
         run: |
-          "$MCPBASH_HOME/bin/mcp-bash" registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
-          "$MCPBASH_HOME/bin/mcp-bash" run-tool git-hex-getRebasePlan \
+          .mcp-bash/bin/mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          .mcp-bash/bin/mcp-bash run-tool git-hex-getRebasePlan \
             --project-root "$MCPBASH_PROJECT_ROOT" \
             --roots "$MCPBASH_PROJECT_ROOT" \
             --args '{}' \

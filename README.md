@@ -66,8 +66,6 @@ See [`CHANGELOG.md`](CHANGELOG.md) for notable changes. Version metadata also li
 **Cursor / Claude Desktop / Windsurf (MCP config):**
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-cd ~/git-hex
-./git-hex.sh install
 ```
 Then add to your MCP settings:
 ```json
@@ -82,7 +80,7 @@ Then add to your MCP settings:
 
 Windows (Git Bash): see [`docs/clients.md#windows-git-bash`](docs/clients.md#windows-git-bash)
 
-Prerequisites: `git` and `jq`/`gojq`. See [`docs/install.md`](docs/install.md).
+Prerequisites: `git` and `jq`/`gojq`. No install step needed — the runtime is included. See [`docs/install.md`](docs/install.md).
 
 ### Verify it works
 
@@ -253,8 +251,6 @@ Start here: [`docs/install.md`](docs/install.md) (includes verified framework in
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-cd ~/git-hex
-./git-hex.sh install
 ```
 
 ## Clients & plugin

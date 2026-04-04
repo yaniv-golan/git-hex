@@ -27,15 +27,19 @@ Install directly from GitHub—no clone required:
 
 ## MCP config users (Cursor, Claude Desktop, Windsurf)
 
-### Step 1: Clone and set up
+### Prerequisites
+
+- `bash` 3.2+
+- `git`
+- `jq` or `gojq`
+
+### Step 1: Clone
 
 ```bash
 git clone https://github.com/yaniv-golan/git-hex.git ~/git-hex
-cd ~/git-hex
-./git-hex.sh install
 ```
 
-This installs the mcp-bash framework. Use `./git-hex.sh doctor` to check prerequisites without modifying anything.
+No install step is needed — the mcp-bash runtime is vendored in the repository.
 
 ### Step 2: Verify installation
 
@@ -109,69 +113,24 @@ After configuring, verify the server connects:
 
 If the connection fails, see [Troubleshooting](troubleshooting.md).
 
-## What `install` may write (managed default install)
+## Upgrading the vendored runtime
 
-When `MCPBASH_HOME` is **not** set, `git-hex.sh` manages the MCP Bash Framework install at:
-
-- `${XDG_DATA_HOME:-$HOME/.local/share}/mcp-bash`
-
-During `install`, it may:
-
-- Create/replace the framework directory at the managed path above (via a staged/atomic directory swap).
-- Create a convenience launcher at `${HOME}/.local/bin/mcp-bash` (symlink when possible; otherwise a small shim script).
-- Create temporary staging directories alongside the target (e.g., `mcp-bash.stage.*`) during install.
-
-It does **not** modify your git configuration or repositories during install.
-
-### User-managed installs (`MCPBASH_HOME`)
-
-If `MCPBASH_HOME` is set, that install is treated as user-managed:
-
-- `./git-hex.sh doctor` will use it.
-- `./git-hex.sh install` will refuse to modify it (policy refusal), and will instruct you to upgrade it yourself.
-
-## Verified framework install (recommended for CI / supply-chain conscious setups)
-
-The framework version is pinned in `mcp-bash.lock`, which includes:
-- `MCPBASH_VERSION` - semantic version (e.g., `0.9.6`)
-- `MCPBASH_COMMIT` - exact git commit SHA for verification
-- `MCPBASH_SHA256` - tarball checksum for verified installs
-
-By default, `./git-hex.sh install` uses the SHA256 checksum from the lockfile for verified installs:
+The mcp-bash runtime is vendored in `.mcp-bash/` and checked into the repository. To upgrade it:
 
 ```bash
-./git-hex.sh install
+mcp-bash vendor --upgrade
 ```
 
-To override the lockfile values (e.g., testing a new version):
+This fetches the latest compatible mcp-bash release and updates the vendored copy. Commit the result to lock the new version into source control.
 
-```bash
-export GIT_HEX_MCPBASH_SHA256="<sha256-of-tarball>"
-./git-hex.sh install
-```
+## Network behavior
 
-The installer downloads the GitHub tag archive (e.g., `https://github.com/yaniv-golan/mcp-bash-framework/archive/refs/tags/v0.9.6.tar.gz`).
+git-hex does not need network access during tool execution or server startup. The runtime is vendored locally. Network access is only needed when cloning the repository or upgrading the vendored runtime.
 
-Optional: override the archive URL used with `GIT_HEX_MCPBASH_ARCHIVE_URL` if you mirror artifacts or publish your own release assets.
-
-## Network behavior (scoped)
-
-- During tool execution on a repository, git-hex does not need network access.
-- Installation/upgrade of the MCP Bash Framework may use the network (download tarball or clone a pinned commit) unless you preinstall/manage it yourself.
-
-## Uninstall / cleanup
-
-### Remove git-hex
+## Uninstall
 
 ```bash
 rm -rf ~/git-hex
 ```
 
-### Remove the managed framework install (only if you used the managed default)
-
-```bash
-rm -rf "${XDG_DATA_HOME:-$HOME/.local/share}/mcp-bash"
-rm -f "${HOME}/.local/bin/mcp-bash"
-```
-
-If you set `MCPBASH_HOME`, remove that install according to how you manage it.
+Then remove the `git-hex` entry from your MCP client configuration file.

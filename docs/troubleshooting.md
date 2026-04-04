@@ -68,30 +68,23 @@ serverInfo.icons[0] - expected object, received string
    - Documents/Desktop/Downloads require special permissions
    - Grant Cursor "Full Disk Access" in System Settings, or move git-hex elsewhere
 
-### Framework not found
+### Vendored runtime missing or corrupted
 
 **Symptom:**
 ```
-ERROR: MCP Bash Framework not found at ...
+ERROR: Vendored mcp-bash runtime not found at .mcp-bash
 ```
 
 **Fix:**
 ```bash
-./git-hex.sh install
-```
-Then restart your MCP client.
+# Restore from git
+git checkout -- .mcp-bash/
 
-### Framework version too old
-
-**Symptom:**
-```
-Error: mcp-bash X.Y.Z found, but git-hex requires vA.B.C+
+# Or verify integrity
+make vendor-verify
 ```
 
-**Fix:**
-```bash
-./git-hex.sh install
-```
+If the vendored directory was accidentally deleted or modified, `git checkout` restores it from the last commit.
 
 ---
 

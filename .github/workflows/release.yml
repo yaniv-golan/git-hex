@@ -28,11 +28,15 @@ jobs:
         run: |
           set -euo pipefail
           test -x .mcp-bash/bin/mcp-bash
-          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
+
+      - name: Install mcp-bash CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Validate project
         run: |
-          .mcp-bash/bin/mcp-bash validate
+          mcp-bash validate
 
       - name: Create bundle
         run: |

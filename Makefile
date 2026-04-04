@@ -13,10 +13,10 @@ help:
 	@echo "  make vendor-verify  - Verify vendored runtime integrity"
 
 validate:
-	.mcp-bash/bin/mcp-bash validate
+	mcp-bash validate
 
 bundle:
-	.mcp-bash/bin/mcp-bash bundle --verbose
+	mcp-bash bundle --verbose
 
 clean:
 	rm -f *.mcpb

@@ -96,7 +96,12 @@ jobs:
           set -euo pipefail
           test -x .mcp-bash/bin/mcp-bash
           echo "MCPBASH_HOME=${GITHUB_WORKSPACE}/.mcp-bash" >> "$GITHUB_ENV"
-          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
+
+      - name: Install mcp-bash CLI
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |
@@ -124,7 +129,7 @@ jobs:
 
       - name: Validate project
         run: |
-          .mcp-bash/bin/mcp-bash validate
+          mcp-bash validate
 
       - name: Run schema checks
         run: ./test/schema/run.sh
@@ -244,7 +249,12 @@ jobs:
           set -euo pipefail
           test -x .mcp-bash/bin/mcp-bash
           echo "MCPBASH_HOME=${GITHUB_WORKSPACE}/.mcp-bash" >> "$GITHUB_ENV"
-          echo "${GITHUB_WORKSPACE}/.mcp-bash/bin" >> "$GITHUB_PATH"
+
+      - name: Install mcp-bash CLI
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+          echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Install test dependencies
         run: |
@@ -252,7 +262,7 @@ jobs:
 
       - name: Validate project
         run: |
-          .mcp-bash/bin/mcp-bash validate
+          mcp-bash validate
 
       - name: Run full test suite
         run: ./test/run.sh
@@ -274,8 +284,8 @@ jobs:
           retention-days: 7
       - name: Verify registry and tool availability
         run: |
-          .mcp-bash/bin/mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
-          .mcp-bash/bin/mcp-bash run-tool git-hex-getRebasePlan \
+          mcp-bash registry refresh --project-root "$MCPBASH_PROJECT_ROOT"
+          mcp-bash run-tool git-hex-getRebasePlan \
             --project-root "$MCPBASH_PROJECT_ROOT" \
             --roots "$MCPBASH_PROJECT_ROOT" \
             --args '{}' \

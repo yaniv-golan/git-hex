@@ -7,194 +7,61 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../common/assert.sh"
 
-run_in_home() {
-	local home_dir="$1"
-	shift
-
-	(
-		cd "${PROJECT_ROOT}"
-		HOME="${home_dir}" \
-			XDG_DATA_HOME="${home_dir}/.local/share" \
-			MCPBASH_HOME='' \
-			bash ./git-hex.sh "$@"
-	)
-}
-
 CAPTURE_STATUS=0
 CAPTURE_OUTPUT=""
 
-capture_run_in_home() {
-	local home_dir="$1"
-	shift
-
+capture() {
 	local output rc
 	set +e
-	output="$(run_in_home "${home_dir}" "$@" 2>&1)"
+	output="$("$@" 2>&1)"
 	rc=$?
 	set -e
 	CAPTURE_STATUS="${rc}"
 	CAPTURE_OUTPUT="${output}"
 }
 
-make_stub_framework() {
-	local home_dir="$1"
-	local version="$2"
-
-	local fw_dir="${home_dir}/.local/share/mcp-bash"
-	mkdir -p "${fw_dir}/bin"
-
-	cat >"${fw_dir}/bin/mcp-bash" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-case "\${1:-}" in
---version)
-  echo "mcp-bash ${version}"
-  ;;
-doctor)
-  echo "stub doctor ok"
-  ;;
-*)
-  echo "stub"
-  ;;
-esac
-EOF
-	chmod +x "${fw_dir}/bin/mcp-bash"
-	printf '%s\n' "marker" >"${fw_dir}/MARKER.txt"
-}
-
-make_stub_framework_0100() {
-	local home_dir="$1"
-
-	local fw_dir="${home_dir}/.local/share/mcp-bash"
-	mkdir -p "${fw_dir}/bin"
-
-	cat >"${fw_dir}/bin/mcp-bash" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-case "${1:-}" in
---version)
-  echo "mcp-bash 1.1.0"
-  ;;
-doctor)
-  shift || true
-  if [ "${1:-}" = "--help" ]; then
-    echo "Usage: mcp-bash doctor [--json] [--fix] [--dry-run]"
-    exit 0
-  fi
-  if [ "${1:-}" = "--dry-run" ]; then
-    echo "framework doctor dry-run"
-    exit 0
-  fi
-  echo "framework doctor"
-  exit 0
-  ;;
-*)
-  echo "stub"
-  ;;
-esac
-EOF
-	chmod +x "${fw_dir}/bin/mcp-bash"
-}
-
-test_missing_framework_read_only_doctor() {
+test_vendored_runtime_present() {
 	(
-		local home_dir
-		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
-		trap 'rm -rf "${home_dir}"' EXIT
-
-		capture_run_in_home "${home_dir}" doctor
-		assert_eq "1" "${CAPTURE_STATUS}" "doctor should exit 1 when framework missing"
-		assert_contains "${CAPTURE_OUTPUT}" "install" "doctor should instruct to use install"
-
-		if [ -d "${home_dir}/.local/share/mcp-bash" ]; then
-			test_fail "doctor should not create framework dir in read-only mode"
+		local runtime="${PROJECT_ROOT}/.mcp-bash/bin/mcp-bash"
+		assert_file_exists "${runtime}" "vendored mcp-bash binary should exist"
+		if [ ! -x "${runtime}" ]; then
+			test_fail "vendored mcp-bash binary should be executable"
 		fi
-		test_pass "doctor is read-only when framework missing"
+		assert_file_exists "${PROJECT_ROOT}/.mcp-bash/vendor.json" "vendor.json should exist"
+		test_pass "vendored runtime is present and executable"
 	)
 }
 
-test_missing_framework_dry_run() {
+test_install_prints_guidance() {
 	(
-		local home_dir
-		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
-		trap 'rm -rf "${home_dir}"' EXIT
-
-		capture_run_in_home "${home_dir}" doctor --dry-run
-		assert_eq "1" "${CAPTURE_STATUS}" "doctor --dry-run should exit 1 when framework missing"
-		assert_contains "${CAPTURE_OUTPUT}" "Would install framework" "dry-run should describe install"
-
-		if [ -d "${home_dir}/.local/share/mcp-bash" ]; then
-			test_fail "doctor --dry-run should not create framework dir"
-		fi
-		test_pass "doctor --dry-run reports actions without changes"
+		capture bash "${PROJECT_ROOT}/git-hex.sh" install
+		assert_eq "0" "${CAPTURE_STATUS}" "install should exit 0"
+		assert_contains "${CAPTURE_OUTPUT}" "no longer needed" "install should say no longer needed"
+		assert_contains "${CAPTURE_OUTPUT}" "mcp-bash" "install should mention mcp-bash vendor workflow"
+		test_pass "install prints guidance and exits 0"
 	)
 }
 
-test_too_old_framework_read_only_does_not_delete() {
+test_missing_vendored_runtime_error() {
 	(
-		local home_dir
-		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
-		trap 'rm -rf "${home_dir}"' EXIT
+		local tmp_dir
+		tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.vendor.XXXXXX")"
+		trap 'rm -rf "${tmp_dir}"' EXIT
 
-		make_stub_framework "${home_dir}" "0.6.0"
+		cp "${PROJECT_ROOT}/git-hex.sh" "${tmp_dir}/"
+		cp "${PROJECT_ROOT}/VERSION" "${tmp_dir}/"
 
-		capture_run_in_home "${home_dir}" doctor
-		assert_eq "1" "${CAPTURE_STATUS}" "doctor should exit 1 when framework too old"
-		assert_contains "${CAPTURE_OUTPUT}" "requires v1.1.0+" "doctor should report minimum version requirement"
-
-		assert_file_exists "${home_dir}/.local/share/mcp-bash/MARKER.txt" "read-only doctor should not delete existing framework"
-		test_pass "doctor does not delete too-old framework without --fix"
+		capture bash "${tmp_dir}/git-hex.sh"
+		assert_ne "0" "${CAPTURE_STATUS}" "should exit non-zero when vendored runtime is missing"
+		assert_contains "${CAPTURE_OUTPUT}" "Vendored mcp-bash runtime not found" "should report missing vendored runtime"
+		test_pass "missing vendored runtime produces expected error"
 	)
 }
 
-test_doctor_fix_refuses_mcpbash_home() {
-	(
-		local home_dir
-		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
-		trap 'rm -rf "${home_dir}"' EXIT
-
-		local output rc
-		set +e
-		output="$(
-			cd "${PROJECT_ROOT}"
-			HOME="${home_dir}" \
-				XDG_DATA_HOME="${home_dir}/.local/share" \
-				MCPBASH_HOME="${home_dir}/custom/mcp-bash" \
-				bash ./git-hex.sh doctor --fix 2>&1
-		)"
-		rc=$?
-		set -e
-
-		assert_eq "3" "${rc}" "install should exit 3 on policy refusal when MCPBASH_HOME is set"
-		assert_contains "${output}" "does not modify MCPBASH_HOME-managed installs" "install should explain refusal"
-		test_pass "install refuses MCPBASH_HOME targets"
-	)
-}
-
-test_doctor_delegates_for_0100_plus() {
-	(
-		local home_dir
-		home_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.doctor.home.XXXXXX")"
-		trap 'rm -rf "${home_dir}"' EXIT
-
-		make_stub_framework_0100 "${home_dir}"
-
-		capture_run_in_home "${home_dir}" doctor --dry-run
-		assert_eq "0" "${CAPTURE_STATUS}" "doctor --dry-run should succeed when delegated to framework >=0.10.0"
-		assert_contains "${CAPTURE_OUTPUT}" "framework doctor dry-run" "doctor --dry-run should be handled by framework"
-		if [[ "${CAPTURE_OUTPUT}" == *"Would install framework"* ]]; then
-			test_fail "wrapper dry-run output should not appear when delegating to framework >=0.10.0"
-		fi
-		test_pass "doctor delegates to framework for >=0.10.0"
-	)
-}
-
-echo "=== Testing git-hex.sh doctor wrapper behavior ==="
-test_missing_framework_read_only_doctor
-test_missing_framework_dry_run
-test_too_old_framework_read_only_does_not_delete
-test_doctor_fix_refuses_mcpbash_home
-test_doctor_delegates_for_0100_plus
+echo "=== Testing git-hex.sh vendored runtime behavior ==="
+test_vendored_runtime_present
+test_install_prints_guidance
+test_missing_vendored_runtime_error
 
 echo ""
-echo "All doctor wrapper tests passed!"
+echo "All vendored runtime tests passed!"

@@ -7,21 +7,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Source framework version from lockfile (single source of truth)
-# shellcheck source=mcp-bash.lock
-source "${SCRIPT_DIR}/mcp-bash.lock"
-REQUIRED_MCPBASH_MIN_VERSION="${MCPBASH_VERSION}"
-
 # ==============================================================================
 # Debug Mode
 # ==============================================================================
-# Enable debug mode via:
-#   1. GIT_HEX_DEBUG=1 environment variable
-#   2. server.d/.debug file (mcp-bash 0.9.5+ native detection)
-#
-# Quick enable:  touch server.d/.debug
-# Quick disable: rm server.d/.debug
-
 if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
 	export MCPBASH_LOG_LEVEL="${MCPBASH_LOG_LEVEL:-debug}"
 fi
@@ -99,68 +87,20 @@ if [ "${GIT_HEX_ENV_NO_PROFILE:-}" != "1" ]; then
 	fi
 fi
 
-# Prefer vendored/framework install locations over whatever happens to be in PATH,
-# so the plugin runs on a known-good mcp-bash version.
-MCP_BASH=""
-DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-DEFAULT_FRAMEWORK_DIR="${DATA_HOME}/mcp-bash"
+# ==============================================================================
+# Vendored Runtime
+# ==============================================================================
+FRAMEWORK_DIR="${SCRIPT_DIR}/.mcp-bash"
 
-if [ -x "${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash" ]; then
-	MCP_BASH="${SCRIPT_DIR}/mcp-bash-framework/bin/mcp-bash"
-elif [ -n "${MCPBASH_HOME:-}" ] && [ -x "${MCPBASH_HOME}/bin/mcp-bash" ]; then
-	MCP_BASH="${MCPBASH_HOME}/bin/mcp-bash"
-elif [ -x "${DEFAULT_FRAMEWORK_DIR}/bin/mcp-bash" ]; then
-	MCP_BASH="${DEFAULT_FRAMEWORK_DIR}/bin/mcp-bash"
-elif [ -x "${HOME}/.local/bin/mcp-bash" ]; then
-	MCP_BASH="${HOME}/.local/bin/mcp-bash"
-elif command -v mcp-bash >/dev/null 2>&1; then
-	MCP_BASH="$(command -v mcp-bash)"
-fi
-
-if [ -z "${MCP_BASH}" ]; then
-	printf 'mcp-bash framework not found.\n' >&2
-	printf 'See: https://github.com/yaniv-golan/git-hex/blob/main/docs/install.md\n' >&2
-	exit 1
-fi
-
-version_ge() {
-	# Returns 0 if $1 >= $2 for simple semver "X.Y.Z" (numeric parts only).
-	local a="$1" b="$2"
-	local a1 a2 a3 b1 b2 b3
-	IFS='.' read -r a1 a2 a3 <<<"${a}"
-	IFS='.' read -r b1 b2 b3 <<<"${b}"
-	a1="${a1:-0}"
-	a2="${a2:-0}"
-	a3="${a3:-0}"
-	b1="${b1:-0}"
-	b2="${b2:-0}"
-	b3="${b3:-0}"
-	if [ "${a1}" -gt "${b1}" ]; then
-		return 0
-	elif [ "${a1}" -lt "${b1}" ]; then
-		return 1
-	fi
-	if [ "${a2}" -gt "${b2}" ]; then
-		return 0
-	elif [ "${a2}" -lt "${b2}" ]; then
-		return 1
-	fi
-	[ "${a3}" -ge "${b3}" ]
-}
-
-mcp_bash_version_raw="$("${MCP_BASH}" --version 2>/dev/null || true)"
-mcp_bash_version="$(printf '%s' "${mcp_bash_version_raw}" | tr -d '\r' | grep -Eo '([0-9]+\\.){2}[0-9]+' | head -n1 || true)"
-if [ -n "${mcp_bash_version}" ] && ! version_ge "${mcp_bash_version}" "${REQUIRED_MCPBASH_MIN_VERSION}"; then
-	printf 'Error: mcp-bash %s found at %s, but git-hex requires v%s+.\n' "${mcp_bash_version}" "${MCP_BASH}" "${REQUIRED_MCPBASH_MIN_VERSION}" >&2
-	printf 'Run ./git-hex.sh to install the pinned framework, or set MCPBASH_HOME to a v%s+ install.\n' "${REQUIRED_MCPBASH_MIN_VERSION}" >&2
+if [ ! -x "${FRAMEWORK_DIR}/bin/mcp-bash" ]; then
+	printf 'Vendored mcp-bash runtime not found at %s\n' "${FRAMEWORK_DIR}" >&2
+	printf 'Try: git checkout -- .mcp-bash/\n' >&2
 	exit 1
 fi
 
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
 
-# mcp-bash-framework v0.7.0+: tool execution is deny-by-default unless allowlisted.
-# The allowlist is exact-match (no globs), so we set the full tool set explicitly.
-# Callers can override (e.g., "*" in trusted projects).
+# Tool allowlist
 if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	GIT_HEX_TOOL_ALLOWLIST_READONLY="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus"
 	GIT_HEX_TOOL_ALLOWLIST_ALL="git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
@@ -173,9 +113,10 @@ fi
 
 # Print debug banner if debug mode enabled
 if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
+	VENDOR_VERSION=$(cat "${FRAMEWORK_DIR}/VERSION" 2>/dev/null || echo "unknown")
 	echo "[git-hex:${GIT_HEX_VERSION}] Debug mode enabled (via git-hex-env.sh)" >&2
-	echo "[git-hex:${GIT_HEX_VERSION}] Versions: git-hex=${GIT_HEX_VERSION} mcp-bash=v${MCPBASH_VERSION}" >&2
+	echo "[git-hex:${GIT_HEX_VERSION}] Versions: git-hex=${GIT_HEX_VERSION} mcp-bash=v${VENDOR_VERSION}" >&2
 	echo "[git-hex:${GIT_HEX_VERSION}] Process: pid=$$ started=$(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S%z)" >&2
 fi
 
-exec "${MCP_BASH}" "$@"
+exec "${FRAMEWORK_DIR}/bin/mcp-bash" "$@"

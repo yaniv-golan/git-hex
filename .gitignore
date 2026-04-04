@@ -21,6 +21,10 @@ git-hex.code-workspace
 .claude/*.local.md
 .claude/*.local.json
 
+# Vendor-generated wrapper (we use git-hex.sh instead)
+run-server.sh
+
 # Local dev wrapper (uses sibling mcp-bash checkout)
 git-hex-local.sh
 CLAUDE.md
+docs/superpowers/

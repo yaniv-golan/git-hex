@@ -19,6 +19,7 @@ existing_files=()
 while IFS= read -r -d '' path; do
 	case "${path}" in
 	*.orig) continue ;;
+	.mcp-bash/*) continue ;; # vendored framework; linted upstream
 	esac
 	if [ -f "${path}" ]; then
 		existing_files+=("${path}")

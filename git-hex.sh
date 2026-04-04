@@ -56,9 +56,16 @@ fi
 
 export MCPBASH_PROJECT_ROOT="${SCRIPT_DIR}"
 
-# Handle validate subcommand - delegate to mcp-bash validate
-if [ "${1:-}" = "validate" ]; then
-	exec "${FRAMEWORK_DIR}/bin/mcp-bash" "$@"
+# Handle developer CLI subcommands (validate, doctor) — these require the full
+# mcp-bash CLI (not included in the vendored runtime). Use system-installed mcp-bash.
+if [ "${1:-}" = "validate" ] || [ "${1:-}" = "doctor" ]; then
+	if command -v mcp-bash >/dev/null 2>&1; then
+		exec mcp-bash "$@"
+	else
+		echo "The '${1}' subcommand requires mcp-bash installed on your system." >&2
+		echo "Install via: brew install yaniv-golan/mcp-bash/mcp-bash" >&2
+		exit 1
+	fi
 fi
 
 # ==============================================================================

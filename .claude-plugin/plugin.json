@@ -1,6 +1,6 @@
 {
   "name": "git-hex",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI-assisted, non-interactive git refactoring via MCP (safe rebase, fixups, commit surgery) for agents or chat users invoking the MCP tools.",
   "author": {
     "name": "Yaniv Golan",

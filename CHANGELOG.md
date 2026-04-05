@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-05
+
 ### Changed
 
 - **Friendly error responses for Claude Desktop**: Tool errors now return structured JSON responses instead of MCP protocol errors. This allows Claude to explain errors naturally instead of showing generic "Failed to call tool" banners.
@@ -82,5 +84,6 @@ Initial public release.
 - Docker support
 - Claude Code plugin with Skills for branch cleanup, conflict resolution, and PR workflows
 
-[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v0.1.0

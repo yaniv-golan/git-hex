@@ -1,81 +1,102 @@
 ---
 name: git-hex-conflict-resolution
 description: >
-  This skill should be used when the user is stuck in a git-hex-driven rebase,
-  merge, or cherry-pick due to conflicts and wants the agent to inspect, resolve,
-  and then continue or abort safely. Trigger phrases include: "resolve conflicts",
-  "rebase is stuck", "conflict markers", "continue the rebase", "abort the rebase".
+  Use whenever a git operation is mid-flight and needs help finishing. Triggers:
+  "continue the rebase", "abort the rebase", "conflicts in files", "rebase
+  stopped/stuck/paused", "cherry-pick conflict", "revert has conflicts", "merge
+  conflict", git status showing unmerged paths, or any git-hex tool returning
+  paused/conflict/conflictingFiles status. Helps resolve conflicting files one
+  by one, then continue or abort the operation. Applies to rebase, merge,
+  cherry-pick, and revert — but only when already in progress. NOT for starting
+  new rebases, creating PRs, squashing, fixup commits, undoing completed
+  operations, or git-hex setup.
 ---
 
 # Git-hex Conflict Resolution
 
-## When to use this Skill
-
-This skill should be used when:
-
-- A git-hex tool reports that an operation is paused because of conflicts.
-- The user says a rebase or cherry-pick is "stuck", "paused", or "in conflict".
-- You need to see which files conflict and decide whether to continue or abort.
-
-Trigger phrases include: "rebase conflict", "cherry-pick conflict", "merge conflict",
-"stuck on conflicts", "continue the rebase", "abort the cherry-pick".
+Use this skill when a git-hex operation is paused due to conflicts — or when
+the user reports being stuck in a rebase, merge, cherry-pick, or revert.
 
 ## Workflow
 
-1. **Inspect conflict state**
-   - Call `git-hex-getConflictStatus` to determine:
-     - Whether a rebase/merge/cherry-pick/revert is in progress.
-     - Which files are conflicting and the overall operation type (`rebase`,
-       `merge`, `cherry-pick`, or `revert`).
-   - Use `includeContent: true` only when necessary to inspect base/ours/theirs
-     content for specific text files.
+### 1. Inspect the conflict state
 
-2. **Resolve conflicts per file**
-   - For text files:
-     - Propose or apply edits based on `base`, `ours`, and `theirs`.
-     - Ensure conflict markers are removed before resolving.
-     - Call `git-hex-resolveConflict` with the file path (and `resolution: "delete"`
-       for delete conflicts when appropriate).
-  - For delete conflicts, use the `resolution` parameter to choose whether
-     to keep or remove the file.
+Call `git-hex-getConflictStatus` to determine:
+- Whether an operation is in progress and what type (`rebase`, `merge`,
+  `cherry-pick`, `revert`)
+- Which files are conflicting and the conflict type per file
+- For rebases: `currentStep` / `totalSteps` progress
 
-3. **Continue or abort the operation**
-   - When all conflicts are resolved (or `getConflictStatus` shows no remaining
-     conflicting files but the operation is still paused), call `git-hex-continueOperation`.
-   - If the user decides to give up on the rebase or cherry-pick, call
-     `git-hex-abortOperation` to restore the pre-operation state.
+**When to use `includeContent: true`:**
+- When you need to see the actual base/ours/theirs content to propose a
+  resolution — typically for text files where you'll edit and resolve.
+- Skip it for binary files (they'll be flagged `isBinary: true`) or when
+  you just need to see the list of conflicting files.
+- Use `maxContentSize` (default 10000) to limit large files. Content is
+  truncated per-file and marked with `truncated: true`.
 
-4. **Escalate if needed**
-   - If the final result after continuing is not what the user wanted, suggest
-     using `git-hex-undoLast` from the branch cleanup Skill to revert.
+**Important:** `inConflict: true` can persist even after all files are resolved
+if the operation is still paused. Check `conflictingFiles` length, not just
+`inConflict`.
 
-## Tools to prefer
+### 2. Resolve each conflicting file
 
-- Inspection: `git-hex-getConflictStatus`
-- Resolution: `git-hex-resolveConflict`
-- Control: `git-hex-continueOperation`, `git-hex-abortOperation`
-- Recovery: `git-hex-undoLast` (via the branch cleanup Skill)
+**For text files (`both_modified`, `added_by_both`):**
+1. Read the conflict content (base/ours/theirs) from the `getConflictStatus`
+   response or by reading the file directly.
+2. Edit the file to produce the correct merged content. **Remove all conflict
+   markers** — `resolveConflict` with `resolution: "keep"` will reject the file
+   if any `<<<<<<<`, `=======`, `>>>>>>>`, or `|||||||` markers remain.
+3. Call `git-hex-resolveConflict` with `file` and `resolution: "keep"`.
 
-## Conflict types
+**For delete conflicts (`deleted_by_us`, `deleted_by_them`):**
+- `resolution: "keep"` — restores the file (from theirs if deleted_by_us,
+  from ours if deleted_by_them).
+- `resolution: "delete"` — accepts the deletion.
+- Ask the user which they prefer if the intent isn't clear.
+
+**Path rules:** The `file` parameter must be a POSIX repo-relative path. No
+absolute paths, no `../` traversal, no drive letters.
+
+After each resolution, `resolveConflict` returns `remainingConflicts` — the
+count of files still in conflict.
+
+### 3. Continue or abort
+
+**Continue** — when all conflicts are resolved (`remainingConflicts: 0`) or
+`getConflictStatus` shows no remaining conflicting files:
+- Call `git-hex-continueOperation`.
+- It may return `paused: true` again if the next commit in a rebase also
+  conflicts. Go back to step 1 in that case.
+- Supports: rebase, cherry-pick, merge. Does **not** support revert or bisect —
+  for those, suggest `git revert --continue` / `git bisect reset` directly.
+
+**Abort** — if the user wants to abandon the operation:
+- Call `git-hex-abortOperation`. This restores the pre-operation state.
+- For a rebase initiated by git-hex, `git-hex-undoLast` is also available
+  as recovery after the operation completes (if the result wasn't what the
+  user wanted).
+
+### 4. Verify the result
+
+After `continueOperation` reports `completed: true`, confirm the state:
+- Use `git-hex-getRebasePlan` or `git log` to show the user the final history.
+- If the result isn't right, suggest `git-hex-undoLast` to roll back.
+
+## Conflict types reference
 
 ### Operation-level
-- `"rebase"` - Interactive rebase paused
-- `"merge"` - Merge in progress
-- `"cherry-pick"` - Cherry-pick paused
-- `"revert"` - Revert paused (detected but `continueOperation`/`abortOperation` are not supported; use `git revert --continue` or `--abort` directly)
+| Type | Meaning |
+|------|---------|
+| `rebase` | Interactive rebase paused mid-apply |
+| `merge` | Merge in progress |
+| `cherry-pick` | Cherry-pick paused |
+| `revert` | Revert paused (limited tool support — see above) |
 
 ### File-level
-- `"both_modified"` - Both sides modified the file
-- `"deleted_by_us"` - We deleted, they modified
-- `"deleted_by_them"` - We modified, they deleted
-- `"added_by_both"` - Both sides added different versions
-
-## Delete conflict handling
-
-```json
-// To keep the file (must exist on disk):
-{ "file": "path/to/file", "resolution": "keep" }
-
-// To accept deletion:
-{ "file": "path/to/file", "resolution": "delete" }
-```
+| Type | Meaning | Typical resolution |
+|------|---------|-------------------|
+| `both_modified` | Both sides changed the file | Edit to merge, then keep |
+| `deleted_by_us` | We deleted, they modified | keep (restore) or delete |
+| `deleted_by_them` | We modified, they deleted | keep (restore) or delete |
+| `added_by_both` | Both sides added different versions | Edit to merge, then keep |

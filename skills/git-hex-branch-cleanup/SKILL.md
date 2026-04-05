@@ -1,66 +1,87 @@
 ---
 name: git-hex-branch-cleanup
 description: >
-  This skill should be used when the user wants to clean up a feature branch's
-  history using git-hex (squash/fixup commits, reorder/drop/split commits, or
-  rebase a branch onto main) without using an interactive terminal. Trigger
-  phrases include: "clean up my branch", "polish history", "squash these commits",
-  "fixup commits", "rebase onto main", "rewrite commits".
+  Rewrite git branch history. Invoke for any commit manipulation: squash,
+  reword, reorder, drop, split, fold fixups, amend, or rebase onto main.
+  Handles "clean up my commits", "squash before PR", "fix commit message typo",
+  "make branch reviewable", "fold in fixup commits", "drop a commit", "rebase
+  my branch". Operates on existing commits using git-hex MCP tools — no
+  interactive rebase needed. NOT for: merge conflicts, cherry-picks across
+  branches, conflict checking, git concepts, or hooks setup.
 ---
 
 # Git-hex Branch Cleanup
 
-## When to use this Skill
-
-This skill should be used when:
-
-- The user says they want to "clean up", "rewrite", "polish", or "squash" a git
-  history or feature branch.
-- The user wants to rebase a branch onto another branch (e.g. `main`) and present
-  a clean, reviewable set of commits.
-- The user wants to split, squash, or reword commits using git-hex tools instead
-  of manual interactive rebase.
-
-Trigger phrases include: "clean up my commits", "squash fixups", "polish history",
-"rewrite commits", "rebase onto main", "make this branch reviewable".
+Use this skill when the user wants to reshape a feature branch's commit history
+using git-hex tools instead of manual interactive rebase.
 
 ## Workflow
 
-1. **Plan first**
-   - Call `git-hex-getRebasePlan` to inspect the commit range you would modify.
-   - Optionally call `git-hex-checkRebaseConflicts` to estimate whether the rebase
-     is likely to conflict.
+### 1. Assess the situation
 
-2. **Prepare changes**
-   - For small edits to the last commit, prefer `git-hex-amendLastCommit`.
-   - For fixes to older commits, guide the user to edit and stage changes, then
-     use `git-hex-createFixup` targeting the original commit.
-   - For large or mixed commits, consider `git-hex-splitCommit` to separate files
-     into focused commits.
+- Call `git-hex-getRebasePlan` to see the commit range.
+  - Use `count` to control how far back (default 10, max 200).
+  - Commits come back oldest-first — the natural order for a rebase plan.
+  - If `onto` is omitted it defaults to `@{upstream}` or `HEAD~count`.
+- Optionally call `git-hex-checkRebaseConflicts` to predict conflicts before
+  starting. This requires **git 2.38+** — if the user's git is older, skip it
+  and note the limitation.
 
-3. **Apply the rewrite**
-   - Use `git-hex-rebaseWithPlan` to reorder, drop, squash, or reword commits.
-   - Prefer `autoStash: true` and `autosquash: true` when the working tree is dirty,
-     following git-hex documentation.
-   - Never use git-hex on shared or protected branches; operate on feature branches
-     the user controls.
+### 2. Choose the right tool for the job
 
-4. **Safety and recovery**
-   - If the result is not what the user wanted, call `git-hex-undoLast` to restore
-     the previous state using git-hex backup refs.
-   - If a rebase pauses with conflicts, hand off to the conflict resolution Skill.
+| Goal | Tool | Notes |
+|------|------|-------|
+| Edit the last commit (message or content) | `amendLastCommit` | Use `addAll: true` to stage tracked changes automatically. Needs at least staged changes OR a new `message`. |
+| Fix an older commit | `createFixup` → `rebaseWithPlan` | User must stage changes first. Then `createFixup` targets the commit; follow with `rebaseWithPlan` using `autosquash: true` to fold it in. |
+| Reorder, drop, squash, or reword | `rebaseWithPlan` | Pass a `plan` array. For reordering, set `requireComplete: true`. |
+| Break a commit into focused pieces | `splitCommit` | Requires `splits` array with ≥2 entries. Every file in the original commit must appear in exactly one split. |
+| Cherry-pick a single commit | `cherryPickSingle` | Rejects merge commits. Use `abortOnConflict: false` to pause on conflicts instead of aborting. |
 
-## Tools to prefer
+### 3. Execute safely
 
-- Planning: `git-hex-getRebasePlan`, `git-hex-checkRebaseConflicts`
-- History rewrite: `git-hex-rebaseWithPlan`, `git-hex-createFixup`,
-  `git-hex-amendLastCommit`, `git-hex-splitCommit`, `git-hex-cherryPickSingle`
-- Recovery: `git-hex-undoLast`
+- Prefer `autoStash: true` when the working tree is dirty.
+  - `rebaseWithPlan` uses git's native `--autostash`.
+  - `amendLastCommit` uses `--keep-index` mode (preserves staged changes).
+  - `splitCommit` and `cherryPickSingle` use git-hex's own stash helper.
+- Never rewrite shared or protected branches — only feature branches the user
+  controls.
+- All write operations create backup refs automatically.
 
-## Key constraints
+### 4. Handle stash restore failures
 
-- `reword` action **requires** `message` field (without it, git opens an editor → hang).
-- Messages must be **single-line** (no TAB/newline characters).
-- For reordering commits, set `requireComplete: true` in the plan.
-- Prefer `fixup` over `squash` unless you need to combine commit messages.
-- Tools that perform their own auto-stash (`amendLastCommit`, `splitCommit`, `cherryPickSingle`) expose `stashNotRestored` when stash pop failed; `rebaseWithPlan` uses Git's native `--autostash` and does not emit this flag.
+Tools that manage their own stash (`amendLastCommit`, `splitCommit`,
+`cherryPickSingle`) return `stashNotRestored: true` if the stash pop fails
+after the operation succeeds. When you see this:
+
+1. Tell the user their operation succeeded but their stashed changes couldn't
+   be reapplied cleanly.
+2. Suggest running `git stash list` to find the stash entry, then
+   `git stash pop` manually to resolve any conflicts.
+
+`rebaseWithPlan` uses git's native `--autostash` and does not emit this flag —
+git handles it internally.
+
+### 5. Recover from mistakes
+
+- Call `git-hex-undoLast` to restore the state before the last git-hex
+  operation.
+- It requires a clean working tree. Use `force: true` only if commits were
+  added after the backup or untracked files would be overwritten.
+- If a rebase pauses with conflicts, hand off to the
+  **git-hex-conflict-resolution** skill.
+
+## Gotchas
+
+- **`reword` requires `message`** — without it, git opens an editor and hangs.
+- **Messages must be single-line** — no TAB or newline characters in `message`
+  fields for `reword`, `splitCommit`, or `createFixup`.
+- **`createFixup` needs staged changes** — it doesn't stage anything itself.
+  Remind the user to `git add` first.
+- **`requireComplete: true`** — when reordering, every commit in the range must
+  appear in the plan. Without this, unmentioned commits default to `pick`.
+- **Prefer `fixup` over `squash`** unless the user wants to combine commit
+  messages (squash opens an editor-like message merge; fixup silently discards).
+- **Root commits can't be split** — `splitCommit` rejects them.
+- **Merge commits can't be split or cherry-picked** — both tools reject them.
+- **Detached HEAD** — `getRebasePlan` and `rebaseWithPlan` warn about this in
+  their summary. Flag it to the user if unexpected.

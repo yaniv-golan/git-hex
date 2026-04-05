@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bug fixes for JSON escaping, gojq compatibility, and debug redaction
   - See [mcp-bash CHANGELOG](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/CHANGELOG.md) for details
 
+### Improved
+
+- **Skills rewritten** for better triggering accuracy and tool guidance:
+  - `git-hex-branch-cleanup` — tool selection table, stash restore failure handling, expanded gotchas (reword requires message, single-line messages, staged changes for fixup)
+  - `git-hex-conflict-resolution` — `includeContent` usage guidance, conflict marker removal warnings, `continueOperation` re-pause handling, revert/bisect limitations
+  - `git-hex-pr-workflow` — PR description from commit history, review feedback fixup workflow, stacked PR support, fetch-before-rebase pattern
+  - All descriptions optimized with explicit negative triggers to prevent cross-skill misfiring
+
 ### Added
 
 - **MCP Apps UI resources** for read-only tools:

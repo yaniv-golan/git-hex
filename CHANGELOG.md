@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-10
+
+0.2.0 was never tagged or published, so this is the first release after 0.1.0 and also includes the 0.2.0 changes below.
+
 ### Security
 
 - **The tool allowlist is enforced again**: `server.d/policy.sh` replaced the framework's default tool policy without calling it, so `MCPBASH_TOOL_ALLOWLIST` was never checked and every tool could run regardless of it. The policy now runs the framework's default check first, then git-hex's read-only rules. `policy.sh` also no longer runs `set -euo pipefail` at the top level, which changed the server's own shell options when the file was sourced.
@@ -100,6 +104,7 @@ Initial public release.
 - Docker support
 - Claude Code plugin with Skills for branch cleanup, conflict resolution, and PR workflows
 
-[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.2.0...HEAD
-[0.2.0]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...v0.2.0
+[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...v0.3.0
+[0.2.0]: https://github.com/yaniv-golan/git-hex/blob/v0.3.0/CHANGELOG.md#020---2026-04-05
 [0.1.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v0.1.0

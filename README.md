@@ -251,7 +251,7 @@ git-hex ships completion providers (refs, commits, conflict paths) registered de
 
 ## Versioning & Releases
 
-- Current development version: `0.2.0` (see `VERSION`).
+- Current version: `0.3.0` (see `VERSION`).
 - We plan to publish GitHub Releases with signed tags, release notes, and checksums for verification. Until those are published, pin a specific commit for reproducibility (e.g., `git checkout <commit-sha>`).
 
 ## Lint & Tests

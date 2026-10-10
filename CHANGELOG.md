@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **The tool allowlist is enforced again**: `server.d/policy.sh` replaced the framework's default tool policy without calling it, so `MCPBASH_TOOL_ALLOWLIST` was never checked and every tool could run regardless of it. The policy now runs the framework's default check first, then git-hex's read-only rules. `policy.sh` also no longer runs `set -euo pipefail` at the top level, which changed the server's own shell options when the file was sourced.
+
+  **Check your client config if you upgrade.** Configs that start git-hex through `git-hex.sh`, `git-hex-env.sh` or the Docker image need no change: those set the allowlist. MCPB bundles set `*`. A config that starts `mcp-bash` or `.mcp-bash/bin/mcp-bash` directly must now set the allowlist, or every tool call is refused:
+
+  ```json
+  "MCPBASH_TOOL_ALLOWLIST": "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+  ```
+
+  If you set `MCPBASH_TOOL_ALLOWLIST` yourself to a narrower list, that list now takes effect.
+
+### Changed
+
+- **Vendored mcp-bash runtime upgraded from 1.2.2 to 1.6.0** (from the verified v1.6.0 release tarball). Notable for git-hex users: tools and providers get only framework-owned `MCP_*` variables; a declared resource `mimeType` is reported as declared (git-hex's templates declare `text/plain`); runtime state directories get random names; HTTPS/git providers check addresses more strictly. See the [mcp-bash CHANGELOG](https://github.com/yaniv-golan/mcp-bash-framework/blob/main/CHANGELOG.md) (1.3.0 to 1.6.0) for details.
+
 ## [0.2.0] - 2026-04-05
 
 ### Changed

@@ -205,7 +205,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see [`docs/safety.md`](docs/safety.md)) |
 | `GIT_HEX_MCPBASH_SHA256` | unset | If set, `./git-hex.sh install` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
 | `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
-| `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Framework v0.7.0+: allowlisted tools may execute. The launchers set an explicit list of git-hex tool names by default (and narrow it in read-only mode). Override to `*` only for trusted environments. |
+| `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Only allowlisted tools may run; any other tool call is refused. `git-hex.sh`, `git-hex-env.sh` and the Docker image set the full git-hex tool list (narrowed in read-only mode), and MCPB bundles set `*`. **If you start `mcp-bash` or `.mcp-bash/bin/mcp-bash` directly instead of a launcher, set it yourself** (see below). Use `*` only in trusted environments. |
 
 **Examples:**
 
@@ -222,6 +222,22 @@ GIT_HEX_MCPBASH_SHA256="10524108..." ./git-hex.sh install
     "git-hex": {
       "command": "/path/to/git-hex.sh",
       "env": { "GIT_HEX_READ_ONLY": "1" }
+    }
+  }
+}
+```
+
+If your client config starts the runtime directly rather than through `git-hex.sh`, it needs the allowlist too:
+
+```json
+{
+  "mcpServers": {
+    "git-hex": {
+      "command": "/path/to/git-hex/.mcp-bash/bin/mcp-bash",
+      "env": {
+        "MCPBASH_PROJECT_ROOT": "/path/to/git-hex",
+        "MCPBASH_TOOL_ALLOWLIST": "git-hex-getRebasePlan git-hex-checkRebaseConflicts git-hex-getConflictStatus git-hex-rebaseWithPlan git-hex-splitCommit git-hex-createFixup git-hex-amendLastCommit git-hex-cherryPickSingle git-hex-resolveConflict git-hex-continueOperation git-hex-abortOperation git-hex-undoLast"
+      }
     }
   }
 }

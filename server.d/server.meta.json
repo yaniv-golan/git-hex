@@ -8,5 +8,8 @@
     {
       "src": "../assets/icons/git-hex.svg"
     }
-  ]
+  ],
+  "mcpBash": {
+    "apiVersion": 2
+  }
 }

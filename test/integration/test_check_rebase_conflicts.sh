@@ -136,9 +136,8 @@ create_orphan_branch_scenario "${REPO_ORPHAN}"
 result_orphan="$(run_tool git-hex-checkRebaseConflicts "${REPO_ORPHAN}" '{"onto": "main"}' 60)" || true
 # Tool should succeed (not crash) - root commits may show as "unknown" prediction
 if  [ -n "${result_orphan}" ]; then
-	# Check that we got a valid response (success field exists)
-	success_val="$(printf '%s' "${result_orphan}" | jq -r 'if .success == null then "" else (.success | tostring) end')"
-	if [ "${success_val}" = "true" ]; then
+	# A result object means it succeeded; an error object ({type, message}) is also fine.
+	if printf '%s' "${result_orphan}" | jq -e 'type == "object" and (has("message") | not)' >/dev/null 2>&1; then
 		test_pass "handles root commit in range gracefully"
 	else
 		# Tool may fail gracefully with an error message - that's acceptable

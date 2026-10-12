@@ -121,7 +121,7 @@ The mcp-bash runtime is vendored in `.mcp-bash/` and checked into the repository
 mcp-bash vendor --upgrade
 ```
 
-This fetches the latest compatible mcp-bash release and updates the vendored copy. Commit the result to lock the new version into source control.
+This fetches the latest compatible mcp-bash release and updates the vendored copy. Commit the result to lock the new version into source control. Set the same version and its release checksum as `FRAMEWORK_VERSION` and `FRAMEWORK_SHA256` in the `Dockerfile`; CI installs the mcp-bash CLI from them and fails if they don't match the vendored runtime.
 
 ## Network behavior
 

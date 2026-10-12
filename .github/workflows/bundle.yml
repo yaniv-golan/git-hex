@@ -10,6 +10,7 @@ on:
       - "mcpb.conf"
       - "VERSION"
       - ".github/workflows/bundle.yml"
+      - ".github/scripts/install-mcp-bash.sh"
   pull_request:
     paths:
       - "tools/**"
@@ -18,6 +19,7 @@ on:
       - "mcpb.conf"
       - "VERSION"
       - ".github/workflows/bundle.yml"
+      - ".github/scripts/install-mcp-bash.sh"
   workflow_dispatch:
 
 jobs:
@@ -34,7 +36,7 @@ jobs:
 
       - name: Install mcp-bash CLI
         run: |
-          curl -fsSL https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/main/install.sh | bash -s -- --yes
+          bash .github/scripts/install-mcp-bash.sh
           echo "$HOME/.local/share/mcp-bash/bin" >> "$GITHUB_PATH"
 
       - name: Validate project

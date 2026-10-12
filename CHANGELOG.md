@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Behaviour changes to check before upgrading
+
+- **Tool results no longer have a `{success, result}` envelope**: `structuredContent` is the result object itself (for example `{"headBefore": ..., "headAfter": ..., "summary": ...}`), and each tool's `outputSchema` describes that object. Clients or scripts that read `.result.<field>` or check `.success` must read the fields directly. The MCP Apps views already accept both shapes.
+- **Errors are error results (`isError: true`)**: a refused or failed call used to be a normal result whose structured content was `{"success": false, "error": {...}}`. It is now an error result: the text is the message (with a `Hint:` line when there are suggestions), and `_meta["mcpbash/error"]` holds `type` (the error code in lower case, e.g. `rebase_in_progress`), `message`, `hint` and `data` (`code` and `suggestions`). See the Errors section of [`docs/reference/tools.md`](docs/reference/tools.md#errors).
+- **Read-only and allowlist denials are error results too**: a call refused by `MCPBASH_TOOL_ALLOWLIST` or by read-only mode (`GIT_HEX_READ_ONLY=1`) returns an error result with type `policy_denied` and the denial message.
+- **Tools are stopped when the server stops abnormally** (from mcp-bash 1.9): if the client quits or the connection breaks while a tool runs, the tool gets TERM, then KILL after 1 second. A rebase, cherry-pick or merge stopped this way stays in progress: check with `git-hex-getConflictStatus`, then `git-hex-continueOperation` or `git-hex-abortOperation`, or restore the backup with `git-hex-undoLast`.
+
+### Changed
+
+- **Vendored mcp-bash runtime upgraded from 1.6.0 to 1.9.0** (from the verified v1.9.0 release tarball). Tools use the 2.0-stable helpers (`mcp_result_json`, `mcp_fail --type`), and `server.meta.json` records the mcp-bash API version. Also from 1.7–1.9: resource reads time out after 120 seconds, a request that times out gets an error response, and a failed write to the client stops the server.
+- **Read-only mode uses mcp-bash's restrict-only policy hook**: `server.d/policy.sh` defines `mcp_tools_policy_project`, which runs after the framework's allowlist and path checks and can only narrow them.
+- **The Docker image uses mcp-bash 1.9.0**, installed from the verified release tarball, instead of 0.9.6.
+
+### Fixed
+
+- **`GIT_HEX_DEBUG`, `GIT_HEX_DEBUG_SPLIT` and `GIT_HEX_DEBUG_REBASE` reach the tools**: the tool env allowlist was in `server.d/env.sh`, which the server never loads, so tools never received them. It is now in `server.meta.json`.
+- **`./git-hex.sh run-tool` works**: the launcher sent it to the vendored runtime, which has no CLI commands. It now runs the system `mcp-bash`, with git-hex's tool allowlist.
+- **`docker build` works again**: the build step used `set -o pipefail`, which Debian's `/bin/sh` rejects.
+- **Docs no longer describe `./git-hex.sh install`, `mcp-bash.lock` or `GIT_HEX_MCPBASH_SHA256`**, which went away when the runtime was vendored. CONTRIBUTING shows the current result and error helpers.
+
 ## [0.3.0] - 2026-10-10
 
 0.2.0 was never tagged or published, so this is the first release after 0.1.0 and also includes the 0.2.0 changes below.

@@ -21,7 +21,7 @@ jobs:
       MCPBASH_KEEP_LOGS: "1"
       GIT_HEX_DEBUG: "false"
       GIT_HEX_DEBUG_REBASE: "false"
-      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_MODE: "true"
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
@@ -55,7 +55,7 @@ jobs:
         id: go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
           cache: false
 
       - name: Cache Go (gojq)
@@ -197,7 +197,7 @@ jobs:
       MCPBASH_KEEP_LOGS: "1"
       GIT_HEX_DEBUG: "false"
       GIT_HEX_DEBUG_REBASE: "false"
-      MCPBASH_CI_MODE: "1"
+      MCPBASH_CI_MODE: "true"
       MCPBASH_CI_VERBOSE: "1"
       MCPBASH_TRACE_TOOLS: "true"
       MCPBASH_TRACE_MAX_BYTES: "60000"
@@ -219,7 +219,7 @@ jobs:
         id: go-nightly
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.25'
           cache: false
 
       - name: Cache Go (gojq)

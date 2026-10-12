@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-12
+
 ### Behaviour changes to check before upgrading
 
 - **Tool results no longer have a `{success, result}` envelope**: `structuredContent` is the result object itself (for example `{"headBefore": ..., "headAfter": ..., "summary": ...}`), and each tool's `outputSchema` describes that object. Clients or scripts that read `.result.<field>` or check `.success` must read the fields directly. The MCP Apps views already accept both shapes.
@@ -132,7 +134,8 @@ Initial public release.
 - Docker support
 - Claude Code plugin with Skills for branch cleanup, conflict resolution, and PR workflows
 
-[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/yaniv-golan/git-hex/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...v0.3.0
 [0.2.0]: https://github.com/yaniv-golan/git-hex/blob/v0.3.0/CHANGELOG.md#020---2026-04-05
 [0.1.0]: https://github.com/yaniv-golan/git-hex/releases/tag/v0.1.0

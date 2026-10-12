@@ -80,6 +80,14 @@ test_verify_framework() {
 	fi
 }
 
+# git_at_least MAJOR MINOR: true when the installed git is at least that version.
+git_at_least() {
+	local v major minor
+	v="$(git --version 2>/dev/null | sed -n 's/^git version \([0-9]*\)\.\([0-9]*\).*/\1 \2/p')"
+	read -r major minor <<<"${v:-0 0}"
+	[ "${major}" -gt "$1" ] || { [ "${major}" -eq "$1" ] && [ "${minor}" -ge "$2" ]; }
+}
+
 # Run a tool and extract the structured content from the response
 # Usage: run_tool <tool-name> <roots> <args-json> [timeout]
 # Returns: The structuredContent JSON on stdout, or error JSON if tool failed

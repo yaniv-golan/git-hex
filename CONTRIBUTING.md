@@ -8,7 +8,7 @@ Thank you for your interest in contributing to git-hex! This document provides g
 
 - **bash** 3.2+
 - **jq** or **gojq**
-- **git** 2.20+ (2.33+ recommended; 2.38+ required for `git-hex-checkRebaseConflicts`)
+- **git** 2.20+ (2.33+ recommended; 2.40+ required for `git-hex-checkRebaseConflicts`)
 - **mcp-bash** installed on your system (`brew install yaniv-golan/mcp-bash/mcp-bash`) for `doctor`, `validate`, `run-tool` and the tests. The server itself runs on the runtime vendored in `.mcp-bash/`.
 
 ### Setup

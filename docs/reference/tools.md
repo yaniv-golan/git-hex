@@ -138,9 +138,9 @@ The rebase can also pause for non-conflict reasons (e.g., a git hook rejecting a
 
 ### git-hex-checkRebaseConflicts
 
-Dry-run a rebase using `git merge-tree` (Git 2.38+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
+Dry-run a rebase using `git merge-tree` (Git 2.40+) without touching the worktree. Returns per-commit predictions (`clean`, `conflict`, `unknown` after the first conflict), `limitExceeded`, and a summary.
 
-> **Git version:** Requires Git 2.38+ (uses `merge-tree --write-tree` internally, isolated in a temp object directory to avoid touching repo objects).
+> **Git version:** Requires Git 2.40+ (uses `merge-tree --write-tree --merge-base` internally, isolated in a temp object directory to avoid touching repo objects).
 
 Key inputs: `onto` (required), `maxCommits` (default 100). Outputs are estimates only; run `getConflictStatus` after an actual pause to see real conflicts.
 

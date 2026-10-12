@@ -188,7 +188,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | MCP Bash Framework (`mcp-bash`) | v0.9.6+ |
 | bash | 3.2+ |
 | jq or gojq | Required |
-| git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
+| git | 2.20+ (2.33+ for `ort`, 2.40+ for `git-hex-checkRebaseConflicts`) |
 
 ## Configuration
 

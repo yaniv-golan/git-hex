@@ -15,6 +15,19 @@ test_create_tmpdir
 
 echo "=== checkRebaseConflicts Tests ==="
 
+# Older git can't run the prediction (merge-tree --merge-base is 2.40+): the tool
+# must say so instead of predicting conflicts.
+if ! git_at_least 2 40; then
+	printf ' -> CHK-00 refuses git older than 2.40\n'
+	REPO_OLD_GIT="${TEST_TMPDIR}/check-old-git"
+	create_branch_scenario "${REPO_OLD_GIT}"
+	run_tool_expect_fail_message_contains git-hex-checkRebaseConflicts "${REPO_OLD_GIT}" '{"onto": "main"}' \
+		"requires Git 2.40+" "checkRebaseConflicts should refuse git older than 2.40"
+	test_pass "refuses git older than 2.40"
+	printf 'SKIP: remaining checkRebaseConflicts tests need git 2.40+ (%s)\n' "$(git --version)"
+	exit 0
+fi
+
 # CHK-01: Clean rebase predicted
 printf ' -> CHK-01 predicts clean rebase\n'
 REPO_CLEAN="${TEST_TMPDIR}/check-clean"

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-12
+
 ### Fixed
 
 - **A tool that times out returns the same error shape as every other error** (from mcp-bash 1.9.1): `_meta["mcpbash/error"]` with type `timeout`, and no `structuredContent`. Before, it returned `structuredContent: {"success": false, "error": {...}}`, which doesn't match the tool's `outputSchema` (the known issue in 0.4.0). The timeout hint now follows `Hint:` instead of `Suggestion:`.
@@ -143,7 +145,8 @@ Initial public release.
 - Docker support
 - Claude Code plugin with Skills for branch cleanup, conflict resolution, and PR workflows
 
-[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/yaniv-golan/git-hex/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/yaniv-golan/git-hex/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/yaniv-golan/git-hex/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/yaniv-golan/git-hex/compare/v0.1.0...v0.3.0
 [0.2.0]: https://github.com/yaniv-golan/git-hex/blob/v0.3.0/CHANGELOG.md#020---2026-04-05

@@ -214,6 +214,16 @@ test_error_result_with_suggestions() {
 	test_pass "git_hex_error includes suggestions"
 }
 
+test_error_result_with_dash_suggestion() {
+	run_expecting_error git_hex_error "TEST_CODE" "Test message" "--theirs keeps their side" "plain"
+
+	local first
+	first="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '._meta["mcpbash/error"].data.suggestions[0] // empty' 2>/dev/null)"
+	assert_eq "--theirs keeps their side" "${first}" "a suggestion starting with - should be kept as data"
+
+	test_pass "git_hex_error keeps suggestions that start with a dash"
+}
+
 test_require_repo_error_not_git_repo() {
 	local tmpdir
 	tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/githex.unit.notgit.XXXXXX")"
@@ -280,6 +290,7 @@ echo "=== Running git-helpers.sh unit tests ==="
 echo "--- Error Response Tests ---"
 test_error_result_structure
 test_error_result_with_suggestions
+test_error_result_with_dash_suggestion
 test_require_repo_error_not_git_repo
 test_require_no_in_progress_operation_rebase_error
 test_require_no_in_progress_operation_merge_error

@@ -85,10 +85,11 @@ git_hex_error() {
 		# shellcheck disable=SC2016  # $code is a jq variable, not bash
 		data="$("$json_tool" -nc --arg code "$code" '{code: $code}')"
 	else
-		# Pass suggestions as positional arguments (jq 1.6+, gojq), which keeps
-		# newlines and avoids jq 1.6 dropping a trailing empty string in split().
+		# Pass suggestions as positional arguments (jq 1.6+, gojq), after -- so
+		# one starting with "-" isn't read as an option. This keeps newlines and
+		# avoids jq 1.6 dropping a trailing empty string in split().
 		# shellcheck disable=SC2016  # $code, $ARGS are jq variables, not bash
-		data="$("$json_tool" -nc --arg code "$code" '{code: $code, suggestions: $ARGS.positional}' --args "${suggestions[@]}")"
+		data="$("$json_tool" -nc --arg code "$code" '{code: $code, suggestions: $ARGS.positional}' --args -- "${suggestions[@]}")"
 		hint="$(printf '%s\n' "${suggestions[@]}")"
 		hint="${hint%$'\n'}"
 	fi

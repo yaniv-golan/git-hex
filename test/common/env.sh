@@ -18,8 +18,11 @@ else
 	XDG_FRAMEWORK_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/mcp-bash"
 	if [ -d "${XDG_FRAMEWORK_DIR}" ]; then
 		FRAMEWORK_DIR="${XDG_FRAMEWORK_DIR}"
+	elif command -v mcp-bash >/dev/null 2>&1; then
+		# Any mcp-bash on PATH (e.g. Homebrew); its directory goes first on PATH below.
+		FRAMEWORK_DIR="$(cd "$(dirname "$(command -v mcp-bash)")/.." && pwd)"
 	else
-		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or run ./git-hex.sh install (prefer --verify)." >&2
+		echo "ERROR: Cannot find mcp-bash. Install it (brew install yaniv-golan/mcp-bash/mcp-bash) or set MCPBASH_HOME." >&2
 		exit 1
 	fi
 fi

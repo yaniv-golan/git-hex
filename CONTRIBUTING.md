@@ -9,7 +9,7 @@ Thank you for your interest in contributing to git-hex! This document provides g
 - **bash** 3.2+
 - **jq** or **gojq**
 - **git** 2.20+ (2.33+ recommended; 2.38+ required for `git-hex-checkRebaseConflicts`)
-- **mcp-bash framework** (version pinned in `mcp-bash.lock`)
+- **mcp-bash** installed on your system (`brew install yaniv-golan/mcp-bash/mcp-bash`) for `doctor`, `validate`, `run-tool` and the tests. The server itself runs on the runtime vendored in `.mcp-bash/`.
 
 ### Setup
 
@@ -18,14 +18,11 @@ Thank you for your interest in contributing to git-hex! This document provides g
 git clone https://github.com/yaniv-golan/git-hex.git
 cd git-hex
 
-# Install the mcp-bash framework (version pinned in mcp-bash.lock)
-./git-hex.sh install
-
 # Verify setup
 ./git-hex.sh doctor
 ```
 
-> **Framework Version:** The required mcp-bash framework version is defined in `mcp-bash.lock`. This lockfile is the single source of truth for framework version, commit SHA, and tarball checksum. To upgrade, update `mcp-bash.lock` and run `./git-hex.sh install`.
+> **Framework Version:** the server runs on the mcp-bash runtime vendored in `.mcp-bash/` (version and checksum in `.mcp-bash/vendor.json`). To upgrade it, run `make vendor-upgrade` with the new mcp-bash installed, then `make vendor-verify`, and commit `.mcp-bash/`. Keep `FRAMEWORK_VERSION` and `FRAMEWORK_SHA256` in the `Dockerfile` at the same version.
 
 > Note: mcp-bash-framework v0.7.0+ requires tool allowlisting. The `./git-hex.sh` and `./git-hex-env.sh` launchers set `MCPBASH_TOOL_ALLOWLIST` to the explicit git-hex tool set (and narrow it further in read-only mode) so tools can run safely.
 >
@@ -73,22 +70,15 @@ git-hex/
      },
      "outputSchema": {
        "type": "object",
-       "required": ["success", "result"],
+       "required": ["summary"],
        "properties": {
-         "success": { "type": "boolean" },
-         "result": {
-           "type": "object",
-           "required": ["summary"],
-           "properties": {
-             "summary": { "type": "string", "description": "Human-readable explanation" }
-           }
-         }
+         "summary": { "type": "string", "description": "Human-readable explanation" }
        }
      }
    }
    ```
 
-   > **Note:** The `outputSchema` uses the envelope format `{success, result}` required by mcp-bash v0.9.2+. The `mcp_result_success` helper automatically wraps your result data in this envelope.
+   > **Note:** The `outputSchema` describes the result object the tool emits with `mcp_result_json`; there is no `{success, result}` envelope.
 
 3. Create `tool.sh` with the implementation:
    ```bash
@@ -106,9 +96,9 @@ git-hex/
 
    # Your implementation here...
 
-   # Build result (mcp_result_success wraps in {success: true, result: ...} envelope)
+   # Build and emit the result
    result="$("${MCPBASH_JSON_TOOL_BIN}" -n --arg summary "Operation completed" '{summary: $summary}')"
-   mcp_result_success "${result}"
+   mcp_result_json "${result}"
    ```
 
 4. Make it executable:
@@ -123,16 +113,15 @@ git-hex/
 
 ### API Conventions
 
-All tools should use `mcp_result_success` to emit results, which wraps data in a `{success: true, result: ...}` envelope:
+Tools emit their result object with `mcp_result_json`, and report errors with `git_hex_error CODE "message" ["suggestion" ...]` (from `lib/git-helpers.sh`), which ends the tool with an `isError` result:
 
 ```bash
-# Build your result data (without 'success' - the helper adds it)
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
     --arg headBefore "${head_before}" \
     --arg headAfter "${head_after}" \
     --arg summary "Operation completed" \
     '{headBefore: $headBefore, headAfter: $headAfter, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"
 ```
 
 Common result fields:
@@ -197,10 +186,10 @@ echo "=== Testing git-hex-myNewTool ==="
 REPO="${TEST_TMPDIR}/test-repo"
 create_test_repo "${REPO}" 3
 
-# Run tool (returns unwrapped result from {success, result} envelope)
+# Run tool (prints the structured result; fails with {type, message} on an isError result)
 result="$(run_tool git-hex-myNewTool "${REPO}" '{}')"
 
-# Assert results (check fields inside .result, not .success - envelope is unwrapped)
+# Assert results
 assert_json_field "${result}" '.summary' "Operation completed" "should have summary"
 
 test_pass "my-new-tool works"

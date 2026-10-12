@@ -92,7 +92,7 @@ actual_commits="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD" 2>/de
 actual_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 
 if [ -z "${actual_commits}" ]; then
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg headBefore "$(git -C "${repo_path}" rev-parse HEAD)" \
@@ -355,7 +355,7 @@ if [ "${rebase_status}" -eq 0 ]; then
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson paused false \

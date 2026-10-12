@@ -63,7 +63,7 @@ Allowed folders guidance:
 
 ### Choose a launcher
 
-- `git-hex.sh` — default launcher. Requires framework pre-installed via `./git-hex.sh install`. Sets `MCPBASH_PROJECT_ROOT`. **Use this for all clients.**
+- `git-hex.sh` — default launcher. Runs the mcp-bash runtime vendored in `.mcp-bash/` (nothing to install). Sets `MCPBASH_PROJECT_ROOT`. **Use this for all clients.**
 - `git-hex-env.sh` — fallback launcher that sources your login profile first. Use if you see "command not found" errors for `git`, `jq`, etc.
 
 ### Troubleshooting PATH issues

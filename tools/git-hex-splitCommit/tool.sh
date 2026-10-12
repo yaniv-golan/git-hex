@@ -379,7 +379,7 @@ output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	'{originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}' 2>/dev/null || true)"
 
 if [ -z "${output_json}" ]; then
-	# jq failed - construct JSON manually (mcp_result_success will add success envelope)
+	# jq failed - construct JSON manually
 	printf 'WARNING: jq output construction failed, using manual fallback\n' >&2
 	original_esc="$(mcp_json_escape "${full_commit}")"
 	backup_esc="$(mcp_json_escape "${backup_ref}")"
@@ -387,5 +387,4 @@ if [ -z "${output_json}" ]; then
 	output_json="{\"originalCommit\":${original_esc},\"newCommits\":${new_commits_json},\"backupRef\":${backup_esc},\"rebasePaused\":${rebase_paused},\"stashNotRestored\":${stash_not_restored},\"summary\":${summary_esc}}"
 fi
 
-# mcp_result_success wraps in {success: true, result: ...} envelope
 mcp_result_json "${output_json}"

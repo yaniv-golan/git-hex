@@ -5,11 +5,7 @@ This directory contains mcp-bash framework configuration files.
 ## Files
 
 ### env.sh
-Environment setup sourced before tool execution.
-
-**Variables configured**:
-- `MCPBASH_TOOL_ENV_MODE=allowlist` - Only pass allowed env vars to tools
-- `MCPBASH_TOOL_ENV_ALLOWLIST` - Allowed variables: `GIT_HEX_READ_ONLY`, `GIT_HEX_DEBUG`
+Optional debug settings for local runs. The server never loads it; only `mcp-bash run-tool --with-server-env` does. Which variables tools receive is declared in `server.meta.json` (below).
 
 **Debug mode**: When `MCPBASH_LOG_LEVEL=debug`:
 - Enables `MCPBASH_TOOL_STDERR_CAPTURE`
@@ -23,7 +19,7 @@ Validates external dependencies before serving.
 - Git version warning if < 2.20 (2.33+ recommended for ort merge strategy)
 
 ### policy.sh
-Tool execution policy hook implementing read-only mode.
+Defines `mcp_tools_policy_project`, the restrict-only hook mcp-bash runs after its own allowlist and path checks; it implements read-only mode. A blocked call returns an error result with type `policy_denied` and the read-only message.
 
 **Behavior**: When `GIT_HEX_READ_ONLY=1`, blocks:
 - `git-hex-rebaseWithPlan`
@@ -48,13 +44,13 @@ Declarative registration of completions, resources, and prompts.
 Framework and dependency version requirements.
 
 **Requirements**:
-- mcp-bash >= 0.9.10
+- mcp-bash >= 1.8.0 (the server runs on the vendored runtime in `.mcp-bash/`)
 - bash >= 3.2.0
 - git >= 2.20.0 (2.33.0 recommended)
 - jq or gojq
 
 ### server.meta.json
-Server metadata (name, version, description).
+Server metadata (name, version, description), the mcp-bash API version, and the tool env policy: tools run in `allowlist` mode and receive `GIT_HEX_DEBUG`, `GIT_HEX_DEBUG_SPLIT` and `GIT_HEX_DEBUG_REBASE`.
 
 ## Debug Mode
 

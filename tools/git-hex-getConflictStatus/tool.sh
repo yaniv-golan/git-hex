@@ -74,7 +74,7 @@ elif   [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflict_type="merge"
 	conflicting_commit="$(<"${merge_head_path}")"
 else
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	mcp_result_json '{"inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
 	exit 0
 fi
@@ -209,7 +209,7 @@ while  IFS= read -r -d '' file; do
 done  < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 
 if  [ "${have_conflicts}" != "true" ]; then
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson inConflict true \
@@ -226,7 +226,7 @@ fi
 
 file_count="$(printf '%s' "${files_json}" | "${MCPBASH_JSON_TOOL_BIN}" 'length')"
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson inConflict true \

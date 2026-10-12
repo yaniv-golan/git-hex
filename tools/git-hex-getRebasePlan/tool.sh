@@ -115,7 +115,7 @@ if [ "${branch}" = "(detached HEAD)" ]; then
 	summary="${summary}. Warning: detached HEAD; rebasing may rewrite commits without an easy branch reference."
 fi
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg plan_id "${plan_id}" \

@@ -1,6 +1,21 @@
 # Tool reference
 
-This is the per-tool API reference.
+This is the per-tool API reference. Each **Returns** block is the tool's structured result (`structuredContent`).
+
+## Errors
+
+A tool that refuses or fails returns an error result (`isError: true`). Its text is the message (plus a `Hint:` line when there are suggestions), and `_meta["mcpbash/error"]` carries the details:
+
+```json
+{
+  "type": "rebase_in_progress",
+  "message": "Cannot split commit while rebase is in progress",
+  "hint": "Complete or abort the current rebase first",
+  "data": {"code": "REBASE_IN_PROGRESS", "suggestions": ["Complete or abort the current rebase first"]}
+}
+```
+
+`type` is the error code in lower case. Calls refused by the tool allowlist or by read-only mode have type `policy_denied`; invalid arguments have type `invalid_args`.
 
 ## Tools
 
@@ -29,7 +44,6 @@ Get a structured view of recent commits for rebase planning and inspection.
 **Returns:**
 ```json
 {
-  "success": true,
   "plan_id": "plan_1234567890_12345",
   "branch": "feature/my-branch",
   "onto": "main",
@@ -87,7 +101,6 @@ The rebase can also pause for non-conflict reasons (e.g., a git hook rejecting a
 **Returns:**
 ```json
 {
-  "success": true,
   "paused": false,
   "headBefore": "abc123...",
   "headAfter": "def456...",
@@ -100,7 +113,6 @@ The rebase can also pause for non-conflict reasons (e.g., a git hook rejecting a
 **When paused on conflict (`abortOnConflict=false`):**
 ```json
 {
-  "success": false,
   "paused": true,
   "reason": "conflict",
   "headBefore": "abc123...",
@@ -114,7 +126,6 @@ The rebase can also pause for non-conflict reasons (e.g., a git hook rejecting a
 **When paused for a non-conflict stop:**
 ```json
 {
-  "success": false,
   "paused": true,
   "reason": "stopped",
   "headBefore": "abc123...",
@@ -146,7 +157,6 @@ Merge commits are ignored (matching the default behavior of `git rebase` without
 **Example output:**
 ```json
 {
-  "success": true,
   "wouldConflict": true,
   "confidence": "estimate",
   "commits": [
@@ -187,7 +197,6 @@ When `includeContent=true`, each file may include `base`, `ours`, `theirs`, and 
 **Returns:**
 ```json
 {
-  "success": true,
   "inConflict": true,
   "conflictType": "rebase",
   "currentStep": 1,
@@ -208,7 +217,6 @@ When `inConflict=false`, `conflictType` is `"none"`.
 **Example (`includeContent=true`):**
 ```json
 {
-  "success": true,
   "inConflict": true,
   "conflictType": "rebase",
   "currentStep": 1,
@@ -244,7 +252,6 @@ Mark a conflicted file as resolved by either keeping the file (after you resolve
 **Returns:**
 ```json
 {
-  "success": true,
   "file": "conflict.txt",
   "remainingConflicts": 0,
   "summary": "Marked conflict.txt as resolved. 0 conflict(s) remaining."
@@ -263,7 +270,6 @@ Continue a paused rebase/merge/cherry-pick after resolving conflicts.
 **Returns:**
 ```json
 {
-  "success": true,
   "operationType": "rebase",
   "completed": true,
   "paused": false,
@@ -272,12 +278,11 @@ Continue a paused rebase/merge/cherry-pick after resolving conflicts.
 }
 ```
 
-On failure, `success` is false and an `error` string may be included.
+On failure, `completed` is false and an `error` string is included.
 
 **Example (failure with error):**
 ```json
 {
-  "success": false,
   "operationType": "rebase",
   "completed": false,
   "paused": false,
@@ -299,20 +304,18 @@ Abort a paused rebase/merge/cherry-pick and restore the original state.
 **Returns:**
 ```json
 {
-  "success": true,
   "operationType": "rebase",
   "summary": "rebase aborted, restored to original state"
 }
 ```
 
-If nothing is in progress, `operationType` is `"none"` and `success` is false.
+If nothing is in progress, `operationType` is `"none"` and `operationSucceeded` is false.
 
-On failure, `success` is false and an `error` string may be included.
+On failure, an `error` string may be included.
 
 **Example (failure with error):**
 ```json
 {
-  "success": false,
   "operationType": "rebase",
   "error": "Failed to abort rebase: <details>",
   "summary": "Failed to abort rebase"
@@ -335,7 +338,6 @@ Split a commit into multiple commits by file (file-level only; no hunk splitting
 **Returns:**
 ```json
 {
-  "success": true,
   "originalCommit": "abc123...",
   "newCommits": [
     { "hash": "def456...", "message": "Split part 1", "files": ["file1.txt"] },
@@ -373,7 +375,6 @@ Create a fixup commit targeting a specific commit.
 **Returns:**
 ```json
 {
-  "success": true,
   "headBefore": "def456...",
   "headAfter": "ghi789...",
   "backupRef": "git-hex/backup/1700000000_createFixup_xxx",
@@ -409,7 +410,6 @@ Amend the last commit with staged changes and/or a new message.
 **Returns:**
 ```json
 {
-  "success": true,
   "headBefore": "abc123...",
   "headAfter": "jkl012...",
   "backupRef": "git-hex/backup/1700000000_amendLastCommit_xxx",
@@ -449,7 +449,6 @@ Cherry-pick a single commit with configurable merge strategy.
 **Returns:**
 ```json
 {
-  "success": true,
   "headBefore": "def456...",
   "headAfter": "mno345...",
   "backupRef": "git-hex/backup/1700000000_cherryPickSingle_xxx",
@@ -463,7 +462,6 @@ Cherry-pick a single commit with configurable merge strategy.
 **Example (paused on conflict, `abortOnConflict=false`):**
 ```json
 {
-  "success": false,
   "paused": true,
   "reason": "conflict",
   "headBefore": "def456...",
@@ -501,7 +499,6 @@ Every history-mutating git-hex operation (amend, fixup, rebase, split, cherry-pi
 **Returns:**
 ```json
 {
-  "success": true,
   "headBefore": "mno345...",
   "headAfter": "def456...",
   "undoneOperation": "cherryPickSingle",

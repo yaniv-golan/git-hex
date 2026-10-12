@@ -169,7 +169,7 @@ fi
 
 note="Predictions may not match actual rebase behavior in all cases. Merge commits are ignored (default git rebase behavior)."
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson wouldConflict "${would_conflict}" \

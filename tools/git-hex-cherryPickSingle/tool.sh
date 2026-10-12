@@ -165,7 +165,7 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	if [ "${no_commit}" = "true" ]; then
 		# shellcheck disable=SC2016
 		result="$("${MCPBASH_JSON_TOOL_BIN}" -n \

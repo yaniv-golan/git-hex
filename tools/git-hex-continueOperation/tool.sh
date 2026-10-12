@@ -160,8 +160,8 @@ if [ "${completed}" = "true" ] && [ "${status}" = "true" ]; then
 	fi
 fi
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
-# Use 'completed' field to indicate operation outcome (success/failure is in envelope)
+# Build and emit result
+# 'completed' reports whether the operation finished
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg operationType "${operation}" \

@@ -23,13 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`GIT_HEX_DEBUG`, `GIT_HEX_DEBUG_SPLIT` and `GIT_HEX_DEBUG_REBASE` reach the tools**: the tool env allowlist was in `server.d/env.sh`, which the server never loads, so tools never received them. It is now in `server.meta.json`.
-- **`./git-hex.sh run-tool` works**: the launcher sent it to the vendored runtime, which has no CLI commands. It now runs the system `mcp-bash`, with git-hex's tool allowlist.
+- **`./git-hex.sh run-tool` works**: the launcher sent it to the vendored runtime, which has no CLI commands. It now runs the system `mcp-bash` (1.8 or later; older versions are refused, since they don't enforce read-only mode), with git-hex's tool allowlist.
 - **`rebaseWithPlan` works with jq 1.6** (Debian 12, Ubuntu 22.04): every plan was rejected with "Commit message cannot contain null bytes", because jq 1.6's `contains("\u0000")` is true for any string.
 - **`splitCommit` no longer needs an executable temp directory**: its sequence-editor script is run through `bash`, so it works where `TMPDIR` is mounted `noexec`.
 - **`checkRebaseConflicts` requires Git 2.40, and says so**: it uses `git merge-tree --merge-base`, added in Git 2.40, but accepted Git 2.38 and 2.39 (Debian 12 ships 2.39). There every prediction failed, and the tool reported a conflict for every rebase. It now refuses older Git with `GIT_VERSION_UNSUPPORTED`.
 - **Error suggestions are complete with jq 1.6**: the last suggestion was dropped.
 - **`docker build` works again**: the build step used `set -o pipefail`, which Debian's `/bin/sh` rejects.
 - **Docs no longer describe `./git-hex.sh install`, `mcp-bash.lock` or `GIT_HEX_MCPBASH_SHA256`**, which went away when the runtime was vendored. CONTRIBUTING shows the current result and error helpers.
+
+### Known issues
+
+- **A tool that times out returns an error whose `structuredContent` is `{"success": false, "error": {...}}`**, which doesn't match the tool's `outputSchema`. This comes from mcp-bash and will be fixed there; strict clients may reject that one result. All other errors carry their details in `_meta["mcpbash/error"]` only.
 
 ## [0.3.0] - 2026-10-10
 

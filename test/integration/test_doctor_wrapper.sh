@@ -80,11 +80,33 @@ test_run_tool_via_wrapper() {
 	)
 }
 
+test_run_tool_refuses_old_mcp_bash() {
+	(
+		local tmp_dir
+		tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.oldmcp.XXXXXX")"
+		trap 'rm -rf "${tmp_dir}"' EXIT
+		mkdir -p "${tmp_dir}/bin"
+		# A stub that reports an old version and fails if it is ever asked to run a tool.
+		# shellcheck disable=SC2016  # $1 and $* belong to the stub script
+		printf '%s\n' '#!/bin/sh' 'if [ "$1" = "--version" ]; then echo "mcp-bash 1.7.0"; exit 0; fi' 'echo "stub ran: $*"; exit 0' >"${tmp_dir}/bin/mcp-bash"
+		chmod +x "${tmp_dir}/bin/mcp-bash"
+
+		capture env PATH="${tmp_dir}/bin:${PATH}" bash "${PROJECT_ROOT}/git-hex.sh" run-tool git-hex-getRebasePlan --args '{}'
+		assert_ne "0" "${CAPTURE_STATUS}" "run-tool should refuse mcp-bash older than 1.8"
+		assert_contains "${CAPTURE_OUTPUT}" "1.8" "the refusal should name the required version"
+		if printf '%s' "${CAPTURE_OUTPUT}" | grep -q 'stub ran'; then
+			test_fail "run-tool should not run the old mcp-bash"
+		fi
+		test_pass "git-hex.sh run-tool refuses mcp-bash older than 1.8"
+	)
+}
+
 echo "=== Testing git-hex.sh vendored runtime behavior ==="
 test_vendored_runtime_present
 test_install_prints_guidance
 test_missing_vendored_runtime_error
 test_run_tool_via_wrapper
+test_run_tool_refuses_old_mcp_bash
 
 echo ""
 echo "All vendored runtime tests passed!"

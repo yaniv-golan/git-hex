@@ -20,7 +20,11 @@
       "strategy": {
         "type": "string",
         "description": "Merge strategy: 'recursive', 'ort', 'resolve' (default: git default)",
-        "enum": ["recursive", "ort", "resolve"]
+        "enum": [
+          "recursive",
+          "ort",
+          "resolve"
+        ]
       },
       "noCommit": {
         "type": "boolean",
@@ -42,83 +46,56 @@
         "default": false
       }
     },
-    "required": ["commit"]
+    "required": [
+      "commit"
+    ]
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [],
     "properties": {
-      "success": {
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the operation"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation (same as headBefore if noCommit=true)"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "sourceCommit": {
+        "type": "string",
+        "description": "Full hash of the commit that was cherry-picked"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The source commit's subject line"
+      },
+      "paused": {
         "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+        "description": "True if operation paused due to conflicts (when abortOnConflict=false)"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": [],
-        "properties": {
-          "headBefore": {
-            "type": "string",
-            "description": "HEAD commit hash before the operation"
-          },
-          "headAfter": {
-            "type": "string",
-            "description": "HEAD commit hash after the operation (same as headBefore if noCommit=true)"
-          },
-          "backupRef": {
-            "type": "string",
-            "description": "Backup ref created for undoLast"
-          },
-          "sourceCommit": {
-            "type": "string",
-            "description": "Full hash of the commit that was cherry-picked"
-          },
-          "summary": {
-            "type": "string",
-            "description": "Human-readable explanation of what was done"
-          },
-          "commitMessage": {
-            "type": "string",
-            "description": "The source commit's subject line"
-          },
-          "paused": {
-            "type": "boolean",
-            "description": "True if operation paused due to conflicts (when abortOnConflict=false)"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Reason when paused (e.g., conflict)"
-          },
-          "conflictingFiles": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "List of files with conflicts when paused"
-          },
-          "stashNotRestored": {
-            "type": "boolean",
-            "description": "True if auto-stash could not be restored cleanly"
-          }
-        }
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
       },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
-        }
+      "conflictingFiles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "List of files with conflicts when paused"
+      },
+      "stashNotRestored": {
+        "type": "boolean",
+        "description": "True if auto-stash could not be restored cleanly"
       }
     }
   },

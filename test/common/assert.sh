@@ -125,7 +125,7 @@ assert_json_field() {
 }
 
 # Assert multiple JSON fields with a single jq invocation.
-# Usage: assert_json_fields_eq "$json" ".success" "true" ".undoneOperation" "amendLastCommit" ...
+# Usage: assert_json_fields_eq "$json" ".headBefore" "abc123" ".undoneOperation" "amendLastCommit" ...
 assert_json_fields_eq() {
 	local json="$1"
 	shift

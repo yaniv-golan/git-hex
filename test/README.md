@@ -4,20 +4,14 @@ This directory contains tests for the git-hex MCP server.
 
 ## Prerequisites
 
-The tests require the `mcp-bash` framework. You can either:
+The tests run tools through the full `mcp-bash` CLI (`run-tool`), which the vendored runtime in `.mcp-bash/` doesn't include. The harness looks for it in this order:
 
-1. **Install the framework** (recommended for CI):
-   ```bash
-   # Framework version is pinned in mcp-bash.lock (includes SHA256 for verified install)
-   ./git-hex.sh install
-   ```
+1. `MCPBASH_HOME`, if set (for example a framework checkout or an unpacked release tarball);
+2. a sibling checkout at `../mcpbash`;
+3. the installer's location, `~/.local/share/mcp-bash`;
+4. any `mcp-bash` on `PATH` (for example `brew install yaniv-golan/mcp-bash/mcp-bash`).
 
-2. **Use a local development version** by setting `MCPBASH_HOME`:
-   ```bash
-   export MCPBASH_HOME=$HOME/.local/share/mcp-bash
-   ```
-
-The test harness auto-detects sibling directories (e.g., `../mcpbash`) for local development.
+Use the same mcp-bash version as `.mcp-bash/vendor.json` to test what ships.
 
 ## Running Tests
 
@@ -182,13 +176,13 @@ mcp-bash run-tool git-hex-rebaseWithPlan \
 ## CI Integration
 
 See `.github/workflows/test.yml` for the GitHub Actions configuration. The CI:
-1. Installs the mcp-bash framework (pinned version in `mcp-bash.lock`).
+1. Installs mcp-bash with its `install.sh`.
 2. Runs lint on Linux (shellcheck + shfmt).
 3. Runs `./git-hex.sh validate` (or `mcp-bash validate`), integration tests, and security tests on Linux and macOS (with failure logs artifacted).
 4. Runs integration tests on Windows with a time budget guard.
 5. Runs a scheduled weekly full suite on Ubuntu.
 
-CI runs with `MCPBASH_CI_MODE`, `MCPBASH_CI_VERBOSE`, and `MCPBASH_TRACE_TOOLS` enabled to capture env snapshots, failure summaries, and per-tool traces into `$MCPBASH_LOG_DIR` for easier debugging.
+CI runs with `MCPBASH_CI_MODE=true`, `MCPBASH_CI_VERBOSE`, and `MCPBASH_TRACE_TOOLS` enabled to capture env snapshots, failure summaries, and per-tool traces into `$MCPBASH_LOG_DIR` for easier debugging.
 
 ## Reference
 

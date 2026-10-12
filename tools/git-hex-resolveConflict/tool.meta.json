@@ -19,50 +19,34 @@
       },
       "resolution": {
         "type": "string",
-        "enum": ["keep", "delete"],
+        "enum": [
+          "keep",
+          "delete"
+        ],
         "description": "For delete conflicts: 'keep' to keep the file, 'delete' to accept deletion",
         "default": "keep"
       }
     },
-    "required": ["file"]
+    "required": [
+      "file"
+    ]
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "file",
+      "remainingConflicts",
+      "summary"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "file": {
+        "type": "string"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["file", "remainingConflicts", "summary"],
-        "properties": {
-          "file": { "type": "string" },
-          "remainingConflicts": { "type": "integer" },
-          "summary": { "type": "string" }
-        }
+      "remainingConflicts": {
+        "type": "integer"
       },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
-        }
+      "summary": {
+        "type": "string"
       }
     }
   },

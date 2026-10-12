@@ -43,7 +43,7 @@ if  [ "${operation}" != "rebase" ] && [ "${operation}" != "cherry-pick" ] && [ "
 		--arg error "Continue is only supported for rebase, cherry-pick, or merge" \
 		--arg summary "Cannot continue ${operation}" \
 		'{operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary, error: $error}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -160,8 +160,8 @@ if [ "${completed}" = "true" ] && [ "${status}" = "true" ]; then
 	fi
 fi
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
-# Use 'completed' field to indicate operation outcome (success/failure is in envelope)
+# Build and emit result
+# 'completed' reports whether the operation finished
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg operationType "${operation}" \
@@ -172,4 +172,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg summary "${summary}" \
 	'{operationType: $operationType, completed: $completed, paused: $paused, conflictingFiles: $conflictingFiles, summary: $summary}
 	| if ($error | length) > 0 then . + {error: $error} else . end')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

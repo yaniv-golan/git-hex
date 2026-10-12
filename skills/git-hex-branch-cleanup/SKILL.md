@@ -24,7 +24,7 @@ using git-hex tools instead of manual interactive rebase.
   - Commits come back oldest-first — the natural order for a rebase plan.
   - If `onto` is omitted it defaults to `@{upstream}` or `HEAD~count`.
 - Optionally call `git-hex-checkRebaseConflicts` to predict conflicts before
-  starting. This requires **git 2.38+** — if the user's git is older, skip it
+  starting. This requires **git 2.40+** — if the user's git is older, skip it
   and note the limitation.
 
 ### 2. Choose the right tool for the job

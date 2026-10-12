@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
-# server.d/env.sh - Environment setup for git-hex MCP Server
+# server.d/env.sh - optional debug settings for local runs
 #
-# ==============================================================================
-# Tool Environment Passthrough
-# ==============================================================================
-# Allow policy environment variables to be passed through to tool scripts.
-# By default, mcp-bash only passes MCP*/MCPBASH* variables for security.
-# We use "allowlist" mode to also pass GIT_HEX_* policy variables.
-#
-# Available policy variables:
-#   GIT_HEX_READ_ONLY=1  - Restrict to read-only operations (getRebasePlan, checkRebaseConflicts, getConflictStatus)
-
-export MCPBASH_TOOL_ENV_MODE="allowlist"
-export MCPBASH_TOOL_ENV_ALLOWLIST="GIT_HEX_READ_ONLY,GIT_HEX_DEBUG"
+# The server never loads this file; only `mcp-bash run-tool --with-server-env`
+# (or `--source server.d/env.sh`) does. Which variables tools receive is
+# declared in server.d/server.meta.json ("env").
 
 # ==============================================================================
 # Debug Mode Configuration

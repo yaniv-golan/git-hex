@@ -25,7 +25,13 @@
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["pick", "reword", "squash", "fixup", "drop"],
+              "enum": [
+                "pick",
+                "reword",
+                "squash",
+                "fixup",
+                "drop"
+              ],
               "description": "Rebase action for this commit"
             },
             "commit": {
@@ -37,7 +43,10 @@
               "description": "New commit message. Required for reword. Must be single-line (no TAB or newline)."
             }
           },
-          "required": ["action", "commit"]
+          "required": [
+            "action",
+            "commit"
+          ]
         }
       },
       "abortOnConflict": {
@@ -66,61 +75,46 @@
         "default": false
       }
     },
-    "required": ["onto"]
+    "required": [
+      "onto"
+    ]
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "headBefore",
+      "headAfter",
+      "summary"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "headBefore": {
+        "type": "string"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["headBefore", "headAfter", "summary"],
-        "properties": {
-          "headBefore": { "type": "string" },
-          "headAfter": { "type": "string" },
-          "backupRef": {
-            "type": "string",
-            "description": "Backup ref created for undoLast"
-          },
-          "commitsRebased": {
-            "type": "integer",
-            "description": "Number of commits rebased when successful"
-          },
-          "summary": { "type": "string" },
-          "paused": { "type": "boolean" },
-          "reason": {
-            "type": "string",
-            "description": "Reason when paused (e.g., conflict)"
-          },
-          "conflictingFiles": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
-        }
+      "headAfter": {
+        "type": "string"
       },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "commitsRebased": {
+        "type": "integer",
+        "description": "Number of commits rebased when successful"
+      },
+      "summary": {
+        "type": "string"
+      },
+      "paused": {
+        "type": "boolean"
+      },
+      "reason": {
+        "type": "string",
+        "description": "Reason when paused (e.g., conflict)"
+      },
+      "conflictingFiles": {
+        "type": "array",
+        "items": {
+          "type": "string"
         }
       }
     }

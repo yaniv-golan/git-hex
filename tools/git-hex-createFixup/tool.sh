@@ -89,7 +89,7 @@ commit_message="$(git -C "${repo_path}" log -1 --format='%s' HEAD)"
 # Record post-operation state for undo safety checks
 git_hex_record_last_head "${repo_path}" "${head_after}"
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg headBefore "${head_before}" \
@@ -99,4 +99,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg summary "Created fixup commit ${head_after:0:7} targeting ${target_hash:0:7}" \
 	--arg commitMessage "${commit_message}" \
 	'{headBefore: $headBefore, headAfter: $headAfter, targetCommit: $targetCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

@@ -9,6 +9,13 @@ if [[ -z "${BASH_VERSION:-}" ]]; then
 fi
 # shellcheck disable=SC2030,SC2031  # Subshell env mutations are intentionally isolated
 
+# Verified file reads (tool-embedded resources are read through mcp_file_read_verified).
+if ! declare -F mcp_file_read_verified >/dev/null 2>&1; then
+	# shellcheck source=lib/file_read.sh
+	# shellcheck disable=SC1091
+	. "${MCPBASH_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/lib/file_read.sh"
+fi
+
 MCP_TOOLS_REGISTRY_JSON=""
 MCP_TOOLS_REGISTRY_HASH=""
 MCP_TOOLS_REGISTRY_PATH=""
@@ -332,6 +339,24 @@ mcp_tools_normalize_local_path() {
 	printf '%s' "${abs}"
 }
 
+# Print the root in MCPBASH_ROOTS_PATHS that contains PATH (canonical), or
+# nothing when none does or the root is "/" (no ancestor check needed).
+mcp_tools_embed_matched_root() {
+	local path="$1"
+	local root
+	for root in ${MCPBASH_ROOTS_PATHS[@]+"${MCPBASH_ROOTS_PATHS[@]}"}; do
+		[ -n "${root}" ] || continue
+		[ "${root}" = "/" ] && return 0
+		root="${root%/}"
+		# Literal prefix comparison, as in mcp_roots_contains_path.
+		if [ "${path:0:$((${#root} + 1))}" = "${root}/" ]; then
+			printf '%s' "${root}"
+			return 0
+		fi
+	done
+	return 0
+}
+
 mcp_tools_embed_resource_from_path() {
 	local path="$1"
 	local mime_hint="${2:-}"
@@ -381,11 +406,40 @@ mcp_tools_embed_resource_from_path() {
 		mime_declared="true"
 	fi
 
+	# Read the file once through the verified read and build the content from
+	# that copy: the checks above looked at the path, and opening it by name
+	# again (mime detection, NUL sniff, content) would follow a symlink swapped
+	# in after them. The verified read pins the directory, confirms it is inside
+	# the matched root and returns the bytes of the regular file it checked.
+	local matched_root=""
+	if declare -F mcp_roots_contains_path >/dev/null 2>&1; then
+		matched_root="$(mcp_tools_embed_matched_root "${abs}")"
+	fi
+	local copy_base="${MCPBASH_STATE_DIR:-${TMPDIR:-/tmp}}"
+	local copy_dir
+	if ! copy_dir="$(mktemp -d "${copy_base%/}/mcpbash.embed.XXXXXX" 2>/dev/null)"; then
+		mcp_logging_warning "${MCP_TOOLS_LOGGER}" "Embedded resource skipped (no temporary directory): $(basename "${abs}")"
+		return 1
+	fi
+	local copy="${copy_dir}/${abs##*/}"
+	local read_status=0
+	mcp_file_read_verified "${abs}" "" "${matched_root}" >"${copy}" || read_status=$?
+	if [ "${read_status}" -ne 0 ]; then
+		rm -rf "${copy_dir}"
+		case "${read_status}" in
+		5) mcp_logging_warning "${MCP_TOOLS_LOGGER}" "Embedded resource skipped (cannot verify the opened file on this platform): $(basename "${abs}")" ;;
+		*) mcp_logging_warning "${MCP_TOOLS_LOGGER}" "Embedded resource skipped (not a regular file inside the roots, or changed while being read): $(basename "${abs}")" ;;
+		esac
+		return 1
+	fi
+
 	local content_obj
-	if ! content_obj="$(mcp_resource_content_object_from_file "${abs}" "${mime_hint}" "${uri}" "${mime_declared}")"; then
+	if ! content_obj="$(mcp_resource_content_object_from_file "${copy}" "${mime_hint}" "${uri}" "${mime_declared}")"; then
+		rm -rf "${copy_dir}"
 		mcp_logging_warning "${MCP_TOOLS_LOGGER}" "Embedded resource could not be encoded: $(basename "${abs}")"
 		return 1
 	fi
+	rm -rf "${copy_dir}"
 	printf '%s' "${content_obj}"
 }
 
@@ -619,6 +673,24 @@ mcp_tools_error() {
 	_MCP_TOOLS_ERROR_DATA="${3:-}"
 }
 
+# Set _MCP_TOOLS_RESULT to a policy_denied tool result (isError: true) built by
+# the shared SDK builder, and mark the call as denied for `mcp-bash run-tool`.
+# Usage: mcp_tools_policy_denied_result <message> [data_json]
+mcp_tools_policy_denied_result() {
+	local message="$1"
+	local data="${2:-null}"
+	if ! declare -F mcp_tool_error_result >/dev/null 2>&1; then
+		# shellcheck source=../sdk/tool-error.sh disable=SC1091
+		. "${MCPBASH_HOME}/sdk/tool-error.sh"
+	fi
+	if [ -n "${data}" ] && [ "${data}" != "null" ]; then
+		_MCP_TOOLS_RESULT="$(mcp_tool_error_result policy_denied "${message}" --data "${data}")"
+	else
+		_MCP_TOOLS_RESULT="$(mcp_tool_error_result policy_denied "${message}")"
+	fi
+	_MCP_TOOLS_POLICY_DENIED=true
+}
+
 # Emit error JSON to stdout for propagation through command substitution.
 # Usage: _mcp_tools_emit_error <code> <message> [data]
 # The data argument should be valid JSON (object, string, null, etc.)
@@ -792,6 +864,12 @@ mcp_tools_validate_output_schema() {
 		data_json="$(mcp_tools_output_schema_error_data "${tool_name}" "${exit_code}" "${stderr_tail}" "${trace_line}" "${trace_available}")"
 		_mcp_tools_emit_error -32603 "Tool output is empty for declared outputSchema" "${data_json}"
 		return 1
+	fi
+
+	# An error result (a CallToolResult with isError: true) carries no structured
+	# result, so outputSchema does not apply; the MCP SDKs skip it too.
+	if printf '%s' "${structured_json}" | "${MCPBASH_JSON_TOOL_BIN}" -e 'type == "object" and .isError == true' >/dev/null 2>&1; then
+		return 0
 	fi
 
 	# Write schema to temp file to avoid shell quoting issues with --argjson
@@ -1573,14 +1651,24 @@ mcp_tools_call() {
 
 	# Initialize and enforce project policy (server.d/policy.sh can override).
 	mcp_tools_policy_init
-	if ! mcp_tools_policy_check "${name}" "${metadata}"; then
+	_MCP_TOOLS_POLICY_REFUSAL=""
+	_MCP_TOOLS_POLICY_DENIED=false
+	if ! mcp_tools_policy_check "${name}" "${metadata}" "${args_json}"; then
 		if [ "${_MCP_TOOLS_ERROR_CODE:-0}" -eq 0 ]; then
 			mcp_tools_error -32602 "Tool '${name}' blocked by policy"
 		fi
 		local policy_data="${_MCP_TOOLS_ERROR_DATA:-null}"
 		[ -z "${policy_data}" ] && policy_data="null"
-		_mcp_tools_emit_error "${_MCP_TOOLS_ERROR_CODE}" "${_MCP_TOOLS_ERROR_MESSAGE}" "${policy_data}"
-		return 1
+		if [ "${_MCP_TOOLS_POLICY_REFUSAL}" = "config" ]; then
+			_mcp_tools_emit_error "${_MCP_TOOLS_ERROR_CODE}" "${_MCP_TOOLS_ERROR_MESSAGE}" "${policy_data}"
+			return 1
+		fi
+		# A policy denial (allowlist or project rule) is a tool result with
+		# isError, not a JSON-RPC error: clients such as Claude Desktop show
+		# JSON-RPC errors only as a generic failure, so the model and the user
+		# never saw why the call was refused.
+		mcp_tools_policy_denied_result "${_MCP_TOOLS_ERROR_MESSAGE}" "${policy_data}"
+		return 0
 	fi
 
 	# Checked after policy.sh has run, so a mode it sets is gated too. Warn once
@@ -1777,9 +1865,11 @@ mcp_tools_call() {
 	# shellcheck disable=SC2030,SC2031,SC2094
 	(
 		# Environment mutations here are intentionally scoped to this subshell.
-		# Ignore SIGTERM in this subshell - only the tool process should be killed
-		# The tool runs in its own process via with_timeout, which handles the signal
-		trap '' TERM
+		# Handle TERM (cancel signals the request's process group) by cleaning up
+		# and exiting. Don't ignore it: an ignored signal is inherited by every
+		# process started from here, so the tool, its children and the timeout
+		# watchdog could never be stopped with TERM.
+		trap 'cleanup_tool_temp_files; exit 143' TERM
 		set -o pipefail
 		cd "${MCPBASH_PROJECT_ROOT}" || exit 1
 		MCP_SDK="${MCPBASH_HOME}/sdk"
@@ -2018,6 +2108,22 @@ mcp_tools_call() {
 		local stdout_size=0
 		[ -f "${stdout_file}" ] && stdout_size="$(wc -c <"${stdout_file}" | tr -d ' ')"
 		mcp_logging_debug "${MCP_TOOLS_LOGGER}" "Complete tool=${name} exit=${exit_code} stdout_bytes=${stdout_size}"
+	fi
+
+	# A tool error *result* in the side channel (an isError CallToolResult,
+	# written by the SDK when it ends a tool from inside $(...)) is the tool's
+	# result: hand it to the normal result path, as if the tool had printed it
+	# and exited 0. It replaces whatever the tool printed before failing.
+	if [ -n "${tool_error_file}" ] && [ -s "${tool_error_file}" ]; then
+		local side_result
+		side_result="$(cat "${tool_error_file}" 2>/dev/null || true)"
+		case "${side_result}" in
+		'{"content":['*'"isError":true'*)
+			printf '%s' "${side_result}" >"${stdout_file}"
+			: >"${tool_error_file}"
+			exit_code=0
+			;;
+		esac
 	fi
 
 	# Prefer explicit tool-authored errors as early as possible.

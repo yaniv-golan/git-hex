@@ -92,14 +92,14 @@ actual_commits="$(git -C "${repo_path}" rev-list --reverse "${onto}..HEAD" 2>/de
 actual_count="$(git -C "${repo_path}" rev-list --count "${onto}..HEAD" 2>/dev/null || echo "0")"
 
 if [ -z "${actual_commits}" ]; then
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg headBefore "$(git -C "${repo_path}" rev-parse HEAD)" \
 		--arg headAfter "$(git -C "${repo_path}" rev-parse HEAD)" \
 		--arg summary "Nothing to rebase - HEAD is already at ${onto}" \
 		'{headBefore: $headBefore, headAfter: $headAfter, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -123,7 +123,8 @@ validate_rebase_action()  {
 }
 
 if  [ "${plan_length}" -gt 0 ]; then
-	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
+	# Compare code points: jq 1.6's contains() stops at a NUL, so contains("\u0000") is always true there.
+	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | explode | any(. == 0)] | any' 2>/dev/null || echo "false")"
 	if [ "${has_null_message}" = "true" ]; then
 		git_hex_error "INVALID_MESSAGE" "Commit message cannot contain null bytes" \
 			"Use plain text without null characters"
@@ -355,7 +356,7 @@ if [ "${rebase_status}" -eq 0 ]; then
 	# Record post-operation state for undo safety checks
 	git_hex_record_last_head "${repo_path}" "${head_after}"
 	_git_hex_cleanup_rebase_msg_dir "${rebase_msg_dir_marker}"
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--argjson paused false \
@@ -365,7 +366,7 @@ if [ "${rebase_status}" -eq 0 ]; then
 		--argjson commitsRebased "${actual_count}" \
 		--arg summary "Rebased ${actual_count} commit(s) onto ${onto}.${detached_head_warning}" \
 		'{paused: $paused, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, commitsRebased: $commitsRebased, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 else
 	rebase_merge_dir="$(git -C "${repo_path}" rev-parse --git-path rebase-merge 2>/dev/null || true)"
@@ -398,7 +399,7 @@ else
 				--argjson conflictingFiles "${conflicting_json}" \
 				--arg summary "Rebase paused due to conflicts. Use getConflictStatus for details.${detached_head_warning}" \
 				'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
-			mcp_result_success "${result}"
+			mcp_result_json "${result}"
 			exit 0
 		else
 			git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true
@@ -425,7 +426,7 @@ else
 			--argjson conflictingFiles "[]" \
 			--arg summary "Rebase paused (non-conflict stop): ${error_hint}.${detached_head_warning}" \
 			'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, conflictingFiles: $conflictingFiles, summary: $summary}')"
-		mcp_result_success "${result}"
+		mcp_result_json "${result}"
 		exit 0
 	elif grep -qi "nothing to do" <<<"${rebase_output}"; then
 		git -C "${repo_path}" rebase --abort >/dev/null 2>&1 || true

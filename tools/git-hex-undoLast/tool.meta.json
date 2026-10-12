@@ -21,62 +21,34 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "headBefore",
+      "headAfter"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the undo"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["headBefore", "headAfter"],
-        "properties": {
-          "headBefore": {
-            "type": "string",
-            "description": "HEAD commit hash before the undo"
-          },
-          "headAfter": {
-            "type": "string",
-            "description": "HEAD commit hash after the undo (the restored state)"
-          },
-          "undoneOperation": {
-            "type": "string",
-            "description": "Name of the operation that was undone (or \"unknown\")"
-          },
-          "backupRef": {
-            "type": "string",
-            "description": "The backup ref that was restored"
-          },
-          "commitsUndone": {
-            "type": "integer",
-            "description": "Number of commits that were undone"
-          },
-          "summary": {
-            "type": "string",
-            "description": "Human-readable explanation of what was undone"
-          }
-        }
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the undo (the restored state)"
       },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
-        }
+      "undoneOperation": {
+        "type": "string",
+        "description": "Name of the operation that was undone (or \"unknown\")"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "The backup ref that was restored"
+      },
+      "commitsUndone": {
+        "type": "integer",
+        "description": "Number of commits that were undone"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was undone"
       }
     }
   },

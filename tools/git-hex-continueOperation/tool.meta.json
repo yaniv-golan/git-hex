@@ -17,40 +17,42 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "operationType",
+      "completed",
+      "paused",
+      "conflictingFiles",
+      "summary"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "operationType": {
+        "type": "string",
+        "enum": [
+          "none",
+          "rebase",
+          "cherry-pick",
+          "merge",
+          "revert",
+          "bisect"
+        ]
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["operationType", "completed", "paused", "conflictingFiles", "summary"],
-        "properties": {
-          "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
-          "completed": { "type": "boolean" },
-          "paused": { "type": "boolean" },
-          "conflictingFiles": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "error": { "type": "string" },
-          "summary": { "type": "string" }
+      "completed": {
+        "type": "boolean"
+      },
+      "paused": {
+        "type": "boolean"
+      },
+      "conflictingFiles": {
+        "type": "array",
+        "items": {
+          "type": "string"
         }
       },
       "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": { "type": "string" },
-          "message": { "type": "string" },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
-        }
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
       }
     }
   },

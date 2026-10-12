@@ -15,6 +15,19 @@ test_create_tmpdir
 
 echo "=== checkRebaseConflicts Tests ==="
 
+# Older git can't run the prediction (merge-tree --merge-base is 2.40+): the tool
+# must say so instead of predicting conflicts.
+if ! git_at_least 2 40; then
+	printf ' -> CHK-00 refuses git older than 2.40\n'
+	REPO_OLD_GIT="${TEST_TMPDIR}/check-old-git"
+	create_branch_scenario "${REPO_OLD_GIT}"
+	run_tool_expect_fail_message_contains git-hex-checkRebaseConflicts "${REPO_OLD_GIT}" '{"onto": "main"}' \
+		"requires Git 2.40+" "checkRebaseConflicts should refuse git older than 2.40"
+	test_pass "refuses git older than 2.40"
+	printf 'SKIP: remaining checkRebaseConflicts tests need git 2.40+ (%s)\n' "$(git --version)"
+	exit 0
+fi
+
 # CHK-01: Clean rebase predicted
 printf ' -> CHK-01 predicts clean rebase\n'
 REPO_CLEAN="${TEST_TMPDIR}/check-clean"
@@ -136,9 +149,8 @@ create_orphan_branch_scenario "${REPO_ORPHAN}"
 result_orphan="$(run_tool git-hex-checkRebaseConflicts "${REPO_ORPHAN}" '{"onto": "main"}' 60)" || true
 # Tool should succeed (not crash) - root commits may show as "unknown" prediction
 if  [ -n "${result_orphan}" ]; then
-	# Check that we got a valid response (success field exists)
-	success_val="$(printf '%s' "${result_orphan}" | jq -r 'if .success == null then "" else (.success | tostring) end')"
-	if [ "${success_val}" = "true" ]; then
+	# A result object means it succeeded; an error object ({type, message}) is also fine.
+	if printf '%s' "${result_orphan}" | jq -e 'type == "object" and (has("message") | not)' >/dev/null 2>&1; then
 		test_pass "handles root commit in range gracefully"
 	else
 		# Tool may fail gracefully with an error message - that's acceptable

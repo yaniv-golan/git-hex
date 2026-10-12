@@ -8,5 +8,12 @@
     {
       "src": "../assets/icons/git-hex.svg"
     }
-  ]
+  ],
+  "env": {
+    "MCPBASH_TOOL_ENV_MODE": "allowlist",
+    "MCPBASH_TOOL_ENV_ALLOWLIST": "GIT_HEX_DEBUG,GIT_HEX_DEBUG_SPLIT,GIT_HEX_DEBUG_REBASE"
+  },
+  "mcpBash": {
+    "apiVersion": 2
+  }
 }

@@ -49,7 +49,7 @@ mcp_scaffold_validate_name() {
 		return 1
 	fi
 	case "${name}" in
-	*/* | *..*) return 1 ;;
+	*/* | *..* | -*) return 1 ;;
 	esac
 	if ! [[ "${name}" =~ ^[A-Za-z0-9_-]{1,64}$ ]]; then
 		return 1
@@ -69,7 +69,7 @@ mcp_scaffold_prepare() {
 		exit 1
 	fi
 	if ! mcp_scaffold_validate_name "${name}"; then
-		printf 'Invalid %s name: use alphanumerics, underscore, dash only (1-64 chars); no dots, paths, or traversal (Some clients including Claude Desktop rejects dots).\n' "${kind}" >&2
+		printf 'Invalid %s name: use alphanumerics, underscore, dash only (1-64 chars, not starting with a dash); no dots, paths, or traversal (Some clients including Claude Desktop rejects dots).\n' "${kind}" >&2
 		exit 1
 	fi
 	if [ ! -d "${scaffold_dir}" ]; then
@@ -165,7 +165,8 @@ mcp_init_project_skeleton() {
   "name": "${name}",
   "title": "${title}",
   "version": "0.1.0",
-  "description": "Description of your MCP server"
+  "description": "Description of your MCP server",
+  "mcpBash": { "apiVersion": 2 }
 }
 EOF
 		fi
@@ -236,7 +237,7 @@ source "${MCP_SDK:?MCP_SDK environment variable not set}/tool-sdk.sh"
 
 name="$(mcp_args_get '.name // "World"')"
 
-mcp_result_success "$(mcp_json_obj message "Hello, ${name}!")"
+mcp_result_json "$(mcp_json_obj message "Hello, ${name}!")"
 EOF
 			chmod +x "${hello_dir}/tool.sh"
 			cat >"${hello_dir}/tool.meta.json" <<'EOF'
@@ -254,15 +255,8 @@ EOF
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "result"],
     "properties": {
-      "success": { "type": "boolean" },
-      "result": {
-        "type": "object",
-        "properties": {
-          "message": { "type": "string" }
-        }
-      }
+      "message": { "type": "string" }
     }
   }
 }

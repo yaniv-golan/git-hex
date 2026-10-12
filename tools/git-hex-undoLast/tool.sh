@@ -102,7 +102,7 @@ fi
 
 # Check if we're already at the backup state
 if [ "${head_before}" = "${backup_hash}" ]; then
-	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+	# Build and emit result
 	# shellcheck disable=SC2016
 	result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		--arg headBefore "${head_before}" \
@@ -110,7 +110,7 @@ if [ "${head_before}" = "${backup_hash}" ]; then
 		--arg undoneOperation "${operation:-unknown}" \
 		--arg summary "Already at backup state - nothing to undo" \
 		'{headBefore: $headBefore, headAfter: $headAfter, undoneOperation: $undoneOperation, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -186,7 +186,7 @@ if [ "${force}" = "true" ] && [ "${commits_since_backup}" -gt 0 ]; then
 	summary="${summary} (forced)"
 fi
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg headBefore "${head_before}" \
@@ -196,4 +196,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson commitsUndone "${commits_since_backup}" \
 	--arg summary "${summary}" \
 	'{headBefore: $headBefore, headAfter: $headAfter, undoneOperation: $undoneOperation, backupRef: $backupRef, commitsUndone: $commitsUndone, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

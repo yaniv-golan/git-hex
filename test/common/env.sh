@@ -18,8 +18,11 @@ else
 	XDG_FRAMEWORK_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/mcp-bash"
 	if [ -d "${XDG_FRAMEWORK_DIR}" ]; then
 		FRAMEWORK_DIR="${XDG_FRAMEWORK_DIR}"
+	elif command -v mcp-bash >/dev/null 2>&1; then
+		# Any mcp-bash on PATH (e.g. Homebrew); its directory goes first on PATH below.
+		FRAMEWORK_DIR="$(cd "$(dirname "$(command -v mcp-bash)")/.." && pwd)"
 	else
-		echo "ERROR: Cannot find mcp-bash framework. Set MCPBASH_HOME or run ./git-hex.sh install (prefer --verify)." >&2
+		echo "ERROR: Cannot find mcp-bash. Install it (brew install yaniv-golan/mcp-bash/mcp-bash) or set MCPBASH_HOME." >&2
 		exit 1
 	fi
 fi
@@ -49,8 +52,12 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 fi
 
 # Prefer CI-safe defaults when running under automation
+# mcp-bash enables CI mode only for MCPBASH_CI_MODE=true; accept 1 here too.
 if [ "${CI:-}" = "true" ] && [ -z "${MCPBASH_CI_MODE:-}" ]; then
-	export MCPBASH_CI_MODE=1
+	export MCPBASH_CI_MODE=true
+fi
+if [ "${MCPBASH_CI_MODE:-}" = "1" ]; then
+	export MCPBASH_CI_MODE=true
 fi
 if [ -n "${MCPBASH_TRACE_TOOLS:-}" ] && [ -z "${MCPBASH_TRACE_PS4:-}" ]; then
 	# shellcheck disable=SC2016 # Single quotes intentional - PS4 expands at runtime in the tool
@@ -73,6 +80,14 @@ test_verify_framework() {
 	fi
 }
 
+# git_at_least MAJOR MINOR: true when the installed git is at least that version.
+git_at_least() {
+	local v major minor
+	v="$(git --version 2>/dev/null | sed -n 's/^git version \([0-9]*\)\.\([0-9]*\).*/\1 \2/p')"
+	read -r major minor <<<"${v:-0 0}"
+	[ "${major}" -gt "$1" ] || { [ "${major}" -eq "$1" ] && [ "${minor}" -ge "$2" ]; }
+}
+
 # Run a tool and extract the structured content from the response
 # Usage: run_tool <tool-name> <roots> <args-json> [timeout]
 # Returns: The structuredContent JSON on stdout, or error JSON if tool failed
@@ -90,7 +105,7 @@ run_tool() {
 	# Capture stderr to a temp file for debugging on failure
 	# In CI mode, add --verbose to stream tool stderr for better debugging
 	local verbose_flag=""
-	if [ "${MCPBASH_CI_MODE:-}" = "1" ] || [ "${MCPBASH_CI_VERBOSE:-}" = "1" ]; then
+	if [ "${MCPBASH_CI_MODE:-}" = "true" ] || [ "${MCPBASH_CI_VERBOSE:-}" = "1" ]; then
 		verbose_flag="--verbose"
 	fi
 	# shellcheck disable=SC2086
@@ -104,13 +119,17 @@ run_tool() {
 	local error_obj=""
 	local structured=""
 	# Single jq pass:
-	# - If an MCP tool error exists, emit that error object and exit non-zero.
+	# - If the tool reported an error (isError: true; older runtimes used the
+	#   _mcpToolError marker), emit {type, message} and exit non-zero.
 	# - Otherwise, emit the first structuredContent payload (or empty).
 	set +e
 	structured="$(printf '%s' "${raw_output}" | jq -s -c '
-		(map(select(._mcpToolError == true)) | .[0] // null) as $err
+		(map(select(type == "object" and (.isError == true or ._mcpToolError == true))) | .[0] // null) as $err
 		| if $err != null then
-			($err), halt_error(1)
+			({
+				type: ($err._meta["mcpbash/error"].type // $err.type // null),
+				message: ($err._meta["mcpbash/error"].message // $err.message // ([$err.content[]? | select(.type == "text") | .text] | join("\n")))
+			}), halt_error(1)
 		else
 			(map(select(.structuredContent)) | .[0].structuredContent // empty)
 		end
@@ -165,24 +184,7 @@ run_tool() {
 		printf '[run_tool %s] raw_output: %s\n' "${tool_name}" "${raw_output}" >&2
 	fi
 
-	# Check for friendly error response: {success: false, error: {...}}
-	# These are application-level errors that should be treated as failures
-	local is_error_response
-	is_error_response="$(printf '%s' "${structured}" | jq -r 'if type == "object" and .success == false and has("error") then "true" else "false" end' 2>/dev/null || echo "false")"
-
-	if [ "${is_error_response}" = "true" ]; then
-		printf '[run_tool %s] error response: %s\n' "${tool_name}" "${structured}" >&2
-		# Output the error object for test assertions (with .message at top level for compat)
-		printf '%s' "${structured}" | jq -c '.error + {message: .error.message}' 2>/dev/null
-		rm -f "${stderr_file}"
-		return 1
-	fi
-
-	# Unwrap mcp_result_success envelope: if response has {success: true, result: {...}},
-	# extract just the .result portion for test assertions (mcp-bash 0.9.2+ envelope format)
-	local unwrapped
-	unwrapped="$(printf '%s' "${structured}" | jq -c 'if type == "object" and has("success") and has("result") then .result else . end' 2>/dev/null || echo "${structured}")"
-	echo "${unwrapped}"
+	echo "${structured}"
 }
 
 # Run a tool expecting it to fail

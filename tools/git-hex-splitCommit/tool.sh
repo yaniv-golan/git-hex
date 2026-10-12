@@ -231,7 +231,9 @@ if [ -z "${found}" ]; then
 fi
 mv "${todo_file}.tmp" "${todo_file}"
 EDITOR_SCRIPT
-chmod +x "${seq_editor}"
+# Run the script through bash instead of executing the temp file, so it works
+# where TMPDIR is mounted noexec (and doesn't depend on its exec bit).
+seq_editor_cmd="bash '${seq_editor}'"
 
 export GIT_HEX_TARGET_FULL="${full_commit}"
 export GIT_HEX_TARGET_SUBJECT="${commit_subject}"
@@ -241,9 +243,9 @@ _git_hex_rebase_started="true"
 rebase_status=0
 # shellcheck disable=SC2034
 if [ "${sign_commits}" = "true" ]; then
-	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
+	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor_cmd}" git -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
 else
-	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor}" git -c commit.gpgsign=false -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
+	rebase_output="$(GIT_SEQUENCE_EDITOR="${seq_editor_cmd}" git -c commit.gpgsign=false -C "${repo_path}" rebase -i "${commit_parent}" 2>&1)" || rebase_status=$?
 fi
 
 unset GIT_HEX_TARGET_FULL GIT_HEX_TARGET_SUBJECT GIT_HEX_REPO_PATH
@@ -379,7 +381,7 @@ output_json="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	'{originalCommit: $originalCommit, newCommits: $newCommits, backupRef: $backupRef, rebasePaused: $rebasePaused, stashNotRestored: $stashNotRestored, summary: $summary}' 2>/dev/null || true)"
 
 if [ -z "${output_json}" ]; then
-	# jq failed - construct JSON manually (mcp_result_success will add success envelope)
+	# jq failed - construct JSON manually
 	printf 'WARNING: jq output construction failed, using manual fallback\n' >&2
 	original_esc="$(mcp_json_escape "${full_commit}")"
 	backup_esc="$(mcp_json_escape "${backup_ref}")"
@@ -387,5 +389,4 @@ if [ -z "${output_json}" ]; then
 	output_json="{\"originalCommit\":${original_esc},\"newCommits\":${new_commits_json},\"backupRef\":${backup_esc},\"rebasePaused\":${rebase_paused},\"stashNotRestored\":${stash_not_restored},\"summary\":${summary_esc}}"
 fi
 
-# mcp_result_success wraps in {success: true, result: ...} envelope
-mcp_result_success "${output_json}"
+mcp_result_json "${output_json}"

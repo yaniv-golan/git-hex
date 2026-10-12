@@ -82,6 +82,26 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	fi
 fi
 
+# run-tool needs the full mcp-bash CLI too. It runs after the allowlist is set,
+# so the documented `./git-hex.sh run-tool ...` gets git-hex's tool list.
+if [ "${1:-}" = "run-tool" ]; then
+	if command -v mcp-bash >/dev/null 2>&1; then
+		# git-hex needs mcp-bash 1.8+ (typed tool errors and the restrict-only
+		# policy hook that enforces read-only mode).
+		mcp_bash_version="$(mcp-bash --version 2>/dev/null | sed -n 's/^mcp-bash \([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2/p')"
+		read -r mcp_bash_major mcp_bash_minor <<<"${mcp_bash_version:-0 0}"
+		if [ "${mcp_bash_major}" -lt 1 ] || { [ "${mcp_bash_major}" -eq 1 ] && [ "${mcp_bash_minor}" -lt 8 ]; }; then
+			echo "The 'run-tool' subcommand needs mcp-bash 1.8 or later; found: $(mcp-bash --version 2>/dev/null || echo unknown)." >&2
+			echo "Upgrade via: brew upgrade yaniv-golan/mcp-bash/mcp-bash" >&2
+			exit 1
+		fi
+		exec mcp-bash "$@"
+	fi
+	echo "The 'run-tool' subcommand requires mcp-bash installed on your system." >&2
+	echo "Install via: brew install yaniv-golan/mcp-bash/mcp-bash" >&2
+	exit 1
+fi
+
 # Print debug banner if debug mode enabled
 if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
 	VENDOR_VERSION=$(cat "${FRAMEWORK_DIR}/VERSION" 2>/dev/null || echo "unknown")

@@ -107,11 +107,11 @@ while  IFS= read -r -d '' _conflict_file; do
 	remaining="$((remaining + 1))"
 done  < <(git -C "${repo_path}" diff --name-only --diff-filter=U -z 2>/dev/null || true)
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg file "${file}" \
 	--argjson remainingConflicts "${remaining}" \
 	--arg summary "Marked ${file} as resolved. ${remaining} conflict(s) remaining." \
 	'{file: $file, remainingConflicts: $remainingConflicts, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

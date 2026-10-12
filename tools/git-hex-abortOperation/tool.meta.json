@@ -17,18 +17,30 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success", "result"],
+    "required": [
+      "operationType",
+      "summary"
+    ],
     "properties": {
-      "success": { "type": "boolean" },
-      "result": {
-        "type": "object",
-        "required": ["operationType", "summary"],
-        "properties": {
-          "operationType": { "type": "string", "enum": ["none", "rebase", "cherry-pick", "merge", "revert", "bisect"] },
-          "operationSucceeded": { "type": "boolean" },
-          "error": { "type": "string" },
-          "summary": { "type": "string" }
-        }
+      "operationType": {
+        "type": "string",
+        "enum": [
+          "none",
+          "rebase",
+          "cherry-pick",
+          "merge",
+          "revert",
+          "bisect"
+        ]
+      },
+      "operationSucceeded": {
+        "type": "boolean"
+      },
+      "error": {
+        "type": "string"
+      },
+      "summary": {
+        "type": "string"
       }
     }
   },

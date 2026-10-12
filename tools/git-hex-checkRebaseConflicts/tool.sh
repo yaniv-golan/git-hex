@@ -20,11 +20,11 @@ max_commits="$(mcp_args_int '.maxCommits' --default 100 --min 1)"
 # Validate repo
 git_hex_require_repo "${repo_path}"
 
-# Check git version (require 2.38+)
+# Check git version (require 2.40+: merge-tree --write-tree is 2.38, its --merge-base option 2.40)
 read -r git_major git_minor git_version_raw <<<"$(git_hex_parse_git_version | tr '\t' ' ')"
-if [ "${git_major}" -lt 2 ] || { [ "${git_major}" -eq 2 ] && [ "${git_minor}" -lt 38 ]; }; then
-	git_hex_error "GIT_VERSION_UNSUPPORTED" "checkRebaseConflicts requires Git 2.38+ for merge-tree support. Current version: ${git_version_raw}" \
-		"Upgrade Git to version 2.38 or later"
+if [ "${git_major}" -lt 2 ] || { [ "${git_major}" -eq 2 ] && [ "${git_minor}" -lt 40 ]; }; then
+	git_hex_error "GIT_VERSION_UNSUPPORTED" "checkRebaseConflicts requires Git 2.40+ (git merge-tree --merge-base). Current version: ${git_version_raw}" \
+		"Upgrade Git to version 2.40 or later"
 fi
 
 # Validate onto: require a commit-ish, not an arbitrary token that could be interpreted as a path.
@@ -169,7 +169,7 @@ fi
 
 note="Predictions may not match actual rebase behavior in all cases. Merge commits are ignored (default git rebase behavior)."
 
-# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
+# Build and emit result
 # shellcheck disable=SC2016
 result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson wouldConflict "${would_conflict}" \
@@ -190,4 +190,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		summary: $summary,
 		note: $note
 	}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

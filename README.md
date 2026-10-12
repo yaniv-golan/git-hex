@@ -94,7 +94,7 @@ When connected, your AI can use tools like `git-hex-getRebasePlan` to answer.
 <summary>Having issues?</summary>
 
 - Diagnostics (no persistent changes): `./git-hex.sh doctor`
-- Install/repair prerequisites: `./git-hex.sh install`
+- Missing or damaged runtime: `git checkout -- .mcp-bash/` (the mcp-bash runtime is vendored in the repo)
 - macOS apps launched from Finder/Spotlight/Dock: use `git-hex-env.sh` (see [`docs/clients.md`](docs/clients.md))
 - Install/uninstall details: [`docs/install.md`](docs/install.md)
 - Allowed folders (“roots”) explanation: [`docs/concepts.md`](docs/concepts.md#allowed-folders-mcp-roots)
@@ -188,7 +188,7 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | MCP Bash Framework (`mcp-bash`) | v0.9.6+ |
 | bash | 3.2+ |
 | jq or gojq | Required |
-| git | 2.20+ (2.33+ for `ort`, 2.38+ for `git-hex-checkRebaseConflicts`) |
+| git | 2.20+ (2.33+ for `ort`, 2.40+ for `git-hex-checkRebaseConflicts`) |
 
 ## Configuration
 
@@ -203,8 +203,6 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GIT_HEX_READ_ONLY` | unset | `1` blocks mutating tools (see [`docs/safety.md`](docs/safety.md)) |
-| `GIT_HEX_MCPBASH_SHA256` | unset | If set, `./git-hex.sh install` downloads the `FRAMEWORK_VERSION` tarball and verifies it against this checksum (fails on mismatch) instead of cloning. |
-| `GIT_HEX_MCPBASH_ARCHIVE_URL` | unset | Optional override for the tarball URL used when `GIT_HEX_MCPBASH_SHA256` is set. |
 | `MCPBASH_TOOL_ALLOWLIST` | (set by launchers) | Only allowlisted tools may run; any other tool call is refused. `git-hex.sh`, `git-hex-env.sh` and the Docker image set the full git-hex tool list (narrowed in read-only mode), and MCPB bundles set `*`. **If you start `mcp-bash` or `.mcp-bash/bin/mcp-bash` directly instead of a launcher, set it yourself** (see below). Use `*` only in trusted environments. |
 
 **Examples:**
@@ -212,9 +210,6 @@ All history-mutating operations create backup refs, enabling `undoLast` to resto
 ```bash
 # Read-only mode (inspection only, no history changes)
 GIT_HEX_READ_ONLY=1 ./git-hex.sh
-
-# Verified framework install (CI/supply-chain security)
-GIT_HEX_MCPBASH_SHA256="10524108..." ./git-hex.sh install
 
 # In MCP client config (e.g., Claude Desktop)
 {

@@ -60,7 +60,8 @@ while IFS= read -r meta; do
 	assert_jq "${meta}" '(.inputSchema.type? == "object")' "inputSchema.type must be object"
 	assert_jq "${meta}" '(.outputSchema.type? == "object")' "outputSchema.type must be object"
 	assert_jq "${meta}" '(.outputSchema.required? | type) == "array"' "outputSchema.required must be an array"
-	assert_jq "${meta}" '(.outputSchema.required | index("success") != null)' "outputSchema.required must include \"success\""
+	# Tools return the result itself (mcp_result_json), not a {success, result} envelope.
+	assert_jq "${meta}" '(.outputSchema.properties // {}) | has("success") | not' "outputSchema must describe the result, not the {success, result} envelope"
 
 	# Ensure .name matches directory (tools/git-hex-foo/tool.meta.json => name=git-hex-foo)
 	if ! jq -e --arg expected "${dir_base}" '.name == $expected' "${meta}" >/dev/null 2>&1; then

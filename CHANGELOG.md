@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`GIT_HEX_DEBUG`, `GIT_HEX_DEBUG_SPLIT` and `GIT_HEX_DEBUG_REBASE` reach the tools**: the tool env allowlist was in `server.d/env.sh`, which the server never loads, so tools never received them. It is now in `server.meta.json`.
 - **`./git-hex.sh run-tool` works**: the launcher sent it to the vendored runtime, which has no CLI commands. It now runs the system `mcp-bash`, with git-hex's tool allowlist.
+- **`rebaseWithPlan` works with jq 1.6** (Debian 12, Ubuntu 22.04): every plan was rejected with "Commit message cannot contain null bytes", because jq 1.6's `contains("\u0000")` is true for any string.
+- **`splitCommit` no longer needs an executable temp directory**: its sequence-editor script is run through `bash`, so it works where `TMPDIR` is mounted `noexec`.
 - **`docker build` works again**: the build step used `set -o pipefail`, which Debian's `/bin/sh` rejects.
 - **Docs no longer describe `./git-hex.sh install`, `mcp-bash.lock` or `GIT_HEX_MCPBASH_SHA256`**, which went away when the runtime was vendored. CONTRIBUTING shows the current result and error helpers.
 

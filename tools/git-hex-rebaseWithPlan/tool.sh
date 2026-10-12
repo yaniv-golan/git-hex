@@ -123,7 +123,8 @@ validate_rebase_action()  {
 }
 
 if  [ "${plan_length}" -gt 0 ]; then
-	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | contains("\u0000")] | any' 2>/dev/null || echo "false")"
+	# Compare code points: jq 1.6's contains() stops at a NUL, so contains("\u0000") is always true there.
+	has_null_message="$(printf '%s' "${plan_json}" | "${MCPBASH_JSON_TOOL_BIN}" '[.[] | (.message // "") | tostring | explode | any(. == 0)] | any' 2>/dev/null || echo "false")"
 	if [ "${has_null_message}" = "true" ]; then
 		git_hex_error "INVALID_MESSAGE" "Commit message cannot contain null bytes" \
 			"Use plain text without null characters"

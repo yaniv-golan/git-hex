@@ -24,5 +24,15 @@ if [ "${version#v}" != "${vendored}" ]; then
 	exit 1
 fi
 
-curl -fsSL "https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/${version}/install.sh" \
-	| bash -s -- --yes --version "${version}" --verify "${sha}" "$@"
+# GitHub sometimes answers a download with a 5xx; try a few times.
+attempt=1
+until curl -fsSL "https://raw.githubusercontent.com/yaniv-golan/mcp-bash-framework/${version}/install.sh" \
+	| bash -s -- --yes --version "${version}" --verify "${sha}" "$@"; do
+	if [ "${attempt}" -ge 3 ]; then
+		echo "error: installing mcp-bash ${version} failed ${attempt} times" >&2
+		exit 1
+	fi
+	echo "Install failed (attempt ${attempt}); retrying in $((attempt * 10))s..." >&2
+	sleep $((attempt * 10))
+	attempt=$((attempt + 1))
+done

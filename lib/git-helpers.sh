@@ -71,7 +71,6 @@ readonly GIT_HEX_ERR_NO_COMMITS="NO_COMMITS"
 # The error type is the code in lower case (REBASE_IN_PROGRESS ->
 # rebase_in_progress); suggestions become the hint; the code and suggestions
 # are also sent as data. Exits the tool, also when called inside $(...).
-# Note: Suggestions must not contain null bytes
 git_hex_error() {
 	local code="$1"
 	local message="$2"
@@ -86,11 +85,10 @@ git_hex_error() {
 		# shellcheck disable=SC2016  # $code is a jq variable, not bash
 		data="$("$json_tool" -nc --arg code "$code" '{code: $code}')"
 	else
-		local suggestions_json
-		# Use null-delimited format to handle suggestions with newlines
-		suggestions_json=$(printf '%s\0' "${suggestions[@]}" | "$json_tool" -Rs 'split("\u0000") | .[:-1]')
-		# shellcheck disable=SC2016  # $code, $sug are jq variables, not bash
-		data="$("$json_tool" -nc --arg code "$code" --argjson sug "$suggestions_json" '{code: $code, suggestions: $sug}')"
+		# Pass suggestions as positional arguments (jq 1.6+, gojq), which keeps
+		# newlines and avoids jq 1.6 dropping a trailing empty string in split().
+		# shellcheck disable=SC2016  # $code, $ARGS are jq variables, not bash
+		data="$("$json_tool" -nc --arg code "$code" '{code: $code, suggestions: $ARGS.positional}' --args "${suggestions[@]}")"
 		hint="$(printf '%s\n' "${suggestions[@]}")"
 		hint="${hint%$'\n'}"
 	fi

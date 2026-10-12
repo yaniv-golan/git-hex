@@ -23,13 +23,32 @@ MCPBASH_IDLE_TIMEOUT_TRIGGERED=false
 MCPBASH_ORPHAN_DETECTED=false
 _MCPBASH_SIGNAL_RECEIVED=""
 _MCPBASH_CLEANUP_DONE=false
+# Set just before each intended `exit 0`. Bash 3.2 runs the EXIT trap with
+# $? = 0 after a fatal shell error (an unbound variable under set -u, for
+# example), so a zero status without this flag means the server died.
+_MCPBASH_EXIT_CLEAN=false
 
 # EXIT trap handler with idempotency guard.
 # Ensures cleanup runs exactly once, whether from normal exit or signal.
 _mcp_exit_handler() {
 	local exit_code=$?
+	# The trap runs with the IFS of whatever it interrupted (several functions
+	# set a local IFS without a newline): restore the default for cleanup.
+	local IFS=$' \t\n'
+	if [ "${exit_code}" -eq 0 ] && [ "${_MCPBASH_EXIT_CLEAN}" != "true" ]; then
+		exit_code=1
+	fi
 	if [ "${_MCPBASH_CLEANUP_DONE}" != "true" ]; then
 		_MCPBASH_CLEANUP_DONE=true
+		if declare -F mcp_io_report_stdout_gone >/dev/null 2>&1; then
+			mcp_io_report_stdout_gone
+		fi
+		# An abnormal exit (signal, failed stdout write, fatal error): nobody
+		# can receive the running workers' results, so stop them and their
+		# tools instead of leaving them running on their own.
+		if declare -F mcp_core_stop_all_workers >/dev/null 2>&1; then
+			mcp_core_stop_all_workers 2>/dev/null || true
+		fi
 		mcp_runtime_cleanup 2>/dev/null || true
 	fi
 	exit ${exit_code}
@@ -39,6 +58,7 @@ MCPBASH_DEFAULT_MAX_OUTPUT_BYTES="${MCPBASH_DEFAULT_MAX_OUTPUT_BYTES:-10485760}"
 MCPBASH_DEFAULT_PROGRESS_PER_MIN="${MCPBASH_DEFAULT_PROGRESS_PER_MIN:-100}"
 MCPBASH_DEFAULT_TOOL_TIMEOUT="${MCPBASH_DEFAULT_TOOL_TIMEOUT:-30}"
 MCPBASH_DEFAULT_SUBSCRIBE_TIMEOUT="${MCPBASH_DEFAULT_SUBSCRIBE_TIMEOUT:-120}"
+MCPBASH_DEFAULT_RESOURCE_TIMEOUT="${MCPBASH_DEFAULT_RESOURCE_TIMEOUT:-120}"
 MCPBASH_SHUTDOWN_TIMEOUT="${MCPBASH_SHUTDOWN_TIMEOUT:-5}"
 
 mcp_register_tool() {
@@ -109,6 +129,7 @@ mcp_core_bootstrap_state() {
 	MCPBASH_MAX_LOGS_PER_MIN="${MCPBASH_MAX_LOGS_PER_MIN:-${MCPBASH_MAX_PROGRESS_PER_MIN}}"
 	MCPBASH_DEFAULT_TOOL_TIMEOUT="${MCPBASH_DEFAULT_TOOL_TIMEOUT:-30}"
 	MCPBASH_DEFAULT_SUBSCRIBE_TIMEOUT="${MCPBASH_DEFAULT_SUBSCRIBE_TIMEOUT:-120}"
+	MCPBASH_DEFAULT_RESOURCE_TIMEOUT="${MCPBASH_DEFAULT_RESOURCE_TIMEOUT:-120}"
 	MCPBASH_SHUTDOWN_TIMEOUT="${MCPBASH_SHUTDOWN_TIMEOUT:-5}"
 	MCPBASH_SHUTDOWN_TIMER_STARTED=false
 	MCPBASH_RESOURCE_POLL_PID=""
@@ -125,6 +146,91 @@ mcp_core_bootstrap_state() {
 	: >"${MCP_PROGRESS_STREAM}"
 	: >"${MCP_LOG_STREAM}"
 	mcp_runtime_log_startup_summary
+	mcp_core_start_deprecation_notice
+}
+
+# Once a day, tell the operator on stderr when the project uses APIs that
+# change in mcp-bash 2.0. Best effort: the scan runs in the background, never
+# touches stdout, and any failure is silent. Skipped when the rule engine isn't
+# installed (vendored runtimes), for bundles (static registry, whose users
+# can't act on it), in minimal mode, and with MCPBASH_DEPRECATION_NOTICE=false.
+mcp_core_start_deprecation_notice() {
+	case "${MCPBASH_DEPRECATION_NOTICE:-true}" in
+	false | 0 | no | off) return 0 ;;
+	esac
+	[ "${MCPBASH_STATIC_REGISTRY:-0}" = "1" ] && return 0
+	mcp_runtime_is_minimal_mode && return 0
+	[ -f "${MCPBASH_HOME}/lib/migrate_rules.sh" ] || return 0
+	local project_root="${MCPBASH_PROJECT_ROOT:-}"
+	local registry_dir="${MCPBASH_REGISTRY_DIR:-}"
+	[ -n "${project_root}" ] && [ -d "${project_root}" ] || return 0
+	[ -n "${registry_dir}" ] && [ -d "${registry_dir}" ] && [ -w "${registry_dir}" ] || return 0
+
+	# The stamp holds the date of the last scan. Claim today's slot before
+	# scanning so servers started together report once, and a clean project
+	# is scanned at most once a day.
+	local stamp="${registry_dir}/deprecation-notice.stamp"
+	local today last=""
+	today="$(date +%Y-%m-%d 2>/dev/null)" || return 0
+	[ -n "${today}" ] || return 0
+	if [ -f "${stamp}" ]; then
+		last="$(head -n 1 "${stamp}" 2>/dev/null || true)"
+	fi
+	[ "${last}" = "${today}" ] && return 0
+	printf '%s\n' "${today}" >"${stamp}" 2>/dev/null || return 0
+
+	(
+		set +e
+		# shellcheck source=lib/migrate_rules.sh disable=SC1091
+		. "${MCPBASH_HOME}/lib/migrate_rules.sh" || exit 0
+		# One rule at a time, stopping as soon as the server is gone ($$ is the
+		# server's PID even in this subshell): background helpers must not
+		# outlive a server that was killed.
+		count=0
+		while IFS= read -r rule; do
+			mcp_core_server_alive || exit 0
+			id="${rule##*/}"
+			id="${id%.sh}"
+			n="$(mcp_migrate_detect "${project_root}" --validate --only "${id}" 2>/dev/null | grep -c . 2>/dev/null)"
+			case "${n}" in '' | *[!0-9]*) n=0 ;; esac
+			count=$((count + n))
+		done <<EOF_RULES
+$(mcp_migrate_rule_files 2>/dev/null)
+EOF_RULES
+		mcp_core_server_alive || exit 0
+		[ "${count}" -gt 0 ] || exit 0
+		noun="uses"
+		[ "${count}" -eq 1 ] && noun="use"
+		# shellcheck disable=SC2016  # Backticks are literal text.
+		printf 'mcp-bash: %s %s of APIs that change in mcp-bash 2.0; run `mcp-bash validate` for details\n' "${count}" "${noun}" >&2
+	) </dev/null >/dev/null &
+	# Not a worker: keep it out of `jobs -p`, so shutdown doesn't wait for it.
+	disown "$!" 2>/dev/null || true
+}
+
+# Whether the server is still running, for background helpers ($$ is the
+# server's PID in their subshells too). kill -0 alone also succeeds while a
+# killed server is a zombie its parent has not reaped yet, so the state is
+# checked too: /proc on Linux, else ps. When neither gives a clear answer
+# (no ps, or a ps without -p that lists everything), kill -0 decides.
+mcp_core_server_alive() {
+	kill -0 "$$" 2>/dev/null || return 1
+	local state=""
+	if [ -r "/proc/$$/stat" ]; then
+		state="$(cat "/proc/$$/stat" 2>/dev/null || true)"
+		state="${state##*) }"
+		state="${state%% *}"
+	else
+		state="$(ps -o stat= -p "$$" 2>/dev/null || true)"
+		case "${state}" in
+		*$'\n'*) state="" ;;
+		esac
+		state="${state//[[:space:]]/}"
+	fi
+	case "${state}" in
+	Z*) return 1 ;;
+	esac
+	return 0
 }
 
 mcp_core_has_resource_subscriptions() {
@@ -286,6 +392,7 @@ mcp_core_read_loop() {
 	# runs after the pending `read` returns, so TERM/INT waited out the full
 	# read timeout (or, with a blocking read, the next input line). Exiting
 	# here still runs the EXIT trap (_mcp_exit_handler) for cleanup.
+	trap 'exit 129' HUP
 	trap 'exit 130' INT
 	trap 'exit 143' TERM
 
@@ -295,6 +402,16 @@ mcp_core_read_loop() {
 
 	# For EOF detection heuristic: track consecutive immediate returns
 	local immediate_returns=0
+
+	# A request whose bytes straddle the read timeout must not be split or lost.
+	# bash 4+ returns the bytes read so far with a timeout status; they are kept
+	# here and joined with the next read. bash 3.2 discards them instead, so on
+	# 3.2 only the first character is read with a timeout and the rest of the
+	# line with a blocking read (a client mid-request is alive; if it goes away,
+	# the read returns at end of input).
+	local partial=""
+	local first_char=""
+	local rest_status=0
 
 	while true; do
 		# Clear line before read to prevent stale data on timeout/EOF
@@ -307,7 +424,33 @@ mcp_core_read_loop() {
 
 			# Capture exit status in a way that prevents set -e from aborting on timeout/EOF
 			local read_status=0
-			IFS= read -t "${read_timeout}" -r line || read_status=$?
+			if [ "${BASH_VERSINFO[0]}" -ge 4 ]; then
+				IFS= read -t "${read_timeout}" -r line || read_status=$?
+				if [ "${read_status}" -gt 128 ]; then
+					# Timed out, possibly mid-line: keep the bytes, don't answer a
+					# fragment.
+					partial="${partial}${line}"
+					line=""
+				elif [ -n "${partial}" ]; then
+					# A full line, or end of input: join the kept bytes.
+					line="${partial}${line}"
+					partial=""
+				fi
+			else
+				first_char=""
+				IFS= read -t "${read_timeout}" -r -n 1 first_char || read_status=$?
+				if [ "${read_status}" -eq 0 ] && [ -n "${first_char}" ]; then
+					rest_status=0
+					IFS= read -r line || rest_status=$?
+					line="${first_char}${line}"
+					if [ "${rest_status}" -ne 0 ]; then
+						# End of input after a final line without a newline.
+						[ -n "${_MCPBASH_SIGNAL_RECEIVED}" ] || mcp_core_handle_line "${line}"
+						line=""
+						break
+					fi
+				fi
+			fi
 
 			read_end=$(date +%s)
 			read_elapsed=$((read_end - read_start))
@@ -322,14 +465,14 @@ mcp_core_read_loop() {
 					esac
 				fi
 
-				# Handle any partial line data (for EOF case)
-				[ -n "${line}" ] && mcp_core_handle_line "${line}"
-
 				# bash >= 4 reports a read timeout as >128, so status 1 is an
-				# unambiguous EOF. Stop now: on a FIFO whose writer closed, later
-				# reads time out instead of returning EOF again, which would starve
-				# the consecutive-quick-returns heuristic below.
+				# unambiguous EOF. Answer a final line that had no newline (with
+				# any bytes kept from earlier timeouts), then stop: on a FIFO whose
+				# writer closed, later reads time out instead of returning EOF
+				# again, which would starve the consecutive-quick-returns heuristic
+				# below.
 				if [ "${BASH_VERSINFO[0]}" -ge 4 ] && [ "${read_status}" -eq 1 ]; then
+					[ -n "${line}" ] && mcp_core_handle_line "${line}"
 					break
 				fi
 
@@ -408,8 +551,9 @@ mcp_core_read_loop() {
 		mcp_core_handle_line "${line}"
 	done
 
-	# Restore default signal handling
-	trap - INT TERM
+	# Keep the exit traps: a signal while waiting for workers must still exit
+	# through the EXIT trap (cleanup). The default action would kill the server
+	# without removing its state directory.
 }
 
 mcp_core_finish_after_read_loop() {
@@ -423,12 +567,18 @@ mcp_core_finish_after_read_loop() {
 		MCPBASH_SHUTDOWN_TIMER_STARTED=false
 	fi
 
+	# The parent is gone: nobody can receive the workers' results.
+	if [ "${orphan_detected}" = true ]; then
+		mcp_core_stop_all_workers
+	fi
+
 	# Clean exit on: explicit exit, shutdown, idle timeout, OR orphan detected
 	if [ "${exit_requested}" = true ] || [ "${shutdown_pending}" = true ] \
 		|| [ "${idle_timeout}" = true ] || [ "${orphan_detected}" = true ]; then
 		mcp_core_wait_for_workers
 		mcp_runtime_cleanup
 		_MCPBASH_CLEANUP_DONE=true # Prevent double cleanup in EXIT trap
+		_MCPBASH_EXIT_CLEAN=true
 		exit 0
 	fi
 
@@ -436,7 +586,50 @@ mcp_core_finish_after_read_loop() {
 	mcp_core_wait_for_workers
 	mcp_runtime_cleanup
 	_MCPBASH_CLEANUP_DONE=true
+	_MCPBASH_EXIT_CLEAN=true
 	exit 0
+}
+
+# Stop every running worker and the tools it started: TERM now, KILL after up
+# to 1s. For exits where nobody can receive their results.
+mcp_core_stop_all_workers() {
+	[ -n "${MCPBASH_STATE_DIR:-}" ] || return 0
+	# Loops read line by line, so they do not depend on IFS (called from the
+	# exit trap, which runs with the IFS of whatever it interrupted).
+	local keys key info pid pgid rest targets="" alive tries=0
+	keys="$(mcp_ids_list_active_workers 2>/dev/null || true)"
+	[ -n "${keys}" ] || return 0
+	while IFS= read -r key; do
+		[ -n "${key}" ] || continue
+		info="$(mcp_ids_worker_info "${key}" 2>/dev/null)" || continue
+		pid="" pgid=""
+		IFS=' ' read -r pid pgid rest <<<"${info}"
+		case "${pid}" in '' | *[!0-9]*) continue ;; esac
+		case "${pgid}" in *[!0-9]*) pgid="" ;; esac
+		if [ "${MCPBASH_SKIP_PROCESS_GROUP_LOOKUP:-0}" = "1" ]; then
+			pgid=""
+		fi
+		mcp_core_send_signal_chain "${pid}" "${pgid}" TERM
+		targets="${targets}${pid} ${pgid}"$'\n'
+	done <<<"${keys}"
+	[ -n "${targets}" ] || return 0
+	while [ "${tries}" -lt 10 ]; do
+		alive=false
+		while IFS=' ' read -r pid pgid; do
+			[ -n "${pid}" ] || continue
+			if mcp_core_process_alive "${pid}" || mcp_core_group_alive "${pgid}"; then
+				alive=true
+				break
+			fi
+		done <<<"${targets}"
+		[ "${alive}" = true ] || return 0
+		sleep 0.1
+		tries=$((tries + 1))
+	done
+	while IFS=' ' read -r pid pgid; do
+		[ -n "${pid}" ] || continue
+		mcp_core_send_signal_chain "${pid}" "${pgid}" KILL
+	done <<<"${targets}"
 }
 
 mcp_core_wait_for_workers() {
@@ -827,6 +1020,7 @@ mcp_core_handle_line() {
 	if [ "${MCPBASH_EXIT_REQUESTED}" = true ]; then
 		mcp_core_wait_for_workers
 		mcp_runtime_cleanup
+		_MCPBASH_EXIT_CLEAN=true
 		exit 0
 	fi
 }
@@ -876,7 +1070,14 @@ mcp_core_dispatch_object() {
 
 	if [ "${MCPBASH_INITIALIZED}" != true ] && ! mcp_core_method_allowed_preinit "${method}"; then
 		if [ "${is_notification}" != "true" ]; then
-			mcp_core_emit_not_initialized "${id_json}"
+			# A method the server doesn't have is "not found" whatever the
+			# lifecycle state. Clients that probe with server/discover before
+			# initialize then see an unambiguous -32601 and fall back.
+			if mcp_core_resolve_handler "${method}"; then
+				mcp_core_emit_not_initialized "${id_json}"
+			else
+				mcp_core_emit_method_not_found "${id_json}"
+			fi
 		fi
 		return
 	fi
@@ -1029,6 +1230,11 @@ mcp_core_spawn_worker() {
 	rm -f "${cancel_file}"
 	local progress_token
 	progress_token="$(mcp_json_extract_progress_token "${json_line}")"
+	local handled_file=""
+	if [ -n "${key}" ]; then
+		handled_file="${MCPBASH_STATE_DIR}/handled.${key}"
+		rm -f "${handled_file}"
+	fi
 
 	(
 		exec 2>"${stderr_file}"
@@ -1039,7 +1245,20 @@ mcp_core_spawn_worker() {
 		export MCP_PROGRESS_TOKEN="${progress_token}"
 		export MCP_CANCEL_FILE="${cancel_file}"
 		if [ -n "${timeout}" ]; then
-			with_timeout "${timeout}" -- mcp_core_worker_entry "${handler}" "${method}" "${json_line}" "${id_json}" "${key}" "${stderr_file}"
+			local timeout_status=0
+			with_timeout "${timeout}" -- mcp_core_worker_entry "${handler}" "${method}" "${json_line}" "${id_json}" "${key}" "${stderr_file}" || timeout_status=$?
+			# The handler was killed before it could answer: answer for it, or
+			# the client waits forever. A worker that had already answered and
+			# was killed while delivering its streams leaves the handled marker.
+			# (Cancelled requests get no response; mcp_io_send_response drops
+			# them.)
+			if [ "${timeout_status}" -eq 124 ] && [ -n "${id_json}" ] && [ "${id_json}" != "null" ] \
+				&& { [ -z "${handled_file}" ] || [ ! -e "${handled_file}" ]; }; then
+				mcp_core_worker_emit "${key}" "$(mcp_core_build_error_response "${id_json}" -32603 "${method} timed out after ${timeout}s" "")"
+			fi
+			if [ -n "${handled_file}" ]; then
+				rm -f "${handled_file}"
+			fi
 		else
 			mcp_core_worker_entry "${handler}" "${method}" "${json_line}" "${id_json}" "${key}" "${stderr_file}"
 		fi
@@ -1100,6 +1319,11 @@ mcp_core_timeout_for_method() {
 		resources/subscribe)
 			timeout_value="${MCPBASH_DEFAULT_SUBSCRIBE_TIMEOUT:-120}"
 			;;
+		resources/read)
+			# A provider that never finishes (a slow backend, a FIFO) would
+			# otherwise hold a worker slot forever.
+			timeout_value="${MCPBASH_DEFAULT_RESOURCE_TIMEOUT:-120}"
+			;;
 		esac
 	fi
 
@@ -1141,6 +1365,12 @@ mcp_core_worker_entry() {
 	if [ -n "${response}" ]; then
 		response="$(mcp_core_guard_response_size "${id_json}" "${response}" "${method}")"
 		mcp_core_worker_emit "${key}" "${response}"
+	fi
+	# The request is now answered (or deliberately left unanswered). A timeout
+	# during the stream delivery below must not answer it a second time; see
+	# mcp_core_spawn_worker.
+	if [ -n "${key}" ]; then
+		: >"${MCPBASH_STATE_DIR}/handled.${key}" 2>/dev/null || true
 	fi
 
 	# Progress/log delivery:
@@ -1290,8 +1520,28 @@ mcp_core_cancel_request() {
 	fi
 
 	mcp_core_send_signal_chain "${pid}" "${pgid}" TERM
-	sleep 1
-	if mcp_core_process_alive "${pid}"; then
+	# Escalate from a helper so the main loop isn't held up: waiting here
+	# stalled all request handling for 1s per cancel, one cancel at a time.
+	# The double fork keeps the helper out of the job table, so it never
+	# counts as a worker; stdout goes to /dev/null so it can't hold the
+	# client's pipe open.
+	(
+		(
+			set +e
+			sleep 1
+			mcp_core_cancel_escalate "${key}" "${pid}" "${pgid}"
+		) >/dev/null </dev/null &
+	)
+}
+
+mcp_core_cancel_escalate() {
+	local key="$1"
+	local pid="$2"
+	local pgid="$3"
+
+	# The worker usually exits on TERM at once; the tool and the processes it
+	# started can outlive it in the same group, so check the group too.
+	if mcp_core_process_alive "${pid}" || mcp_core_group_alive "${pgid}"; then
 		mcp_core_send_signal_chain "${pid}" "${pgid}" KILL
 	fi
 	# If the worker died while holding the stdout lock, force-release it using the tracked pid.
@@ -1323,6 +1573,18 @@ mcp_core_send_signal_chain() {
 mcp_core_process_alive() {
 	local pid="$1"
 	kill -0 "${pid}" 2>/dev/null
+}
+
+mcp_core_group_alive() {
+	local pgid="$1"
+	if [ "${MCPBASH_SKIP_PROCESS_GROUP_LOOKUP:-0}" = "1" ] || [ -z "${pgid}" ]; then
+		return 1
+	fi
+	# Never probe (and so never signal) the server's own group.
+	if [ -n "${MCPBASH_MAIN_PGID:-}" ] && [ "${pgid}" = "${MCPBASH_MAIN_PGID}" ]; then
+		return 1
+	fi
+	kill -0 "-${pgid}" 2>/dev/null
 }
 
 mcp_core_get_id_key() {
@@ -1505,7 +1767,9 @@ mcp_core_emit_registry_notifications() {
 		;;
 	esac
 
-	mcp_core_poll_registries_once
+	# Outermost frame for the registry rebuilds: warnings they log inside
+	# $(...) captures are queued and flushed here.
+	mcp_notification_queue_run mcp_core_poll_registries_once
 
 	if [ "${allow_list_changed}" = "true" ]; then
 		mcp_tools_consume_notification true
@@ -1596,7 +1860,7 @@ mcp_core_start_progress_flusher() {
 		while :; do
 			# $$ is the server's PID even in this subshell. Exit with it: a server
 			# killed without cleanup (SIGKILL, crash) cannot stop this loop.
-			kill -0 "$$" 2>/dev/null || exit 0
+			mcp_core_server_alive || exit 0
 			if [ "${MCPBASH_ENABLE_LIVE_PROGRESS:-false}" = "true" ]; then
 				mcp_core_flush_worker_streams_once || true
 			fi
@@ -1653,10 +1917,14 @@ mcp_core_start_resource_poll() {
 		# Like the flusher: one failed iteration (for example a record removed
 		# by an unsubscribe mid-poll) must not end polling for the session.
 		set +e
+		# Defensive: never append to another frame's notification queue. Each
+		# iteration below owns its own.
+		# shellcheck disable=SC2034  # read by mcp_notification_queue_active (lib/io.sh)
+		MCP_NOTIFICATION_QUEUE_FILE=""
 		while :; do
 			# Exit with the server ($$ is its PID here too); see the flusher.
-			kill -0 "$$" 2>/dev/null || exit 0
-			mcp_resources_poll_subscriptions || true
+			mcp_core_server_alive || exit 0
+			mcp_resources_poll_subscriptions_queued || true
 			sleep "${interval}"
 		done
 	) &

@@ -202,8 +202,11 @@ mcp_elicitation_handle_tool_request() {
 		url="$(printf '%s' "${request_json}" | "${MCPBASH_JSON_TOOL_BIN}" -r '.url // ""')" || url=""
 		local url_json
 		url_json="$(mcp_json_quote_text "${url}")"
-		elicit_request="$(printf '{"jsonrpc":"2.0","id":%s,"method":"elicitation/create","params":{"mode":"url","message":%s,"url":%s}}' \
-			"${request_id}" "${message_json}" "${url_json}")"
+		# The spec requires a unique elicitationId on URL-mode requests.
+		local elicitation_id
+		elicitation_id="$(mcp_elicitation_new_id "${request_id}")"
+		elicit_request="$(printf '{"jsonrpc":"2.0","id":%s,"method":"elicitation/create","params":{"mode":"url","message":%s,"url":%s,"elicitationId":"%s"}}' \
+			"${request_id}" "${message_json}" "${url_json}" "${elicitation_id}")"
 	else
 		# Form mode: send requestedSchema
 		local schema
@@ -217,6 +220,20 @@ mcp_elicitation_handle_tool_request() {
 	mcp_io_send_line "${elicit_request}"
 }
 
+# Unique id for a URL-mode elicitation: elicit-<uuid>, or
+# elicit-<epoch>-<pid>-<request id>-<random> where uuidgen is missing.
+# Only [A-Za-z0-9-], so it can go inside a JSON string without escaping.
+mcp_elicitation_new_id() {
+	local request_id="$1" id=""
+	if command -v uuidgen >/dev/null 2>&1; then
+		id="$(uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -cd 'a-f0-9-')"
+	fi
+	if [ -z "${id}" ]; then
+		id="$(date +%s)-$$-$(printf '%s' "${request_id}" | tr -cd 'A-Za-z0-9')-$(printf '%04d%04d' "$RANDOM" "$RANDOM")"
+	fi
+	printf 'elicit-%s' "${id}"
+}
+
 mcp_elicitation_cancel_for_worker() {
 	local key="$1"
 	[ -n "${key}" ] || return 0
@@ -224,6 +241,9 @@ mcp_elicitation_cancel_for_worker() {
 	local response_file
 	request_file="$(mcp_elicitation_request_path_for_worker "${key}")"
 	response_file="$(mcp_elicitation_response_path_for_worker "${key}")"
+	# Cancel escalation runs a second later, possibly after the server exited
+	# and removed its state directory; there is nothing left to answer then.
+	[ -d "${response_file%/*}" ] || return 0
 	rm -f "${request_file}"
 	printf '{"action":"cancel","content":null}' >"${response_file}"
 

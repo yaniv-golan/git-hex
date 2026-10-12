@@ -15,7 +15,7 @@ A tool that refuses or fails returns an error result (`isError: true`). Its text
 }
 ```
 
-`type` is the error code in lower case. Calls refused by the tool allowlist or by read-only mode have type `policy_denied`; invalid arguments have type `invalid_args`.
+`type` is the error code in lower case. Calls refused by the tool allowlist or by read-only mode have type `policy_denied`; invalid arguments have type `invalid_args`. A call that runs past its time limit has type `timeout`, with the tool's timeout hint as `hint` and `reason`, `timeoutSecs` and `exitCode` under `data`.
 
 ## Tools
 

@@ -5,6 +5,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../common/assert.sh disable=SC1091
 source "${SCRIPT_DIR}/../common/assert.sh"
+# git_hex_error ends the tool through the SDK's mcp_fail.
+# shellcheck source=../../.mcp-bash/sdk/tool-sdk.sh disable=SC1091
+source "${SCRIPT_DIR}/../../.mcp-bash/sdk/tool-sdk.sh"
 # shellcheck source=../../lib/git-helpers.sh disable=SC1091
 source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 
@@ -12,30 +15,29 @@ source "${SCRIPT_DIR}/../../lib/git-helpers.sh"
 _LAST_ERROR_JSON=""
 
 # Helper to run a function and capture error response
-# git_hex_error outputs MCP CallToolResult JSON then exits 0
+# Outside the framework, git_hex_error prints the error CallToolResult and exits 1
 run_expecting_error() {
 	_LAST_ERROR_JSON=""
 	# Run in subshell to catch the exit; capture stdout
 	_LAST_ERROR_JSON="$("$@" 2>/dev/null)" || true
 }
 
-# Assert error response has expected code
-# Note: git_hex_error outputs MCP CallToolResult with error in structuredContent
+# Assert error response has expected code (sent as data.code)
 assert_error_code() {
 	local expected="$1"
 	local actual
-	actual="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.structuredContent.error.code // empty' 2>/dev/null || true)"
+	actual="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '._meta["mcpbash/error"].data.code // empty' 2>/dev/null || true)"
 	if [ "${actual}" != "${expected}" ]; then
 		test_fail "Expected error code '${expected}', got '${actual}'"
 	fi
 }
 
-# Assert error response has success=false in structuredContent
+# Assert the response is an error result (isError: true)
 assert_error_response() {
-	local success
-	success="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.structuredContent.success' 2>/dev/null || true)"
-	if [ "${success}" != "false" ]; then
-		test_fail "Expected success=false, got '${success}'"
+	local is_error
+	is_error="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.isError' 2>/dev/null || true)"
+	if [ "${is_error}" != "true" ]; then
+		test_fail "Expected isError=true, got '${is_error}'"
 	fi
 }
 
@@ -186,38 +188,30 @@ test_is_shallow_repo_false() {
 # Error Response Tests
 # ============================================================================
 
-test_error_json_structure() {
-	local json
-	json="$(git_hex_error_json "TEST_CODE" "Test message")"
+test_error_result_structure() {
+	run_expecting_error git_hex_error "TEST_CODE" "Test message"
+	assert_error_response
+	assert_error_code "TEST_CODE"
 
-	local success
-	success="$(echo "${json}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.success' 2>/dev/null)"
-	assert_eq "false" "${success}" "success should be false"
+	local type message
+	type="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '._meta["mcpbash/error"].type' 2>/dev/null)"
+	assert_eq "test_code" "${type}" "error type should be the lower-case code"
+	message="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.content[0].text' 2>/dev/null)"
+	assert_eq "Test message" "${message}" "error text should be the message"
 
-	local code
-	code="$(echo "${json}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.error.code' 2>/dev/null)"
-	assert_eq "TEST_CODE" "${code}" "error code should match"
-
-	local message
-	message="$(echo "${json}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.error.message' 2>/dev/null)"
-	assert_eq "Test message" "${message}" "error message should match"
-
-	test_pass "git_hex_error_json creates correct structure"
+	test_pass "git_hex_error ends with an isError result"
 }
 
-test_error_json_with_suggestions() {
-	local json
-	json="$(git_hex_error_json "TEST_CODE" "Test message" "Suggestion 1" "Suggestion 2")"
+test_error_result_with_suggestions() {
+	run_expecting_error git_hex_error "TEST_CODE" "Test message" "Suggestion 1" "Suggestion 2"
 
-	local count
-	count="$(echo "${json}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.error.suggestions | length' 2>/dev/null)"
+	local count hint
+	count="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '._meta["mcpbash/error"].data.suggestions | length' 2>/dev/null)"
 	assert_eq "2" "${count}" "should have 2 suggestions"
+	hint="$(echo "${_LAST_ERROR_JSON}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '._meta["mcpbash/error"].hint' 2>/dev/null)"
+	assert_eq "Suggestion 1"$'\n'"Suggestion 2" "${hint}" "suggestions should form the hint"
 
-	local sug1
-	sug1="$(echo "${json}" | "${MCPBASH_JSON_TOOL_BIN:-jq}" -r '.error.suggestions[0]' 2>/dev/null)"
-	assert_eq "Suggestion 1" "${sug1}" "first suggestion should match"
-
-	test_pass "git_hex_error_json includes suggestions"
+	test_pass "git_hex_error includes suggestions"
 }
 
 test_require_repo_error_not_git_repo() {
@@ -284,8 +278,8 @@ test_require_safe_path_error_traversal() {
 echo "=== Running git-helpers.sh unit tests ==="
 
 echo "--- Error Response Tests ---"
-test_error_json_structure
-test_error_json_with_suggestions
+test_error_result_structure
+test_error_result_with_suggestions
 test_require_repo_error_not_git_repo
 test_require_no_in_progress_operation_rebase_error
 test_require_no_in_progress_operation_merge_error

@@ -66,57 +66,39 @@ readonly GIT_HEX_ERR_NO_COMMITS="NO_COMMITS"
 # Error Output Functions
 # ============================================================================
 
-# Output a user-friendly error (does NOT exit - caller must handle)
-# Usage: git_hex_error_json "ERROR_CODE" "Message" ["Suggestion1" "Suggestion2" ...]
-# Returns: JSON string on stdout
+# End the tool with an error the model and the user can read (isError: true).
+# Usage: git_hex_error "ERROR_CODE" "Message" ["Suggestion1" "Suggestion2" ...]
+# The error type is the code in lower case (REBASE_IN_PROGRESS ->
+# rebase_in_progress); suggestions become the hint; the code and suggestions
+# are also sent as data. Exits the tool, also when called inside $(...).
 # Note: Suggestions must not contain null bytes
-git_hex_error_json() {
+git_hex_error() {
 	local code="$1"
 	local message="$2"
 	shift 2
 	local suggestions=("$@")
 
 	local json_tool="${MCPBASH_JSON_TOOL_BIN:-jq}"
+	local type hint="" data
+	type="$(printf '%s' "${code}" | tr '[:upper:]' '[:lower:]')"
 
 	if [[ ${#suggestions[@]} -eq 0 ]]; then
-		# shellcheck disable=SC2016  # $code, $msg are jq variables, not bash
-		"$json_tool" -n \
-			--arg code "$code" \
-			--arg msg "$message" \
-			'{success: false, error: {code: $code, message: $msg}}'
+		# shellcheck disable=SC2016  # $code is a jq variable, not bash
+		data="$("$json_tool" -nc --arg code "$code" '{code: $code}')"
 	else
-		# Use null-delimited format to handle suggestions with newlines
 		local suggestions_json
+		# Use null-delimited format to handle suggestions with newlines
 		suggestions_json=$(printf '%s\0' "${suggestions[@]}" | "$json_tool" -Rs 'split("\u0000") | .[:-1]')
-		# shellcheck disable=SC2016  # $code, $msg, $sug are jq variables, not bash
-		"$json_tool" -n \
-			--arg code "$code" \
-			--arg msg "$message" \
-			--argjson sug "$suggestions_json" \
-			'{success: false, error: {code: $code, message: $msg, suggestions: $sug}}'
+		# shellcheck disable=SC2016  # $code, $sug are jq variables, not bash
+		data="$("$json_tool" -nc --arg code "$code" --argjson sug "$suggestions_json" '{code: $code, suggestions: $sug}')"
+		hint="$(printf '%s\n' "${suggestions[@]}")"
+		hint="${hint%$'\n'}"
 	fi
-}
 
-# Output error as MCP CallToolResult and exit (convenience wrapper)
-# Usage: git_hex_error "ERROR_CODE" "Message" ["Suggestion1" "Suggestion2" ...]
-# Note: Uses isError: false so Claude won't show "Failed to call tool" banner
-git_hex_error() {
-	local error_json
-	error_json="$(git_hex_error_json "$@")"
-
-	local json_tool="${MCPBASH_JSON_TOOL_BIN:-jq}"
-
-	# Emit MCP CallToolResult with error in structuredContent
-	# isError: false prevents the "Failed to call tool" banner in Claude Desktop
-	# shellcheck disable=SC2016  # $err is a jq variable, not bash
-	"$json_tool" -n \
-		--argjson err "$error_json" \
-		'{
-			content: [{type: "text", text: $err.error.message}],
-			structuredContent: $err,
-			isError: false
-		}'
-	exit 0
+	if [ -n "${hint}" ]; then
+		mcp_fail --type "${type}" "${message}" --hint "${hint}" --data "${data}"
+	fi
+	mcp_fail --type "${type}" "${message}" --data "${data}"
 }
 
 # ============================================================================

@@ -82,6 +82,17 @@ if [ -z "${MCPBASH_TOOL_ALLOWLIST:-}" ]; then
 	fi
 fi
 
+# run-tool needs the full mcp-bash CLI too. It runs after the allowlist is set,
+# so the documented `./git-hex.sh run-tool ...` gets git-hex's tool list.
+if [ "${1:-}" = "run-tool" ]; then
+	if command -v mcp-bash >/dev/null 2>&1; then
+		exec mcp-bash "$@"
+	fi
+	echo "The 'run-tool' subcommand requires mcp-bash installed on your system." >&2
+	echo "Install via: brew install yaniv-golan/mcp-bash/mcp-bash" >&2
+	exit 1
+fi
+
 # Print debug banner if debug mode enabled
 if [[ "${GIT_HEX_DEBUG:-}" == "1" ]]; then
 	VENDOR_VERSION=$(cat "${FRAMEWORK_DIR}/VERSION" 2>/dev/null || echo "unknown")

@@ -58,10 +58,33 @@ test_missing_vendored_runtime_error() {
 	)
 }
 
+test_run_tool_via_wrapper() {
+	(
+		if ! command -v mcp-bash >/dev/null 2>&1; then
+			printf 'SKIP: run-tool via git-hex.sh needs mcp-bash on PATH\n'
+			return 0
+		fi
+		local tmp_dir repo
+		tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/githex.runtool.XXXXXX")"
+		trap 'rm -rf "${tmp_dir}"' EXIT
+		repo="${tmp_dir}/repo"
+		git init -q "${repo}"
+		git -C "${repo}" -c user.name=t -c user.email=t@example.com commit -q --allow-empty -m one
+
+		# As documented: no allowlist set, so the launcher's tool list applies.
+		capture env -u MCPBASH_TOOL_ALLOWLIST bash "${PROJECT_ROOT}/git-hex.sh" run-tool git-hex-getRebasePlan \
+			--roots "${repo}" --args "{\"repoPath\": \"${repo}\", \"count\": 1}"
+		assert_eq "0" "${CAPTURE_STATUS}" "git-hex.sh run-tool should succeed (output: ${CAPTURE_OUTPUT})"
+		assert_contains "${CAPTURE_OUTPUT}" '"structuredContent"' "git-hex.sh run-tool should print the tool result"
+		test_pass "git-hex.sh run-tool runs a tool"
+	)
+}
+
 echo "=== Testing git-hex.sh vendored runtime behavior ==="
 test_vendored_runtime_present
 test_install_prints_guidance
 test_missing_vendored_runtime_error
+test_run_tool_via_wrapper
 
 echo ""
 echo "All vendored runtime tests passed!"

@@ -190,4 +190,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 		summary: $summary,
 		note: $note
 	}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

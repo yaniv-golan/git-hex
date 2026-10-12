@@ -99,4 +99,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg summary "Created fixup commit ${head_after:0:7} targeting ${target_hash:0:7}" \
 	--arg commitMessage "${commit_message}" \
 	'{headBefore: $headBefore, headAfter: $headAfter, targetCommit: $targetCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

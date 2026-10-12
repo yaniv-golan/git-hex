@@ -189,7 +189,7 @@ if pick_error="$(git -C "${repo_path}" cherry-pick "${pick_args[@]}" 2>&1)"; the
 			--argjson stashNotRestored "${stash_not_restored}" \
 			'{headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
 	fi
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 else
 	# Cherry-pick failed - cleanup will abort
 	# Provide more specific error context
@@ -213,7 +213,7 @@ else
 				--argjson stashNotRestored false \
 				--arg summary "Cherry-pick paused due to conflicts. Use getConflictStatus and resolveConflict to continue." \
 				'{paused: $paused, reason: $reason, headBefore: $headBefore, headAfter: $headAfter, sourceCommit: $sourceCommit, backupRef: $backupRef, commitMessage: $commitMessage, conflictingFiles: $conflictingFiles, stashNotRestored: $stashNotRestored, summary: $summary}')"
-			mcp_result_success "${result}"
+			mcp_result_json "${result}"
 		else
 			git_dir="$(git_hex_get_git_dir "${repo_path}")"
 			cherry_pick_head_path="${git_dir}/CHERRY_PICK_HEAD"

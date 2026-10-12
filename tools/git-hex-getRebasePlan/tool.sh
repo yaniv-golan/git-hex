@@ -124,4 +124,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson commits "${commits_json}" \
 	--arg summary "${summary}" \
 	'{plan_id: $plan_id, branch: $branch, onto: $onto, commits: $commits, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

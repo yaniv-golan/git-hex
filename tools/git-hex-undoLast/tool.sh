@@ -110,7 +110,7 @@ if [ "${head_before}" = "${backup_hash}" ]; then
 		--arg undoneOperation "${operation:-unknown}" \
 		--arg summary "Already at backup state - nothing to undo" \
 		'{headBefore: $headBefore, headAfter: $headAfter, undoneOperation: $undoneOperation, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -196,4 +196,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson commitsUndone "${commits_since_backup}" \
 	--arg summary "${summary}" \
 	'{headBefore: $headBefore, headAfter: $headAfter, undoneOperation: $undoneOperation, backupRef: $backupRef, commitsUndone: $commitsUndone, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

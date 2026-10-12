@@ -28,7 +28,7 @@ operation="$(git_hex_get_in_progress_operation_from_git_dir "${git_dir}")"
 if  [ -z "${operation}" ]; then
 	# No operation in progress - return success: false in result data to indicate semantic failure
 	result='{"operationSucceeded": false, "operationType": "none", "error": "No rebase/merge/cherry-pick in progress", "summary": "Nothing to abort"}'
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -49,7 +49,7 @@ else
 		--arg error "Abort is only supported for rebase, cherry-pick, or merge" \
 		--arg summary "Nothing aborted" \
 		'{operationSucceeded: $operationSucceeded, operationType: $operationType, error: $error, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -60,4 +60,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg operationType "${operation}" \
 	--arg summary "${summary}" \
 	'{operationType: $operationType, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

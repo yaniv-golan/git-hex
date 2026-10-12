@@ -35,62 +35,38 @@
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "headBefore",
+      "headAfter",
+      "backupRef",
+      "summary",
+      "commitMessage",
+      "stashNotRestored"
+    ],
     "properties": {
-      "success": {
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the operation"
+      },
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation"
+      },
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The commit's subject line (first line of commit message)"
+      },
+      "stashNotRestored": {
         "type": "boolean",
-        "description": "True if operation succeeded, false if error"
-      },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["headBefore", "headAfter", "backupRef", "summary", "commitMessage", "stashNotRestored"],
-        "properties": {
-          "headBefore": {
-            "type": "string",
-            "description": "HEAD commit hash before the operation"
-          },
-          "headAfter": {
-            "type": "string",
-            "description": "HEAD commit hash after the operation"
-          },
-          "backupRef": {
-            "type": "string",
-            "description": "Backup ref created for undoLast"
-          },
-          "summary": {
-            "type": "string",
-            "description": "Human-readable explanation of what was done"
-          },
-          "commitMessage": {
-            "type": "string",
-            "description": "The commit's subject line (first line of commit message)"
-          },
-          "stashNotRestored": {
-            "type": "boolean",
-            "description": "True if auto-stash could not be restored cleanly"
-          }
-        }
-      },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
-        }
+        "description": "True if auto-stash could not be restored cleanly"
       }
     }
   },

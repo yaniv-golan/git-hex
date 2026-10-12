@@ -75,7 +75,7 @@ elif   [ -n "${merge_head_path}" ] && [ -f "${merge_head_path}" ]; then
 	conflicting_commit="$(<"${merge_head_path}")"
 else
 	# Build and emit result (mcp_result_success wraps in {success: true, result: ...} envelope)
-	mcp_result_success '{"inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
+	mcp_result_json '{"inConflict": false, "conflictType": "none", "summary": "No conflicts detected"}'
 	exit 0
 fi
 
@@ -220,7 +220,7 @@ if  [ "${have_conflicts}" != "true" ]; then
 		--argjson conflictingFiles "[]" \
 		--arg summary "${conflict_type} paused - all conflicts resolved, ready to continue" \
 		'{inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
-	mcp_result_success "${result}"
+	mcp_result_json "${result}"
 	exit 0
 fi
 
@@ -237,4 +237,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson conflictingFiles "${files_json}" \
 	--arg summary "${conflict_type} paused with ${file_count} conflicting file(s)" \
 	'{inConflict: $inConflict, conflictType: $conflictType, currentStep: $currentStep, totalSteps: $totalSteps, conflictingCommit: $conflictingCommit, conflictingFiles: $conflictingFiles, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

@@ -111,4 +111,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--arg commitMessage "${commit_message}" \
 	--argjson stashNotRestored "${stash_not_restored}" \
 	'{headBefore: $headBefore, headAfter: $headAfter, backupRef: $backupRef, summary: $summary, commitMessage: $commitMessage, stashNotRestored: $stashNotRestored}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

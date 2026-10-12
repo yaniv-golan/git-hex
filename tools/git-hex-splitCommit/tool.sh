@@ -388,4 +388,4 @@ if [ -z "${output_json}" ]; then
 fi
 
 # mcp_result_success wraps in {success: true, result: ...} envelope
-mcp_result_success "${output_json}"
+mcp_result_json "${output_json}"

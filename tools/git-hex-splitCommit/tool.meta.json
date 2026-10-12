@@ -25,7 +25,9 @@
           "properties": {
             "files": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Files to include in this commit"
             },
             "message": {
@@ -33,7 +35,10 @@
               "description": "Commit message for this split. Must be single-line (no TAB/newline)."
             }
           },
-          "required": ["files", "message"]
+          "required": [
+            "files",
+            "message"
+          ]
         },
         "minItems": 2
       },
@@ -48,62 +53,61 @@
         "default": false
       }
     },
-    "required": ["commit", "splits"]
+    "required": [
+      "commit",
+      "splits"
+    ]
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "originalCommit",
+      "newCommits",
+      "backupRef",
+      "rebasePaused",
+      "stashNotRestored",
+      "summary"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "originalCommit": {
+        "type": "string"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["originalCommit", "newCommits", "backupRef", "rebasePaused", "stashNotRestored", "summary"],
-        "properties": {
-          "originalCommit": { "type": "string" },
-          "newCommits": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["hash", "message", "files"],
-              "properties": {
-                "hash": { "type": "string" },
-                "message": { "type": "string" },
-                "files": {
-                  "type": "array",
-                  "items": { "type": "string" }
-                }
+      "newCommits": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "hash",
+            "message",
+            "files"
+          ],
+          "properties": {
+            "hash": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
-          },
-          "backupRef": { "type": "string" },
-          "rebasePaused": { "type": "boolean" },
-          "stashNotRestored": { "type": "boolean" },
-          "summary": { "type": "string" }
-        }
-      },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
           }
         }
+      },
+      "backupRef": {
+        "type": "string"
+      },
+      "rebasePaused": {
+        "type": "boolean"
+      },
+      "stashNotRestored": {
+        "type": "boolean"
+      },
+      "summary": {
+        "type": "string"
       }
     }
   },

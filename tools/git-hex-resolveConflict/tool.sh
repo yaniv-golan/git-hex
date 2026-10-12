@@ -114,4 +114,4 @@ result="$("${MCPBASH_JSON_TOOL_BIN}" -n \
 	--argjson remainingConflicts "${remaining}" \
 	--arg summary "Marked ${file} as resolved. ${remaining} conflict(s) remaining." \
 	'{file: $file, remainingConflicts: $remainingConflicts, summary: $summary}')"
-mcp_result_success "${result}"
+mcp_result_json "${result}"

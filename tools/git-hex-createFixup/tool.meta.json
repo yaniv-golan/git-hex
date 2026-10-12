@@ -27,66 +27,44 @@
         "default": false
       }
     },
-    "required": ["commit"]
+    "required": [
+      "commit"
+    ]
   },
   "outputSchema": {
     "type": "object",
-    "required": ["success"],
+    "required": [
+      "headBefore",
+      "headAfter",
+      "backupRef",
+      "targetCommit",
+      "summary",
+      "commitMessage"
+    ],
     "properties": {
-      "success": {
-        "type": "boolean",
-        "description": "True if operation succeeded, false if error"
+      "headBefore": {
+        "type": "string",
+        "description": "HEAD commit hash before the operation"
       },
-      "result": {
-        "type": "object",
-        "description": "Result data (present when success=true)",
-        "required": ["headBefore", "headAfter", "backupRef", "targetCommit", "summary", "commitMessage"],
-        "properties": {
-          "headBefore": {
-            "type": "string",
-            "description": "HEAD commit hash before the operation"
-          },
-          "headAfter": {
-            "type": "string",
-            "description": "HEAD commit hash after the operation"
-          },
-          "backupRef": {
-            "type": "string",
-            "description": "Backup ref created for undoLast"
-          },
-          "targetCommit": {
-            "type": "string",
-            "description": "Hash of the commit this fixup targets"
-          },
-          "summary": {
-            "type": "string",
-            "description": "Human-readable explanation of what was done"
-          },
-          "commitMessage": {
-            "type": "string",
-            "description": "The commit's subject line (first line of commit message)"
-          }
-        }
+      "headAfter": {
+        "type": "string",
+        "description": "HEAD commit hash after the operation"
       },
-      "error": {
-        "type": "object",
-        "description": "Error details (present when success=false)",
-        "required": ["code", "message"],
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "Machine-readable error code"
-          },
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "suggestions": {
-            "type": "array",
-            "items": { "type": "string" },
-            "description": "Actionable suggestions for resolving the error"
-          }
-        }
+      "backupRef": {
+        "type": "string",
+        "description": "Backup ref created for undoLast"
+      },
+      "targetCommit": {
+        "type": "string",
+        "description": "Hash of the commit this fixup targets"
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable explanation of what was done"
+      },
+      "commitMessage": {
+        "type": "string",
+        "description": "The commit's subject line (first line of commit message)"
       }
     }
   },

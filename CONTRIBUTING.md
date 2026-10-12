@@ -22,7 +22,7 @@ cd git-hex
 ./git-hex.sh doctor
 ```
 
-> **Framework Version:** the server runs on the mcp-bash runtime vendored in `.mcp-bash/` (version and checksum in `.mcp-bash/vendor.json`). To upgrade it, run `make vendor-upgrade` with the new mcp-bash installed, then `make vendor-verify`, and commit `.mcp-bash/`. Keep `FRAMEWORK_VERSION` and `FRAMEWORK_SHA256` in the `Dockerfile` at the same version.
+> **Framework Version:** the server runs on the mcp-bash runtime vendored in `.mcp-bash/` (version and checksum in `.mcp-bash/vendor.json`). To upgrade it, run `make vendor-upgrade` with the new mcp-bash installed, then `make vendor-verify`, and commit `.mcp-bash/`. Keep `FRAMEWORK_VERSION` and `FRAMEWORK_SHA256` in the `Dockerfile` at the same version: CI installs the mcp-bash CLI from that release and checksum (`.github/scripts/install-mcp-bash.sh`), and fails if it doesn't match `.mcp-bash/VERSION`.
 
 > Note: mcp-bash-framework v0.7.0+ requires tool allowlisting. The `./git-hex.sh` and `./git-hex-env.sh` launchers set `MCPBASH_TOOL_ALLOWLIST` to the explicit git-hex tool set (and narrow it further in read-only mode) so tools can run safely.
 >

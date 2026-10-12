@@ -3,9 +3,9 @@ FROM debian:bookworm-slim
 # Framework version pinning for reproducible builds
 # Update this when upgrading to a new framework version
 # Keep this at the version vendored in .mcp-bash/ (see .mcp-bash/vendor.json).
-ARG FRAMEWORK_VERSION=v1.9.0
+ARG FRAMEWORK_VERSION=v1.9.1
 # SHA256 of the release tarball (mcp-bash-<version>.tar.gz, listed in the release's SHA256SUMS)
-ARG FRAMEWORK_SHA256=3c5ab01086b7bf6b1c6f12c14d66d2056a8ccd34b41f0d72979e8a7973ea01a4
+ARG FRAMEWORK_SHA256=3574b5ab0c75302e538e33d16fb38b302fdc2274d09b04889ff8b1486815e896
 ENV XDG_DATA_HOME=/root/.local/share
 ENV PATH="/root/.local/bin:${PATH}"
 

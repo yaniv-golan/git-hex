@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A tool that times out returns the same error shape as every other error** (from mcp-bash 1.9.1): `_meta["mcpbash/error"]` with type `timeout`, and no `structuredContent`. Before, it returned `structuredContent: {"success": false, "error": {...}}`, which doesn't match the tool's `outputSchema` (the known issue in 0.4.0). The timeout hint now follows `Hint:` instead of `Suggestion:`.
+
 ### Changed
 
+- **Vendored mcp-bash runtime upgraded from 1.9.0 to 1.9.1**, and the Docker image uses 1.9.1. Also from 1.9.1: reading a resource by URI no longer reports it missing when two resources share the URI.
 - **CI installs a pinned mcp-bash CLI**: the workflows install the mcp-bash release that the `Dockerfile` pins, check it against the pinned checksum, and fail if it differs from the vendored runtime in `.mcp-bash/`. They used to install whatever was on mcp-bash's `main` branch, so an mcp-bash change could break git-hex CI without any git-hex change.
 
 ## [0.4.0] - 2026-10-12
